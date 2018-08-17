@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "BlendoBot": {
+      "commandName": "Project",
+      "workingDirectory": "D:\\Programming\\C#\\BlendoBot"
+    }
+  }
+}

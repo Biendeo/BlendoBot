@@ -14,8 +14,8 @@ namespace BlendoBot {
 
 		public const string BotName = "BlendoBot";
 		public const string Author = "Biendeo";
-		public const string BotVersion = "0.0.3.1";
-		public const string BotVersionTitle = "The one that rolls (not randomly)";
+		public const string BotVersion = "0.0.4.0";
+		public const string BotVersionTitle = "Don't @ me";
 
 		public static void Main(string[] args) {
 			MainAsync(args).ConfigureAwait(false).GetAwaiter().GetResult();
@@ -46,9 +46,7 @@ namespace BlendoBot {
 		}
 
 		private static async Task Ready(ReadyEventArgs e) {
-			foreach (var g in Discord.Guilds) {
-				Console.WriteLine($"{g.Key}: {g.Value.MemberCount}");
-			}
+			Log.LogMessage(LogType.Log, "Started up, all ready!");
 			await Task.Delay(0);
 		}
 
@@ -61,8 +59,18 @@ namespace BlendoBot {
 		}
 
 		public static async Task SendMessage(string message, DiscordChannel channel, string logMessage = "a message") {
-			Log.LogMessage(LogType.Log, $"Sending {logMessage} to channel #{channel.Name} ({channel.Guild.Name})");
+			Log.LogMessage(LogType.Log, $"Sending message {logMessage} to channel #{channel.Name} ({channel.Guild.Name})");
 			await channel.SendMessageAsync(message);
+		}
+
+		public static async Task SendFile(string filePath, DiscordChannel channel, string logMessage = "a file") {
+			Log.LogMessage(LogType.Log, $"Sending file {logMessage} to channel #{channel.Name} ({channel.Guild.Name})");
+			await channel.SendFileAsync(filePath);
+		}
+
+		public static async Task SendException(Exception e, DiscordChannel channel, string logExceptionType = "exception") {
+			Log.LogMessage(LogType.Error, $"{logExceptionType}\n{e}");
+			await channel.SendMessageAsync($"A {logExceptionType} occurred. Alert the authorities!\n```\n{e}\n```");
 		}
 
 	}
