@@ -14,14 +14,14 @@ namespace BlendoBot {
 
 		public const string BotName = "BlendoBot";
 		public const string Author = "Biendeo";
-		public const string BotVersion = "0.0.0";
-		public const string BotVersionTitle = "Too early";
+		public const string BotVersion = "0.0.3";
+		public const string BotVersionTitle = "The one that rolls";
 
 		public static void Main(string[] args) {
 			MainAsync(args).ConfigureAwait(false).GetAwaiter().GetResult();
 		}
 
-		static async Task MainAsync(string[] args) {
+		private static async Task MainAsync(string[] args) {
 			Discord = new DiscordClient(new DiscordConfiguration {
 				Token = ReadToken("token.txt"),
 				TokenType = TokenType.Bot
