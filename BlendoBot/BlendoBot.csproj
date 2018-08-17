@@ -23,12 +23,6 @@
     <Reference Include="System.Drawing">
       <HintPath>C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\Extensions\pahci0mi.uwi\Agent\System.Drawing.dll</HintPath>
     </Reference>
-    <Reference Include="System.Drawing.Primitives">
-      <HintPath>C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\Extensions\pahci0mi.uwi\Agent\System.Drawing.Primitives.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Drawing.VisualStudio.15.0">
-      <HintPath>C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\System.Drawing.VisualStudio.15.0.dll</HintPath>
-    </Reference>
   </ItemGroup>
 
   <ItemGroup>
