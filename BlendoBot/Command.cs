@@ -68,7 +68,7 @@ namespace BlendoBot {
 			}}, { "?roll", new CommandProps {
 				Term = "?roll",
 				Name = "Roll",
-				Description = "Rolls a given dice a given number of times.\nUsage: ?random [dice value] [optional: num rolls = 1]",
+				Description = "Rolls a given dice a given number of times.\nUsage: ?random [dice value] [optional: num rolls = 1]\n20 or fewer rolls returns all the roll results, any more and a five-number summary is used.",
 				Func = RollCommand,
 				Enabled = true,
 				AppearsInHelp = true
@@ -115,9 +115,9 @@ namespace BlendoBot {
 			string[] splitMessage = e.Message.Content.Split(' ');
 			// We want to make sure that there's either two or three arguments.
 			if (splitMessage.Length < 2) {
-				await Program.SendMessage($"Too few arguments specified to `?random`", e.Channel, "RollErrorTooFewArgs");
+				await Program.SendMessage($"Too few arguments specified to `?roll`", e.Channel, "RollErrorTooFewArgs");
 			} else if (splitMessage.Length > 3) {
-				await Program.SendMessage($"Too many arguments specified to `?random`", e.Channel, "RollErrorTooManyArgs");
+				await Program.SendMessage($"Too many arguments specified to `?roll`", e.Channel, "RollErrorTooManyArgs");
 			} else {
 				// If two arguments are given, then we are just rolling a dice one time.
 				int rollCount = 1;

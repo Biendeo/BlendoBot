@@ -14,8 +14,8 @@ namespace BlendoBot {
 
 		public const string BotName = "BlendoBot";
 		public const string Author = "Biendeo";
-		public const string BotVersion = "0.0.3";
-		public const string BotVersionTitle = "The one that rolls";
+		public const string BotVersion = "0.0.3.1";
+		public const string BotVersionTitle = "The one that rolls (not randomly)";
 
 		public static void Main(string[] args) {
 			MainAsync(args).ConfigureAwait(false).GetAwaiter().GetResult();
@@ -38,9 +38,7 @@ namespace BlendoBot {
 			string token = null;
 			try {
 				token = File.ReadAllText(filePath);
-				if (token.Length != 59) {
-					throw new Exception("Token in token.txt is incorrect!");
-				}
+				// Hopefully the file is valid, or else I just get the error elsewhere.
 			} catch (IOException) {
 				throw new Exception("token.txt does not exist!");
 			}
