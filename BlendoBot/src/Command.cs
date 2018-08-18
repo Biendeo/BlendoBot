@@ -89,7 +89,7 @@ namespace BlendoBot {
 
 		public static async Task ParseAndExecute(MessageCreateEventArgs e) {
 			string commandType = GetCommandType(e.Message.Content);
-			if (AvailableCommands.ContainsKey(commandType) && AvailableCommands[commandType].Enabled) {
+			if (AvailableCommands.ContainsKey(commandType) && (AvailableCommands[commandType].Enabled || Program.Props.IsUserAuthorised(e.Author))) {
 				try {
 					await AvailableCommands[commandType].Func(e);
 				} catch (Exception exc) {

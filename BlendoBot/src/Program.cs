@@ -9,10 +9,7 @@ namespace BlendoBot {
 	public static class Program {
 		public static DiscordClient Discord;
 
-		public const string BotName = "BlendoBot";
-		public const string Author = "Biendeo";
-		public const string BotVersion = "0.0.5.0";
-		public const string BotVersionTitle = "`:regional_indicator_w: :regional_indicator_o: :regional_indicator_r: :regional_indicator_t: :regional_indicator_h: :black_large_square: :regional_indicator_i: :regional_indicator_t:`";
+		public static readonly Properties Props = Properties.FromJson("config.json");
 
 		public static void Main(string[] args) {
 			MainAsync(args).ConfigureAwait(false).GetAwaiter().GetResult();
@@ -20,7 +17,7 @@ namespace BlendoBot {
 
 		private static async Task MainAsync(string[] args) {
 			Discord = new DiscordClient(new DiscordConfiguration {
-				Token = ReadToken("token.txt"),
+				Token = Props.Token,
 				TokenType = TokenType.Bot
 			});
 
@@ -44,7 +41,7 @@ namespace BlendoBot {
 
 		private static async Task Ready(ReadyEventArgs e) {
 			Log.LogMessage(LogType.Log, "Started up, all ready!");
-			await Discord.UpdateStatusAsync(new DiscordGame("Checkers"), UserStatus.Online, DateTime.Now);
+			await Discord.UpdateStatusAsync(new DiscordGame(Props.Game), UserStatus.Online, DateTime.Now);
 			await Task.Delay(0);
 		}
 

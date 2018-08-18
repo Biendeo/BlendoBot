@@ -8,7 +8,7 @@ namespace BlendoBot.Commands {
 	public static class About {
 		public static async Task AboutCommand(MessageCreateEventArgs e) {
 			var sb = new StringBuilder();
-			sb.AppendLine($"`{Program.BotName} {Program.BotVersion} ({Program.BotVersionTitle}) by {Program.Author}`");
+			sb.AppendLine($"`{Program.Props.Name} {Program.Props.Version} ({Program.Props.Description}) by {Program.Props.Author}`");
 			await Program.SendMessage(sb.ToString(), e.Channel, "About");
 		}
 	}
