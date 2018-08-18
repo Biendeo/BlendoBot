@@ -28,6 +28,11 @@ namespace BlendoBot.Commands {
 				}
 			}
 
+			if (filteredMembers.Count == 0) {
+				await Program.SendMessage($"No one is available for the Mr. Ping Challenge. 👀", e.Channel, "MrPingErrorNoUsers");
+				return;
+			}
+
 			// Let's randomly pick someone from those filtered members.
 			var chosenMember = filteredMembers[(int)(random.NextDouble() * filteredMembers.Count)];
 

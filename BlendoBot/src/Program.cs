@@ -11,7 +11,7 @@ namespace BlendoBot {
 
 		public const string BotName = "BlendoBot";
 		public const string Author = "Biendeo";
-		public const string BotVersion = "0.0.4.1";
+		public const string BotVersion = "0.0.4.2";
 		public const string BotVersionTitle = "Don't @ me";
 
 		public static void Main(string[] args) {
@@ -44,6 +44,7 @@ namespace BlendoBot {
 
 		private static async Task Ready(ReadyEventArgs e) {
 			Log.LogMessage(LogType.Log, "Started up, all ready!");
+			await Discord.UpdateStatusAsync(new DiscordGame("Checkers"), UserStatus.Online, DateTime.Now);
 			await Task.Delay(0);
 		}
 
