@@ -41,7 +41,7 @@ namespace BlendoBot {
 
 		private static async Task Ready(ReadyEventArgs e) {
 			Log.LogMessage(LogType.Log, "Started up, all ready!");
-			await Discord.UpdateStatusAsync(new DiscordGame(Props.Game), UserStatus.Online, DateTime.Now);
+			//await Discord.UpdateStatusAsync(new DiscordGame(Props.Game), UserStatus.Online, DateTime.Now);
 			await Task.Delay(0);
 		}
 
@@ -52,6 +52,7 @@ namespace BlendoBot {
 				await Command.ParseAndExecute(e);
 			}
 		}
+
 
 		public static async Task SendMessage(string message, DiscordChannel channel, string logMessage = "a message") {
 			Log.LogMessage(LogType.Log, $"Sending message {logMessage} to channel #{channel.Name} ({channel.Guild.Name})");

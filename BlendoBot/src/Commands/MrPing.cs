@@ -1,4 +1,5 @@
-﻿using DSharpPlus.Entities;
+﻿using DSharpPlus;
+using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -17,16 +18,21 @@ namespace BlendoBot.Commands {
 			// of pings (up to 100).
 
 			// First, choose a user from the server.
-			var members = new List<DiscordMember>(await e.Guild.GetAllMembersAsync());
 			var random = new Random();
 			// Purge the list of anyone not valid:
 			var filteredMembers = new List<DiscordMember>();
-			foreach (var member in members) {
+			foreach (var member in e.Channel.Users) {
 				// Apparently your presence is null if you're offline, so that needs to be a check.
-				if (e.Channel.PermissionsFor(member).HasFlag(DSharpPlus.Permissions.ReadMessageHistory) && !member.IsBot && member.Presence != null && (member.Presence.Status == UserStatus.Online || member.Presence.Status == UserStatus.Idle)) {
+				//Console.WriteLine($"{member.DisplayName}\n{e.Channel.PermissionsFor(member)}\n");
+				if (!member.IsBot && member.Presence != null && (member.Presence.Status == UserStatus.Online || member.Presence.Status == UserStatus.Idle)) {
 					filteredMembers.Add(member);
 				}
 			}
+
+			//Console.WriteLine($"{filteredMembers.Count} valid members");
+			//foreach (var member in filteredMembers) {
+			//	Console.WriteLine($"{member.DisplayName}");
+			//}
 
 			if (filteredMembers.Count == 0) {
 				await Program.SendMessage($"No one is available for the Mr. Ping Challenge. 👀", e.Channel, "MrPingErrorNoUsers");
