@@ -23,16 +23,10 @@ namespace BlendoBot.Commands {
 			var filteredMembers = new List<DiscordMember>();
 			foreach (var member in e.Channel.Users) {
 				// Apparently your presence is null if you're offline, so that needs to be a check.
-				//Console.WriteLine($"{member.DisplayName}\n{e.Channel.PermissionsFor(member)}\n");
-				if (!member.IsBot && member.Presence != null && (member.Presence.Status == UserStatus.Online || member.Presence.Status == UserStatus.Idle)) {
+				if (!member.IsBot && member.Presence != null && (member.Presence.Status == UserStatus.Online || member.Presence.Status == UserStatus.Idle) && await DoesUserHaveChannelPermissions(member, e.Channel, Permissions.ReadMessageHistory)) {
 					filteredMembers.Add(member);
 				}
 			}
-
-			//Console.WriteLine($"{filteredMembers.Count} valid members");
-			//foreach (var member in filteredMembers) {
-			//	Console.WriteLine($"{member.DisplayName}");
-			//}
 
 			if (filteredMembers.Count == 0) {
 				await Program.SendMessage($"No one is available for the Mr. Ping Challenge. 👀", e.Channel, "MrPingErrorNoUsers");
@@ -72,6 +66,45 @@ namespace BlendoBot.Commands {
 					}
 				}
 			}
+		}
+
+		//? I would love to make this not async, can it be done?
+		private static async Task<bool> DoesUserHaveChannelPermissions(DiscordMember member, DiscordChannel channel, Permissions permissions) {
+			var memberRoles = new List<DiscordRole>(member.Roles);
+			foreach (var permOverwrite in channel.PermissionOverwrites) {
+				// Check whether the permission overwrite is a role-based or user-based overwrite.
+				if (permOverwrite.Type == OverwriteType.Role) {
+					// Check if the user contains this role.
+					DiscordRole role = await permOverwrite.GetRoleAsync();
+					if (memberRoles.Exists((DiscordRole d) => { return d == role; })) {
+						// If the permission explicitly says you can/cannot do this permission, return that.
+						if (permOverwrite.Allowed.HasPermission(permissions)) {
+							return true;
+						} else if (permOverwrite.Denied.HasPermission(permissions)) {
+							return false;
+						}
+					}
+				} else if (permOverwrite.Type == OverwriteType.Member) {
+					DiscordMember roleMember = await permOverwrite.GetMemberAsync();
+					if (member.Equals(roleMember)) {
+						if (permOverwrite.Allowed.HasPermission(permissions)) {
+							return true;
+						} else if (permOverwrite.Denied.HasPermission(permissions)) {
+							return false;
+						}
+					}
+				}
+			}
+			// If we've hit here, that means the channel has zero role overrides that match both of these.
+			// The user must have a role that enables this feature then.
+			foreach (var role in memberRoles) {
+				if (role.Permissions.HasPermission(permissions)) {
+					return true;
+				}
+			}
+
+			// Finally, we need to check the @everyone role.
+			return channel.Guild.EveryoneRole.Permissions.HasPermission(permissions);
 		}
 	}
 }

@@ -40,7 +40,7 @@ namespace BlendoBot {
 		}
 
 		private static async Task Ready(ReadyEventArgs e) {
-			Log.LogMessage(LogType.Log, "Started up, all ready!");
+			Log.LogMessage(LogType.Log, $"{Props.Name} ({Props.Version}) is up and ready!");
 			//await Discord.UpdateStatusAsync(new DiscordGame(Props.Game), UserStatus.Online, DateTime.Now);
 			await Task.Delay(0);
 		}
