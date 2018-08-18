@@ -1,5 +1,4 @@
-﻿using BlendoBot.Properties;
-using DSharpPlus.Entities;
+﻿using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
@@ -9,7 +8,6 @@ using SixLabors.Primitives;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace BlendoBot.Commands {
@@ -37,7 +35,8 @@ namespace BlendoBot.Commands {
 			int numberOfPings = (int)(random.NextDouble() * 99 + 1);
 
 			// Now to do the image modification.
-			using (var image = Image.Load(Resources.MrPingTemplate)) {
+			using (var image = Image.Load(Resources.ReadImage("mr.png"))) {
+				//? It seems that memory goes up after multiple usages of this. Am I leaking something?
 				Font memberNameFont = SystemFonts.CreateFont("Arial", 25);
 				Font numberFont = SystemFonts.CreateFont("Arial", 35);
 				using (var workingImage = image.Clone()) {
@@ -47,11 +46,13 @@ namespace BlendoBot.Commands {
 						VerticalAlignment = VerticalAlignment.Center,
 						WrapTextWidth = 175.0f
 					};
-					workingImage.Mutate(ctx => ctx.DrawText(textGraphicsOptions, $"@{chosenMember.Username} #{chosenMember.Discriminator}", memberNameFont, Rgba32.DarkBlue, new PointF(0, 290)));
-					workingImage.Mutate(ctx => ctx.DrawText(textGraphicsOptions, $"{numberOfPings}", numberFont, Rgba32.DarkRed, new PointF(-45, 357)));
+					workingImage.Mutate(ctx => ctx.DrawText(textGraphicsOptions, $"@{chosenMember.Username} #{chosenMember.Discriminator}", memberNameFont, Rgba32.DarkBlue, new PointF(0, 290)).DrawText(textGraphicsOptions, $"{numberOfPings}", numberFont, Rgba32.DarkRed, new PointF(-45, 357)));
 
 					string filePath = $"mrping-{chosenMember.Username}.png";
 					workingImage.Save(filePath);
+
+					//? Is this necessary because I'm using using?
+					workingImage.Dispose();
 
 					await Program.SendFile(filePath, e.Channel, "MrPingFileSuccess");
 

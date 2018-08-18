@@ -2,10 +2,7 @@
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace BlendoBot {
@@ -14,7 +11,7 @@ namespace BlendoBot {
 
 		public const string BotName = "BlendoBot";
 		public const string Author = "Biendeo";
-		public const string BotVersion = "0.0.4.0";
+		public const string BotVersion = "0.0.4.1";
 		public const string BotVersionTitle = "Don't @ me";
 
 		public static void Main(string[] args) {
