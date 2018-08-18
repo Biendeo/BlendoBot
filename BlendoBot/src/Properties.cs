@@ -16,7 +16,8 @@ namespace BlendoBot {
 		public string Version;
 		public string Description;
 		public string Author;
-		public string Game;
+		public string ActivityName;
+		public ActivityType ActivityType;
 		private List<User> AuthorisedUsers;
 
 		public static Properties FromJson(string filePath) {
@@ -26,13 +27,15 @@ namespace BlendoBot {
 			foreach (dynamic u in json.Private.AuthorisedClients) {
 				authorised.Add(new User { Name = u.Name, Discriminator = u.Discriminator });
 			}
+
 			return new Properties {
 				Token = json.Private.Token,
 				Name = json.Public.Name,
 				Version = json.Public.Version,
 				Description = json.Public.Description,
 				Author = json.Public.Author,
-				Game = json.Public.Game,
+				ActivityName = json.Public.ActivityName,
+				ActivityType = (ActivityType)Enum.Parse(typeof(ActivityType), json.Public.ActivityType.Value),
 				AuthorisedUsers = authorised
 			};
 		}

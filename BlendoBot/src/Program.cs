@@ -29,8 +29,7 @@ namespace BlendoBot {
 
 		private static async Task Ready(ReadyEventArgs e) {
 			Log.LogMessage(LogType.Log, $"{Props.Name} ({Props.Version}) is up and ready!");
-			await Discord.UpdateStatusAsync(new DiscordActivity("1s and 0s", ActivityType.Watching), UserStatus.Online, DateTime.Now);
-			await Task.Delay(0);
+			await Discord.UpdateStatusAsync(new DiscordActivity(Props.ActivityName, Props.ActivityType), UserStatus.Online, DateTime.Now);
 		}
 
 		private static async Task MessageCreated(MessageCreateEventArgs e) {
