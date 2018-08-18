@@ -2,7 +2,6 @@
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using System;
-using System.IO;
 using System.Threading.Tasks;
 
 namespace BlendoBot {
@@ -28,20 +27,9 @@ namespace BlendoBot {
 			await Task.Delay(-1);
 		}
 
-		private static string ReadToken(string filePath) {
-			string token = null;
-			try {
-				token = File.ReadAllText(filePath);
-				// Hopefully the file is valid, or else I just get the error elsewhere.
-			} catch (IOException) {
-				throw new Exception("token.txt does not exist!");
-			}
-			return token;
-		}
-
 		private static async Task Ready(ReadyEventArgs e) {
 			Log.LogMessage(LogType.Log, $"{Props.Name} ({Props.Version}) is up and ready!");
-			//await Discord.UpdateStatusAsync(new DiscordGame(Props.Game), UserStatus.Online, DateTime.Now);
+			await Discord.UpdateStatusAsync(new DiscordActivity("1s and 0s", ActivityType.Watching), UserStatus.Online, DateTime.Now);
 			await Task.Delay(0);
 		}
 
