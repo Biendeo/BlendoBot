@@ -77,6 +77,13 @@ namespace BlendoBot {
 				Func = Commands.MrPing.MrPingCommand,
 				Enabled = true,
 				AppearsInHelp = true
+			}}, { "?regional", new CommandProps {
+				Term = "?regional",
+				Name = "Regional Indicator",
+				Description = "Converts a message into lovely regional indicator text.",
+				Func = Commands.Regional.RegionalCommand,
+				Enabled = true,
+				AppearsInHelp = true
 			}}
 		};
 
@@ -94,7 +101,7 @@ namespace BlendoBot {
 		}
 
 		private static string GetCommandType(string message) {
-			return message.Split(' ')[0];
+			return message.Split(' ')[0].ToLower();
 		}
 
 		private static async Task UnknownCommand(MessageCreateEventArgs e) {

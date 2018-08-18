@@ -11,8 +11,8 @@ namespace BlendoBot {
 
 		public const string BotName = "BlendoBot";
 		public const string Author = "Biendeo";
-		public const string BotVersion = "0.0.4.2";
-		public const string BotVersionTitle = "Don't @ me";
+		public const string BotVersion = "0.0.5.0";
+		public const string BotVersionTitle = "`:regional_indicator_w: :regional_indicator_o: :regional_indicator_r: :regional_indicator_t: :regional_indicator_h: :black_large_square: :regional_indicator_i: :regional_indicator_t:`";
 
 		public static void Main(string[] args) {
 			MainAsync(args).ConfigureAwait(false).GetAwaiter().GetResult();
