@@ -2,12 +2,12 @@
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BlendoBot.Commands {
+namespace BlendoBot.Commands.Admin {
 	public static class Help {
 		public static async Task HelpCommand(MessageCreateEventArgs e) {
 			var sb = new StringBuilder();
-			foreach (var command in Command.AvailableCommands) {
-				if (command.Key != Command.DummyUnknownCommand && Program.Data.IsCommandEnabled(command.Key, e.Guild)) {
+			foreach (var command in Admin.AvailableCommands) {
+				if (command.Key != Admin.DummyUnknownCommand) {
 					sb.AppendLine($"**{command.Value.Name}** - `{command.Value.Term}`");
 					sb.AppendLine($"{command.Value.Description}");
 					sb.AppendLine();

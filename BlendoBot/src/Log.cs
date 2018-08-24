@@ -10,7 +10,7 @@ namespace BlendoBot {
 	}
 
 	public static class Log {
-		private static string logFile = Path.Join("log", $"{DateTime.Now.ToString("yyyyMMddHHmmss")}.log");
+		private static readonly string logFile = Path.Join("log", $"{DateTime.Now.ToString("yyyyMMddHHmmss")}.log");
 
 		public static void LogMessage(LogType type, string message) {
 			//? I dunno why but I can't one-line this.

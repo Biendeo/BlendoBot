@@ -40,7 +40,7 @@ namespace BlendoBot.Commands {
 			int numberOfPings = (int)(random.NextDouble() * 99 + 1);
 
 			// Now to do the image modification.
-			using (var image = Image.Load(Resources.ReadImage("mr.png"))) {
+			using (var image = Image.Load(Resources.MrPingTemplate)) {
 				//? It seems that memory goes up after multiple usages of this. Am I leaking something?
 				Font memberNameFont = SystemFonts.CreateFont("Arial", 25);
 				Font numberFont = SystemFonts.CreateFont("Arial", 35);
@@ -69,6 +69,7 @@ namespace BlendoBot.Commands {
 		}
 
 		//? I would love to make this not async, can it be done?
+		//? It's also really slow and probably scales poorly.
 		private static async Task<bool> DoesUserHaveChannelPermissions(DiscordMember member, DiscordChannel channel, Permissions permissions) {
 			var memberRoles = new List<DiscordRole>(member.Roles);
 			foreach (var permOverwrite in channel.PermissionOverwrites) {

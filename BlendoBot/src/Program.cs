@@ -7,8 +7,8 @@ using System.Threading.Tasks;
 namespace BlendoBot {
 	public static class Program {
 		public static DiscordClient Discord;
-
-		public static readonly Properties Props = Properties.FromJson("config.json");
+		public static readonly Config Props = Config.FromJson("config.json");
+		public static readonly Data Data = Data.Load();
 
 		public static void Main(string[] args) {
 			MainAsync(args).ConfigureAwait(false).GetAwaiter().GetResult();
@@ -24,19 +24,21 @@ namespace BlendoBot {
 			Discord.MessageCreated += MessageCreated;
 
 			await Discord.ConnectAsync();
+
 			await Task.Delay(-1);
 		}
 
 		private static async Task Ready(ReadyEventArgs e) {
-			Log.LogMessage(LogType.Log, $"{Props.Name} ({Props.Version}) is up and ready!");
 			await Discord.UpdateStatusAsync(new DiscordActivity(Props.ActivityName, Props.ActivityType), UserStatus.Online, DateTime.Now);
+			Data.VerifyData();
+			Log.LogMessage(LogType.Log, $"{Props.Name} ({Props.Version}) is up and ready!");
 		}
 
 		private static async Task MessageCreated(MessageCreateEventArgs e) {
 			// The rule is: don't react to my own messages, and commands need to be triggered with
 			// a ? character. Additional functionality should be added here.
 			if (!e.Author.IsCurrent && e.Message.Content.StartsWith("?")) {
-				await Command.ParseAndExecute(e);
+				await Commands.Command.ParseAndExecute(e);
 			}
 		}
 
