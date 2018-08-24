@@ -22,6 +22,7 @@ namespace BlendoBot {
 
 			Discord.Ready += Ready;
 			Discord.MessageCreated += MessageCreated;
+			Discord.GuildCreated += GuildCreated;
 
 			await Discord.ConnectAsync();
 
@@ -42,6 +43,14 @@ namespace BlendoBot {
 			}
 		}
 
+		private static async Task GuildCreated(GuildCreateEventArgs e) {
+			if (!Data.Servers.ContainsKey(e.Guild.Id)) {
+				Data.Servers.Add(e.Guild.Id, new Data.ServerInfo());
+				Data.Save();
+			}
+			Log.LogMessage(LogType.Log, $"Joined server {e.Guild.Name})");
+			await Task.Delay(0);
+		}
 
 		public static async Task SendMessage(string message, DiscordChannel channel, string logMessage = "a message") {
 			Log.LogMessage(LogType.Log, $"Sending message {logMessage} to channel #{channel.Name} ({channel.Guild.Name})");

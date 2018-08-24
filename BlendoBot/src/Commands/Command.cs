@@ -63,7 +63,7 @@ namespace BlendoBot.Commands {
 			}}, { "?admin", new CommandProps {
 				Term = "?admin",
 				Name = "Admin",
-				Description = "Lets admins decide parts of the bot Use `?admin help` to see more info.",
+				Description = "Lets admins decide parts of the bot. Use `?admin help` to see more info.",
 				Func = Admin.Admin.ParseAndExecute,
 			}}, { "?roll", new CommandProps {
 				Term = "?roll",

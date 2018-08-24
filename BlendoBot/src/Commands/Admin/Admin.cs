@@ -22,22 +22,22 @@ namespace BlendoBot.Commands.Admin {
 			}}, { "disable", new Command.CommandProps {
 				Term = "?admin disable",
 				Name = "Disable",
-				Description = "Disables a command from regular usage on the server.",
+				Description = "Disables a command from regular usage on the server.\nUsage: ?admin disable [command]",
 				Func = Disable.DisableCommand,
 			}}, { "enable", new Command.CommandProps {
 				Term = "?admin enable",
 				Name = "Enable",
-				Description = "Enables a previously disabled command from regular usage on the server.",
+				Description = "Enables a previously disabled command from regular usage on the server.\nUsage: ?admin enable [command]",
 				Func = Enable.EnableCommand,
 			}}, { "allow", new Command.CommandProps {
 				Term = "?admin allow",
 				Name = "Allow",
-				Description = "Allows a specified user to interact with disabled commands.",
+				Description = "Allows a specified user to interact with disabled commands.\nUsage: ?admin allow [@users ...]",
 				Func = Allow.AllowCommand,
 			}}, { "disallow", new Command.CommandProps {
 				Term = "?admin disallow",
 				Name = "Disallow",
-				Description = "Disallows a specified user to interact with disabled commands.",
+				Description = "Disallows a specified user to interact with disabled commands.\nUsage: ?admin disallow [@users ...]",
 				Func = Disallow.DisallowCommand,
 			}}
 		};
