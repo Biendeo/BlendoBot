@@ -262,3 +262,6 @@ __pycache__/
 
 # User sensitive files
 token.txt
+config.json
+data.json
+BlendoBot/Properties/launchSettings.json
