@@ -7,6 +7,13 @@ using System.Threading.Tasks;
 
 namespace BlendoBot.Commands {
 	public static class Roll {
+		public static readonly CommandProps Properties = new CommandProps {
+			Term = "?roll",
+			Name = "Roll",
+			Description = "Rolls a given dice a given number of times.\nUsage: ?random [dice value] [optional: num rolls = 1]\n20 or fewer rolls returns all the roll results, any more and a five-number summary is used.",
+			Func = RollCommand
+		};
+
 		public static async Task RollCommand(MessageCreateEventArgs e) {
 			string[] splitMessage = e.Message.Content.Split(' ');
 			// We want to make sure that there's either two or three arguments.

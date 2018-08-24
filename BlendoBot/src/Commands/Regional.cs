@@ -6,6 +6,13 @@ using System.Threading.Tasks;
 
 namespace BlendoBot.Commands {
 	public static class Regional {
+		public static readonly CommandProps Properties = new CommandProps {
+			Term = "?regional",
+			Name = "Regional Indicator",
+			Description = "Converts a message into lovely regional indicator text.",
+			Func = RegionalCommand
+		};
+
 		private static readonly Dictionary<char, string> characterMappings = new Dictionary<char, string> {
 			{ 'a', ":regional_indicator_a:" },
 			{ 'b', ":regional_indicator_b:" },

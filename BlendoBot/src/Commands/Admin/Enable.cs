@@ -6,6 +6,13 @@ using System.Threading.Tasks;
 
 namespace BlendoBot.Commands.Admin {
 	public static class Enable {
+		public static readonly CommandProps Properties = new CommandProps {
+			Term = "?admin enable",
+			Name = "Enable",
+			Description = "Enables a previously disabled command from regular usage on the server.\nUsage: ?admin enable [command]",
+			Func = EnableCommand
+		};
+
 		public static async Task EnableCommand(MessageCreateEventArgs e) {
 			if (e.Message.Content.Split(' ').Length <= 2) {
 				var sb = new StringBuilder();
@@ -13,7 +20,7 @@ namespace BlendoBot.Commands.Admin {
 				sb.Append("Disabled commands are: ");
 				//TODO: Add a bit if there are no disabled commands.
 				foreach (var c in Command.AvailableCommands) {
-					if (!Program.Data.IsCommandEnabled(c.Key, e.Guild) && c.Key != Command.DummyUnknownCommand) {
+					if (!Program.Data.IsCommandEnabled(c.Key, e.Guild)) {
 						sb.Append($"`{c.Key}`, ");
 					}
 				}
@@ -27,7 +34,7 @@ namespace BlendoBot.Commands.Admin {
 				command = $"?{command}";
 			}
 
-			if (!Command.AvailableCommands.ContainsKey(command) || command == Command.DummyUnknownCommand) {
+			if (!Command.AvailableCommands.ContainsKey(command)) {
 				await Program.SendMessage($"Command `{command}` does not exist!", e.Channel, "AdminEnableNotExist");
 				return;
 			} else if (Program.Data.IsCommandEnabled(command, e.Guild)) {

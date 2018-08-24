@@ -6,44 +6,23 @@ using System.Threading.Tasks;
 
 namespace BlendoBot.Commands.Admin {
 	public static class Admin {
-		public static readonly string DummyUnknownCommand = "?admin unknown_command";
+		public static readonly CommandProps Properties = new CommandProps {
+			Term = "?admin",
+			Name = "Admin",
+			Description = "Lets admins decide parts of the bot. Use `?admin help` to see more info.",
+			Func = ParseAndExecute
+		};
 
-		public static readonly Dictionary<string, Command.CommandProps> AvailableCommands = new Dictionary<string, Command.CommandProps> {
-			{ DummyUnknownCommand, new Command.CommandProps {
-				Term = DummyUnknownCommand,
-				Name = "Unknown Command",
-				Description = "If you're reading this, then...whoops!",
-				Func = UnknownCommand,
-			}}, { "help", new Command.CommandProps {
-				Term = "?admin help",
-				Name = "Help",
-				Description = "Posts what commands the admin panel can do.",
-				Func = Help.HelpCommand,
-			}}, { "disable", new Command.CommandProps {
-				Term = "?admin disable",
-				Name = "Disable",
-				Description = "Disables a command from regular usage on the server.\nUsage: ?admin disable [command]",
-				Func = Disable.DisableCommand,
-			}}, { "enable", new Command.CommandProps {
-				Term = "?admin enable",
-				Name = "Enable",
-				Description = "Enables a previously disabled command from regular usage on the server.\nUsage: ?admin enable [command]",
-				Func = Enable.EnableCommand,
-			}}, { "allow", new Command.CommandProps {
-				Term = "?admin allow",
-				Name = "Allow",
-				Description = "Allows a specified user to interact with disabled commands.\nUsage: ?admin allow [@users ...]",
-				Func = Allow.AllowCommand,
-			}}, { "disallow", new Command.CommandProps {
-				Term = "?admin disallow",
-				Name = "Disallow",
-				Description = "Disallows a specified user to interact with disabled commands.\nUsage: ?admin disallow [@users ...]",
-				Func = Disallow.DisallowCommand,
-			}}
+		public static readonly Dictionary<string, CommandProps> AvailableCommands = new Dictionary<string, CommandProps> {
+			{ Help.Properties.Term, Help.Properties },
+			{ Disable.Properties.Term, Disable.Properties },
+			{ Enable.Properties.Term, Enable.Properties },
+			{ Allow.Properties.Term, Allow.Properties },
+			{ Disallow.Properties.Term, Disallow.Properties }
 		};
 
 		public static async Task ParseAndExecute(MessageCreateEventArgs e) {
-			string commandType = e.Message.Content.Split(' ').Length > 1 ? GetCommandType(e.Message.Content) : DummyUnknownCommand;
+			string commandType = e.Message.Content.Split(' ').Length > 1 ? GetCommandType(e.Message.Content) : "invalid";
 			if (AvailableCommands.ContainsKey(commandType) && (Program.Data.IsCommandEnabled(commandType, e.Guild) || Program.Data.IsUserVerified(e.Guild, e.Author))) {
 				await AvailableCommands[commandType].Func(e);
 			} else {
@@ -52,7 +31,7 @@ namespace BlendoBot.Commands.Admin {
 		}
 
 		private static string GetCommandType(string message) {
-			return message.Split(' ')[1].ToLower();
+			return message.Split(' ')[0].ToLower() + " " + message.Split(' ')[1].ToLower();
 		}
 
 		private static async Task UnknownCommand(MessageCreateEventArgs e) {

@@ -4,10 +4,17 @@ using System.Threading.Tasks;
 
 namespace BlendoBot.Commands {
 	public static class Help {
-		public static async Task HelpCommand(MessageCreateEventArgs e) {
+		public static readonly CommandProps Properties = new CommandProps {
+			Term = "?help",
+			Name = "Help",
+			Description = "Posts what commands this bot can do. You probably know how to access this already.",
+			Func = HelpCommand
+		};
+
+	public static async Task HelpCommand(MessageCreateEventArgs e) {
 			var sb = new StringBuilder();
 			foreach (var command in Command.AvailableCommands) {
-				if (command.Key != Command.DummyUnknownCommand && Program.Data.IsCommandEnabled(command.Key, e.Guild)) {
+				if (Program.Data.IsCommandEnabled(command.Key, e.Guild)) {
 					sb.AppendLine($"**{command.Value.Name}** - `{command.Value.Term}`");
 					sb.AppendLine($"{command.Value.Description}");
 					sb.AppendLine();

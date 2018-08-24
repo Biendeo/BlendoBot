@@ -13,6 +13,13 @@ using System.Threading.Tasks;
 
 namespace BlendoBot.Commands {
 	public static class MrPing {
+		public static readonly CommandProps Properties = new CommandProps {
+			Term = "?mrping",
+			Name = "Mr. Ping Challenge",
+			Description = "Subjects someone to the Mr. Ping Challenge!",
+			Func = MrPingCommand
+		};
+
 		public static async Task MrPingCommand(MessageCreateEventArgs e) {
 			// Edit the Mr Ping image to randomly pick a user on the server, and a random number
 			// of pings (up to 100).

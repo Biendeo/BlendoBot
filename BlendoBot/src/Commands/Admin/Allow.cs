@@ -7,6 +7,13 @@ using System.Threading.Tasks;
 
 namespace BlendoBot.Commands.Admin {
 	public static class Allow {
+		public static readonly CommandProps Properties = new CommandProps {
+			Term = "?admin allow",
+			Name = "Allow",
+			Description = "Allows a specified user to interact with disabled commands.\nUsage: ?admin allow [@users ...]",
+			Func = AllowCommand
+		};
+
 		public static async Task AllowCommand(MessageCreateEventArgs e) {
 			if (e.Message.Content.Split(' ').Length <= 2) {
 				//TODO: Print maybe who's in the list?
