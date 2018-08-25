@@ -37,8 +37,8 @@ namespace BlendoBot {
 
 		private static async Task MessageCreated(MessageCreateEventArgs e) {
 			// The rule is: don't react to my own messages, and commands need to be triggered with
-			// a ? character. Additional functionality should be added here.
-			if (!e.Author.IsCurrent && e.Message.Content.StartsWith("?")) {
+			// a ? character.
+			if (!e.Author.IsCurrent && e.Message.Content.Length > 1 && e.Message.Content.StartsWith("?") && e.Message.Content[1].IsAlphabetical()) {
 				await Commands.Command.ParseAndExecute(e);
 			}
 		}
@@ -67,5 +67,8 @@ namespace BlendoBot {
 			return await channel.SendMessageAsync($"A {logExceptionType} occurred. Alert the authorities!\n```\n{e}\n```");
 		}
 
+		public static bool IsAlphabetical(this char c) {
+			return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+		}
 	}
 }
