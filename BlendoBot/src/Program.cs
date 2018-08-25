@@ -52,19 +52,19 @@ namespace BlendoBot {
 			await Task.Delay(0);
 		}
 
-		public static async Task SendMessage(string message, DiscordChannel channel, string logMessage = "a message") {
+		public static async Task<DiscordMessage> SendMessage(string message, DiscordChannel channel, string logMessage = "a message") {
 			Log.LogMessage(LogType.Log, $"Sending message {logMessage} to channel #{channel.Name} ({channel.Guild.Name})");
-			await channel.SendMessageAsync(message);
+			return await channel.SendMessageAsync(message);
 		}
 
-		public static async Task SendFile(string filePath, DiscordChannel channel, string logMessage = "a file") {
+		public static async Task<DiscordMessage> SendFile(string filePath, DiscordChannel channel, string logMessage = "a file") {
 			Log.LogMessage(LogType.Log, $"Sending file {logMessage} to channel #{channel.Name} ({channel.Guild.Name})");
-			await channel.SendFileAsync(filePath);
+			return await channel.SendFileAsync(filePath);
 		}
 
-		public static async Task SendException(Exception e, DiscordChannel channel, string logExceptionType = "exception") {
+		public static async Task<DiscordMessage> SendException(Exception e, DiscordChannel channel, string logExceptionType = "exception") {
 			Log.LogMessage(LogType.Error, $"{logExceptionType}\n{e}");
-			await channel.SendMessageAsync($"A {logExceptionType} occurred. Alert the authorities!\n```\n{e}\n```");
+			return await channel.SendMessageAsync($"A {logExceptionType} occurred. Alert the authorities!\n```\n{e}\n```");
 		}
 
 	}

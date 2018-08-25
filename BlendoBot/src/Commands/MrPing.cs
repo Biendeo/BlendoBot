@@ -20,9 +20,13 @@ namespace BlendoBot.Commands {
 			Func = MrPingCommand
 		};
 
+		public const int MaxPings = 100;
+
 		public static async Task MrPingCommand(MessageCreateEventArgs e) {
 			// Edit the Mr Ping image to randomly pick a user on the server, and a random number
 			// of pings (up to 100).
+
+			DiscordMessage waitingMessage = await Program.SendMessage("Randomly choosing a victim...", e.Channel, "MrPingWaiting");
 
 			// First, choose a user from the server.
 			var random = new Random();
@@ -37,6 +41,7 @@ namespace BlendoBot.Commands {
 
 			if (filteredMembers.Count == 0) {
 				await Program.SendMessage($"No one is available for the Mr. Ping Challenge. 👀", e.Channel, "MrPingErrorNoUsers");
+				await waitingMessage.DeleteAsync();
 				return;
 			}
 
@@ -44,7 +49,7 @@ namespace BlendoBot.Commands {
 			var chosenMember = filteredMembers[(int)(random.NextDouble() * filteredMembers.Count)];
 
 			// A random number from 1 to 100 will be chosen.
-			int numberOfPings = (int)(random.NextDouble() * 99 + 1);
+			int numberOfPings = (int)(random.NextDouble() * MaxPings + 1);
 
 			// Now to do the image modification.
 			using (var image = Image.Load(Resources.MrPingTemplate)) {
@@ -67,6 +72,7 @@ namespace BlendoBot.Commands {
 					workingImage.Dispose();
 
 					await Program.SendFile(filePath, e.Channel, "MrPingFileSuccess");
+					await waitingMessage.DeleteAsync();
 
 					if (File.Exists(filePath)) {
 						File.Delete(filePath);

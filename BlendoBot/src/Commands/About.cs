@@ -10,7 +10,7 @@ namespace BlendoBot.Commands {
 			Term = "?about",
 			Name = "About",
 			Description = "Posts information about this version of the bot.",
-			Func = About.AboutCommand
+			Func = AboutCommand
 		};
 
 		public static async Task AboutCommand(MessageCreateEventArgs e) {
