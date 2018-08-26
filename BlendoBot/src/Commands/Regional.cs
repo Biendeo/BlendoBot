@@ -70,6 +70,7 @@ namespace BlendoBot.Commands {
 			foreach (char c in message) {
 				if (characterMappings.ContainsKey(c)) {
 					newString.Append(characterMappings[c]);
+					newString.Append(' '); // Stops platforms from actually rendering flags.
 				} else {
 					newString.Append(c);
 				}
