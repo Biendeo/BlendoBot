@@ -41,7 +41,11 @@ namespace BlendoBot.Commands.Admin {
 		}
 
 		private static async Task UnknownCommand(MessageCreateEventArgs e) {
-			await Program.SendMessage($"I didn't know what you meant by that, {e.Author.Username}. Use `?admin help` to see what I can do!", e.Channel, "AdminUnknownMessage");
+			await Methods.SendMessage(null, new SendMessageEventArgs {
+				Message = $"I didn't know what you meant by that, {e.Author.Username}. Use `?admin help` to see what I can do!",
+				Channel = e.Channel,
+				LogMessage = "AdminUnknownMessage"
+			});
 		}
 	}
 }

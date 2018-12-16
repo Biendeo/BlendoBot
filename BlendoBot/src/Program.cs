@@ -106,33 +106,6 @@ namespace BlendoBot {
 			await Task.Delay(0);
 		}
 
-		[Obsolete("Should be using the lib version")]
-		public static async Task<DiscordMessage> SendMessage(string message, DiscordChannel channel, string logMessage = "a message") {
-			Methods.Log(null, new LogEventArgs {
-				Type = LogType.Log,
-				Message = $"Sending message {logMessage} to channel #{channel.Name} ({channel.Guild.Name})"
-			});
-			return await channel.SendMessageAsync(message);
-		}
-
-		[Obsolete("Should be using the lib version")]
-		public static async Task<DiscordMessage> SendFile(string filePath, DiscordChannel channel, string logMessage = "a file") {
-			Methods.Log(null, new LogEventArgs {
-				Type = LogType.Log,
-				Message = $"Sending file {logMessage} to channel #{channel.Name} ({channel.Guild.Name})"
-			});
-			return await channel.SendFileAsync(filePath);
-		}
-
-		[Obsolete("Should be using the lib version")]
-		public static async Task<DiscordMessage> SendException(Exception e, DiscordChannel channel, string logExceptionType = "exception") {
-			Methods.Log(null, new LogEventArgs {
-				Type = LogType.Error,
-				Message = $"A {logExceptionType} occurred. Alert the authorities!\n```\n{e}\n```"
-			});
-			return await channel.SendMessageAsync($"A {logExceptionType} occurred. Alert the authorities!\n```\n{e}\n```");
-		}
-
 		public static void UnloadModules() {
 			Commands.Command.AvailableCommands.Clear();
 			var assembly = Assembly.GetEntryAssembly();

@@ -1,4 +1,5 @@
-﻿using BlendoBotLib.Commands;
+﻿using BlendoBotLib;
+using BlendoBotLib.Commands;
 using DSharpPlus.EventArgs;
 using System;
 using System.Collections.Generic;
@@ -14,7 +15,11 @@ namespace BlendoBot.Commands {
 				try {
 					await AvailableCommands[commandType].Func(e);
 				} catch (Exception exc) {
-					await Program.SendException(exc, e.Channel, "GenericExceptionNotCaught");
+					await Methods.SendException(null, new SendExceptionEventArgs {
+						Exception = exc,
+						Channel = e.Channel,
+						LogExceptionType = "GenericExceptionNotCaught"
+					});
 				}
 			} else {
 				await UnknownCommand(e);
@@ -26,7 +31,11 @@ namespace BlendoBot.Commands {
 		}
 
 		private static async Task UnknownCommand(MessageCreateEventArgs e) {
-			await Program.SendMessage($"I didn't know what you meant by that, {e.Author.Username}. Use `?help` to see what I can do!", e.Channel, "UnknownMessage");
+			await Methods.SendMessage(null, new SendMessageEventArgs {
+				Message = $"I didn't know what you meant by that, {e.Author.Username}. Use `?help` to see what I can do!",
+				Channel = e.Channel,
+				LogMessage = "UnknownMessage"
+			});
 		}
 	}
 }

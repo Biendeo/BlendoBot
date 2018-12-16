@@ -1,4 +1,5 @@
-﻿using BlendoBotLib.Commands;
+﻿using BlendoBotLib;
+using BlendoBotLib.Commands;
 using DSharpPlus.EventArgs;
 using System.Text;
 using System.Threading.Tasks;
@@ -19,7 +20,11 @@ namespace BlendoBot.Commands.Admin {
 				sb.AppendLine($"{command.Value.Description}");
 				sb.AppendLine();
 			}
-			await Program.SendMessage(sb.ToString(), e.Channel, "Help");
+			await Methods.SendMessage(null, new SendMessageEventArgs {
+				Message = sb.ToString(),
+				Channel = e.Channel,
+				LogMessage = "Help"
+			});
 		}
 	}
 }

@@ -20,7 +20,11 @@ namespace BlendoBot.Commands {
 		public static async Task AboutCommand(MessageCreateEventArgs e) {
 			var sb = new StringBuilder();
 			sb.AppendLine($"`{Program.Props.Name} {Program.Props.Version} ({Program.Props.Description}) by {Program.Props.Author}`");
-			await Program.SendMessage(sb.ToString(), e.Channel, "About");
+			await Methods.SendMessage(null, new SendMessageEventArgs {
+				Message = sb.ToString(),
+				Channel = e.Channel,
+				LogMessage = "About"
+			});
 		}
 	}
 }

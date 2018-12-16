@@ -1,4 +1,5 @@
-﻿using BlendoBotLib.Commands;
+﻿using BlendoBotLib;
+using BlendoBotLib.Commands;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using System;
@@ -18,7 +19,11 @@ namespace BlendoBot.Commands.Admin {
 		public static async Task AllowCommand(MessageCreateEventArgs e) {
 			if (e.Message.Content.Split(' ').Length <= 2) {
 				//TODO: Print maybe who's in the list?
-				await Program.SendMessage($"Please tag some users to allow them!", e.Channel, "AdminAllowTooFewArguments");
+				await Methods.SendMessage(null, new SendMessageEventArgs {
+					Message = $"Please tag some users to allow them!",
+					Channel = e.Channel,
+					LogMessage = "AdminAllowTooFewArguments"
+				});
 				return;
 			}
 
@@ -51,7 +56,11 @@ namespace BlendoBot.Commands.Admin {
 				}
 			}
 
-			await Program.SendMessage(sb.ToString(), e.Channel, "AdminAllow");
+			await Methods.SendMessage(null, new SendMessageEventArgs {
+				Message = sb.ToString(),
+				Channel = e.Channel,
+				LogMessage = "AdminAllow"
+			});
 		}
 	}
 }

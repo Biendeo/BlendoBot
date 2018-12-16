@@ -1,4 +1,5 @@
-﻿using BlendoBotLib.Commands;
+﻿using BlendoBotLib;
+using BlendoBotLib.Commands;
 using DSharpPlus.EventArgs;
 using System;
 using System.Collections.Generic;
@@ -26,7 +27,11 @@ namespace BlendoBot.Commands.Admin {
 					}
 				}
 				sb.Length = sb.Length - 2;
-				await Program.SendMessage(sb.ToString(), e.Channel, "AdminDisbleTooFewArguments");
+				await Methods.SendMessage(null, new SendMessageEventArgs {
+					Message = sb.ToString(),
+					Channel = e.Channel,
+					LogMessage = "AdminDisbleTooFewArguments"
+				});
 				return;
 			}
 
@@ -36,15 +41,27 @@ namespace BlendoBot.Commands.Admin {
 			}
 
 			if (!Command.AvailableCommands.ContainsKey(command)) {
-				await Program.SendMessage($"Command `{command}` does not exist!", e.Channel, "AdminDisableNotExist");
+				await Methods.SendMessage(null, new SendMessageEventArgs {
+					Message = $"Command `{command}` does not exist!",
+					Channel = e.Channel,
+					LogMessage = "AdminDisableNotExist"
+				});
 				return;
 			} else if (!Program.Data.IsCommandEnabled(command, e.Guild)) {
-				await Program.SendMessage($"Command `{command}` is already disabled!", e.Channel, "AdminDisableAlreadyDisabled");
+				await Methods.SendMessage(null, new SendMessageEventArgs {
+					Message = $"Command `{command}` is already disabled!",
+					Channel = e.Channel,
+					LogMessage = "AdminDisableAlreadyDisabled"
+				});
 				return;
 			} else {
 				Program.Data.DisableCommand(command, e.Guild);
 				Program.Data.Save();
-				await Program.SendMessage($"Command `{command}` is now disabled!", e.Channel, "AdminDisableSuccess");
+				await Methods.SendMessage(null, new SendMessageEventArgs {
+					Message = $"Command `{command}` is now disabled!",
+					Channel = e.Channel,
+					LogMessage = "AdminDisableSuccess"
+				});
 			}
 		}
 	}

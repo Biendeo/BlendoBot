@@ -24,7 +24,11 @@ namespace BlendoBot.Commands {
 					sb.AppendLine();
 				}
 			}
-			await Program.SendMessage(sb.ToString(), e.Channel, "Help");
+			await Methods.SendMessage(null, new SendMessageEventArgs {
+				Message = sb.ToString(),
+				Channel = e.Channel,
+				LogMessage = "Help"
+			});
 		}
 	}
 }
