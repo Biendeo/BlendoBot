@@ -18,9 +18,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BlendoBotLib\BlendoBotLib.csproj" />
-    <ProjectReference Include="..\MrPing\MrPing.csproj" />
-    <ProjectReference Include="..\RegionalIndicator\RegionalIndicator.csproj" />
-    <ProjectReference Include="..\Roll\Roll.csproj" />
+    <ProjectReference Include="..\Modules\MrPing\MrPing.csproj" />
+    <ProjectReference Include="..\Modules\RegionalIndicator\RegionalIndicator.csproj" />
+    <ProjectReference Include="..\Modules\Roll\Roll.csproj" />
   </ItemGroup>
 
 </Project>
