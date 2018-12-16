@@ -1,12 +1,16 @@
-﻿using DSharpPlus.EventArgs;
+﻿using BlendoBotLib;
+using BlendoBotLib.Commands;
+using DSharpPlus.EventArgs;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace BlendoBot.Commands {
-	public static class About {
-		public static readonly CommandProps Properties = new CommandProps {
+	public class About : ICommand {
+		CommandProps ICommand.Properties => properties;
+
+		private static readonly CommandProps properties = new CommandProps {
 			Term = "?about",
 			Name = "About",
 			Description = "Posts information about this version of the bot.",

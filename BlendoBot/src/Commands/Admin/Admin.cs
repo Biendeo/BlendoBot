@@ -1,12 +1,16 @@
-﻿using DSharpPlus.EventArgs;
+﻿using BlendoBotLib;
+using BlendoBotLib.Commands;
+using DSharpPlus.EventArgs;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace BlendoBot.Commands.Admin {
-	public static class Admin {
-		public static readonly CommandProps Properties = new CommandProps {
+	public class Admin : ICommand {
+		CommandProps ICommand.Properties => properties;
+
+		public static readonly CommandProps properties = new CommandProps {
 			Term = "?admin",
 			Name = "Admin",
 			Description = "Lets admins decide parts of the bot. Use `?admin help` to see more info.",
@@ -18,7 +22,9 @@ namespace BlendoBot.Commands.Admin {
 			{ Disable.Properties.Term, Disable.Properties },
 			{ Enable.Properties.Term, Enable.Properties },
 			{ Allow.Properties.Term, Allow.Properties },
-			{ Disallow.Properties.Term, Disallow.Properties }
+			{ Disallow.Properties.Term, Disallow.Properties },
+			{ ReloadModules.Properties.Term, ReloadModules.Properties },
+			{ UnloadModules.Properties.Term, UnloadModules.Properties }
 		};
 
 		public static async Task ParseAndExecute(MessageCreateEventArgs e) {

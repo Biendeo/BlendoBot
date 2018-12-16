@@ -1,12 +1,16 @@
-﻿using DSharpPlus.EventArgs;
+﻿using BlendoBotLib;
+using BlendoBotLib.Commands;
+using DSharpPlus.EventArgs;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace BlendoBot.Commands {
-	public static class Regional {
-		public static readonly CommandProps Properties = new CommandProps {
+	public class Regional : ICommand {
+		CommandProps ICommand.Properties => properties;
+
+		public static readonly CommandProps properties = new CommandProps {
 			Term = "?regional",
 			Name = "Regional Indicator",
 			Description = "Converts a message into lovely regional indicator text.",
@@ -62,7 +66,11 @@ namespace BlendoBot.Commands {
 		public static async Task RegionalCommand(MessageCreateEventArgs e) {
 			// First covert the original message to lower-case, and remove the original command.
 			if (e.Message.Content.Length <= 10) {
-				await Program.SendMessage($"You must add something after the `?regional`!", e.Channel, "RegionalErrorNoMessage");
+				await Methods.SendMessage(null, new SendMessageEventArgs {
+					Message = $"You must add something after the `?regional`!",
+					Channel = e.Channel,
+					LogMessage = "RegionalErrorNoMessage"
+				});
 				return;
 			}
 			string message = e.Message.Content.ToLower().Substring(10);
@@ -76,10 +84,19 @@ namespace BlendoBot.Commands {
 				}
 			}
 			if (newString.Length <= 2000) {
-				await Program.SendMessage(newString.ToString(), e.Channel, "RegionalSuccess");
+				await Methods.SendMessage(null, new SendMessageEventArgs {
+					Message = newString.ToString(),
+					Channel = e.Channel,
+					LogMessage = "RegionalSuccess"
+				});
 			} else {
-				await Program.SendMessage($"Regionalified message exceeds maximum character count by {newString.Length - 2000}. Shorten your message!", e.Channel, "RegionalErrorTooLong");
+				await Methods.SendMessage(null, new SendMessageEventArgs {
+					Message = $"Regionalified message exceeds maximum character count by {newString.Length - 2000}. Shorten your message!",
+					Channel = e.Channel,
+					LogMessage = "RegionalErrorTooLong"
+				});
 			}
+			await Task.Delay(0);
 		}
 	}
 }

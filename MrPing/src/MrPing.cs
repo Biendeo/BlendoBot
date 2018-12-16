@@ -1,6 +1,9 @@
-﻿using DSharpPlus;
+﻿using BlendoBotLib;
+using BlendoBotLib.Commands;
+using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
+using MrPing.Properties;
 using SixLabors.Fonts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -11,9 +14,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace BlendoBot.Commands {
-	public static class MrPing {
-		public static readonly CommandProps Properties = new CommandProps {
+namespace MrPing {
+	public class MrPing : ICommand {
+		CommandProps ICommand.Properties => properties;
+
+		private static readonly CommandProps properties = new CommandProps {
 			Term = "?mrping",
 			Name = "Mr. Ping Challenge",
 			Description = "Subjects someone to the Mr. Ping Challenge!",
@@ -22,11 +27,16 @@ namespace BlendoBot.Commands {
 
 		public const int MaxPings = 100;
 
+
 		public static async Task MrPingCommand(MessageCreateEventArgs e) {
 			// Edit the Mr Ping image to randomly pick a user on the server, and a random number
 			// of pings (up to 100).
 
-			DiscordMessage waitingMessage = await Program.SendMessage("Randomly choosing a victim...", e.Channel, "MrPingWaiting");
+			DiscordMessage waitingMessage = await Methods.SendMessage(null, new SendMessageEventArgs {
+				Message = "Randomly choosing a victim...",
+				Channel = e.Channel,
+				LogMessage = "MrPingWaiting"
+			});
 
 			// First, choose a user from the server.
 			var random = new Random();
@@ -40,7 +50,11 @@ namespace BlendoBot.Commands {
 			}
 
 			if (filteredMembers.Count == 0) {
-				await Program.SendMessage($"No one is available for the Mr. Ping Challenge. 👀", e.Channel, "MrPingErrorNoUsers");
+				await Methods.SendMessage(null, new SendMessageEventArgs {
+					Message = "No one is available for the Mr. Ping Challenge. 👀",
+					Channel = e.Channel,
+					LogMessage = "MrPingErrorNoUsers"
+				});
 				await waitingMessage.DeleteAsync();
 				return;
 			}
@@ -71,7 +85,12 @@ namespace BlendoBot.Commands {
 					//? Is this necessary because I'm using using?
 					workingImage.Dispose();
 
-					await Program.SendFile(filePath, e.Channel, "MrPingFileSuccess");
+					await Methods.SendFile(null, new SendFileEventArgs {
+						Channel = e.Channel,
+						FilePath = filePath,
+						LogMessage = "MrPingFileSuccess"
+					});
+
 					await waitingMessage.DeleteAsync();
 
 					if (File.Exists(filePath)) {
@@ -79,6 +98,7 @@ namespace BlendoBot.Commands {
 					}
 				}
 			}
+			await Task.Delay(0);
 		}
 
 		//? I would love to make this not async, can it be done?

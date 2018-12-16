@@ -1,13 +1,17 @@
-﻿using DSharpPlus.EventArgs;
+﻿using BlendoBotLib;
+using BlendoBotLib.Commands;
+using DSharpPlus.EventArgs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BlendoBot.Commands {
-	public static class Roll {
-		public static readonly CommandProps Properties = new CommandProps {
+namespace Roll {
+	public class Roll : ICommand {
+		CommandProps ICommand.Properties => properties;
+
+		private static readonly CommandProps properties = new CommandProps {
 			Term = "?roll",
 			Name = "Roll",
 			Description = "Rolls a given dice a given number of times.\nUsage: ?random [dice value] [optional: num rolls = 1]\n20 or fewer rolls returns all the roll results, any more and a five-number summary is used.",
@@ -18,22 +22,42 @@ namespace BlendoBot.Commands {
 			string[] splitMessage = e.Message.Content.Split(' ');
 			// We want to make sure that there's either two or three arguments.
 			if (splitMessage.Length < 2) {
-				await Program.SendMessage($"Too few arguments specified to `?roll`", e.Channel, "RollErrorTooFewArgs");
+				await Methods.SendMessage(null, new SendMessageEventArgs {
+					Message = $"Too few arguments specified to `?roll`",
+					Channel = e.Channel,
+					LogMessage = "RollErrorTooFewArgs"
+				});
 			} else if (splitMessage.Length > 3) {
-				await Program.SendMessage($"Too many arguments specified to `?roll`", e.Channel, "RollErrorTooManyArgs");
+				await Methods.SendMessage(null, new SendMessageEventArgs {
+					Message = $"Too many arguments specified to `?roll`",
+					Channel = e.Channel,
+					LogMessage = "RollErrorTooManyArgs"
+				});
 			} else {
 				// If two arguments are given, then we are just rolling a dice one time.
 				int rollCount = 1;
 				if (!int.TryParse(splitMessage[1], out int diceValue) || (diceValue <= 0)) {
-					await Program.SendMessage($"The dice value given is not a positive integer", e.Channel, "RollErrorFirstArgInvalid");
+					await Methods.SendMessage(null, new SendMessageEventArgs {
+						Message = $"The dice value given is not a positive integer",
+						Channel = e.Channel,
+						LogMessage = "RollErrorFirstArgInvalid"
+					});
 					return;
 				}
 				if (splitMessage.Length == 3 && (!int.TryParse(splitMessage[2], out rollCount) || rollCount <= 0)) {
-					await Program.SendMessage($"The roll count is not a positive integer", e.Channel, "RollErrorSecondArgInvalid");
+					await Methods.SendMessage(null, new SendMessageEventArgs {
+						Message = $"The roll count is not a positive integer",
+						Channel = e.Channel,
+						LogMessage = "RollErrorSecondArgInvalid"
+					});
 					return;
 				}
 				if (rollCount > 1000000) {
-					await Program.SendMessage($"The roll count is above 1000000, and I don't want to do that", e.Channel, "RollErrorSecondArgTooLarge");
+					await Methods.SendMessage(null, new SendMessageEventArgs {
+						Message = $"The roll count is above 1000000, and I don't want to do that",
+						Channel = e.Channel,
+						LogMessage = "RollErrorSecondArgTooLarge"
+					});
 					return;
 				}
 				var results = new List<int>(rollCount);
@@ -45,7 +69,11 @@ namespace BlendoBot.Commands {
 				}
 				double average = results.Average();
 				if (rollCount == 1) {
-					await Program.SendMessage($"**{results[0]}**", e.Channel, "RollSuccessOneRoll");
+					await Methods.SendMessage(null, new SendMessageEventArgs {
+						Message = $"**{results[0]}**",
+						Channel = e.Channel,
+						LogMessage = "RollErrorTooManyArgs"
+					});
 				} else if (rollCount <= 20) {
 					var sb = new StringBuilder();
 					sb.AppendLine($"Average: **{average}**");
@@ -57,7 +85,11 @@ namespace BlendoBot.Commands {
 						}
 					}
 					sb.Append("]`");
-					await Program.SendMessage(sb.ToString(), e.Channel, "RollSuccessLowRoll");
+					await Methods.SendMessage(null, new SendMessageEventArgs {
+						Message = sb.ToString(),
+						Channel = e.Channel,
+						LogMessage = "RollSuccessLowRoll"
+					});
 				} else {
 					// If more than ten rolls occurred, a 5-number summary is a better way of showing the results.
 					results.Sort();
@@ -68,9 +100,15 @@ namespace BlendoBot.Commands {
 					double firstQuart = halfSize % 2 == 0 ? (results[halfSize / 2] + results[halfSize / 2 - 1]) / 2.0 : results[halfSize / 2];
 					double thirdQuart = halfSize % 2 == 0 ? (results[rollCount - halfSize / 2] + results[rollCount - halfSize / 2 - 1]) / 2.0 : results[rollCount - halfSize / 2];
 					sb.Append($"`[{results.First()}, {firstQuart}, {median}, {thirdQuart}, {results.Last()}]`");
-					await Program.SendMessage(sb.ToString(), e.Channel, "RollSuccessHighRoll");
+					await Methods.SendMessage(null, new SendMessageEventArgs {
+						Message = sb.ToString(),
+						Channel = e.Channel,
+						LogMessage = "RollSuccessHighRoll"
+					});
 				}
 			}
+
+			await Task.Delay(0);
 		}
 	}
 }

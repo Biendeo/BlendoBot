@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BlendoBot.Commands {
+namespace BlendoBotLib.Commands {
 	/// <summary>
 	/// A structure which lets you determine properties for a command. These should be stored in
 	/// availableCommands and only referred to otherwise.
@@ -28,16 +28,5 @@ namespace BlendoBot.Commands {
 		/// message was received. They're also async, so they'll need to return Task.
 		/// </summary>
 		public Func<MessageCreateEventArgs, Task> Func { get; set; }
-		/// <summary>
-		/// Whether this command can be called or not by regular users. Authorised users may
-		/// override this one (you can create your own permissions within these functions).
-		/// </summary>
-		[Obsolete("This will be managed by the servers instead as a flat enable/disable.")]
-		public bool Enabled { get; set; }
-		/// <summary>
-		/// Whether this command appears on the help menu. Useful for allowing hidden commands.
-		/// </summary>
-		[Obsolete("This will be managed by the servers instead as a flat enable/disable.")]
-		public bool AppearsInHelp { get; set; }
 	}
 }

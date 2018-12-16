@@ -1,10 +1,14 @@
-﻿using DSharpPlus.EventArgs;
+﻿using BlendoBotLib;
+using BlendoBotLib.Commands;
+using DSharpPlus.EventArgs;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace BlendoBot.Commands {
-	public static class Help {
-		public static readonly CommandProps Properties = new CommandProps {
+	public class Help : ICommand {
+		CommandProps ICommand.Properties => properties;
+
+		private static readonly CommandProps properties = new CommandProps {
 			Term = "?help",
 			Name = "Help",
 			Description = "Posts what commands this bot can do. You probably know how to access this already.",

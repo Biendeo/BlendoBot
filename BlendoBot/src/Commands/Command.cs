@@ -1,20 +1,12 @@
-﻿using DSharpPlus.EventArgs;
+﻿using BlendoBotLib.Commands;
+using DSharpPlus.EventArgs;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace BlendoBot.Commands {
 	public static class Command {
-
-		//TODO: Could this be automatically generated?
-		public static readonly Dictionary<string, CommandProps> AvailableCommands = new Dictionary<string, CommandProps> {
-			{ Help.Properties.Term, Help.Properties },
-			{ About.Properties.Term, About.Properties },
-			{ Admin.Admin.Properties.Term, Admin.Admin.Properties },
-			{ Roll.Properties.Term, Roll.Properties },
-			{ MrPing.Properties.Term, MrPing.Properties },
-			{ Regional.Properties.Term, Regional.Properties }
-		};
+		public static Dictionary<string, CommandProps> AvailableCommands = new Dictionary<string, CommandProps>();
 
 		public static async Task ParseAndExecute(MessageCreateEventArgs e) {
 			string commandType = GetCommandType(e.Message.Content);

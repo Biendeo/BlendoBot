@@ -3,7 +3,21 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28010.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlendoBot", "BlendoBot\BlendoBot.csproj", "{51015127-BFD2-4525-B2C0-E83FC2AC2931}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlendoBot", "BlendoBot\BlendoBot.csproj", "{51015127-BFD2-4525-B2C0-E83FC2AC2931}"
+	ProjectSection(ProjectDependencies) = postProject
+		{B848600F-38F7-4099-9B09-83AEB4F4AF51} = {B848600F-38F7-4099-9B09-83AEB4F4AF51}
+		{841A4C15-23BC-4433-9DF2-2FB114BAE789} = {841A4C15-23BC-4433-9DF2-2FB114BAE789}
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MrPing", "MrPing\MrPing.csproj", "{841A4C15-23BC-4433-9DF2-2FB114BAE789}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlendoBotLib", "BlendoBotLib\BlendoBotLib.csproj", "{01D849DE-AF80-4A47-B688-E70D62F510CF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Modules", "Modules", "{3CCE0CD2-5174-42BB-B88C-F7F3AA098167}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Roll", "Roll\Roll.csproj", "{B848600F-38F7-4099-9B09-83AEB4F4AF51}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RegionalIndicator", "RegionalIndicator\RegionalIndicator.csproj", "{799F93F5-E785-41EE-80D0-DEB76D216A4C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,9 +29,30 @@ Global
 		{51015127-BFD2-4525-B2C0-E83FC2AC2931}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{51015127-BFD2-4525-B2C0-E83FC2AC2931}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{51015127-BFD2-4525-B2C0-E83FC2AC2931}.Release|Any CPU.Build.0 = Release|Any CPU
+		{841A4C15-23BC-4433-9DF2-2FB114BAE789}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{841A4C15-23BC-4433-9DF2-2FB114BAE789}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{841A4C15-23BC-4433-9DF2-2FB114BAE789}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{841A4C15-23BC-4433-9DF2-2FB114BAE789}.Release|Any CPU.Build.0 = Release|Any CPU
+		{01D849DE-AF80-4A47-B688-E70D62F510CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{01D849DE-AF80-4A47-B688-E70D62F510CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{01D849DE-AF80-4A47-B688-E70D62F510CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{01D849DE-AF80-4A47-B688-E70D62F510CF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B848600F-38F7-4099-9B09-83AEB4F4AF51}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B848600F-38F7-4099-9B09-83AEB4F4AF51}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B848600F-38F7-4099-9B09-83AEB4F4AF51}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B848600F-38F7-4099-9B09-83AEB4F4AF51}.Release|Any CPU.Build.0 = Release|Any CPU
+		{799F93F5-E785-41EE-80D0-DEB76D216A4C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{799F93F5-E785-41EE-80D0-DEB76D216A4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{799F93F5-E785-41EE-80D0-DEB76D216A4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{799F93F5-E785-41EE-80D0-DEB76D216A4C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{841A4C15-23BC-4433-9DF2-2FB114BAE789} = {3CCE0CD2-5174-42BB-B88C-F7F3AA098167}
+		{B848600F-38F7-4099-9B09-83AEB4F4AF51} = {3CCE0CD2-5174-42BB-B88C-F7F3AA098167}
+		{799F93F5-E785-41EE-80D0-DEB76D216A4C} = {3CCE0CD2-5174-42BB-B88C-F7F3AA098167}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {DEBA3ECA-7BB0-4C6A-8053-483E8EBE6FD2}
