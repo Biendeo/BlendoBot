@@ -9,10 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="res\mr.png" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Folder Include="Properties\" />
   </ItemGroup>
 

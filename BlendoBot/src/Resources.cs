@@ -10,9 +10,5 @@ namespace BlendoBot {
 		public static byte[] ReadImage(string imagePath) {
 			return File.ReadAllBytes(Path.Join(ResFolder, imagePath));
 		}
-
-		public static byte[] MrPingTemplate {
-			get { return ReadImage("mr.png"); }
-		}
 	}
 }
