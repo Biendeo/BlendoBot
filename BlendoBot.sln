@@ -15,9 +15,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlendoBotLib", "BlendoBotLi
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Modules", "Modules", "{3CCE0CD2-5174-42BB-B88C-F7F3AA098167}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Roll", "Modules\Roll\Roll.csproj", "{B848600F-38F7-4099-9B09-83AEB4F4AF51}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Roll", "Modules\Roll\Roll.csproj", "{B848600F-38F7-4099-9B09-83AEB4F4AF51}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RegionalIndicator", "Modules\RegionalIndicator\RegionalIndicator.csproj", "{799F93F5-E785-41EE-80D0-DEB76D216A4C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RegionalIndicator", "Modules\RegionalIndicator\RegionalIndicator.csproj", "{799F93F5-E785-41EE-80D0-DEB76D216A4C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Weather", "Modules\Weather\Weather.csproj", "{4302B8E4-5E12-4700-8C3F-E931CDA3CB53}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +47,10 @@ Global
 		{799F93F5-E785-41EE-80D0-DEB76D216A4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{799F93F5-E785-41EE-80D0-DEB76D216A4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{799F93F5-E785-41EE-80D0-DEB76D216A4C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4302B8E4-5E12-4700-8C3F-E931CDA3CB53}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4302B8E4-5E12-4700-8C3F-E931CDA3CB53}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4302B8E4-5E12-4700-8C3F-E931CDA3CB53}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4302B8E4-5E12-4700-8C3F-E931CDA3CB53}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -53,6 +59,7 @@ Global
 		{841A4C15-23BC-4433-9DF2-2FB114BAE789} = {3CCE0CD2-5174-42BB-B88C-F7F3AA098167}
 		{B848600F-38F7-4099-9B09-83AEB4F4AF51} = {3CCE0CD2-5174-42BB-B88C-F7F3AA098167}
 		{799F93F5-E785-41EE-80D0-DEB76D216A4C} = {3CCE0CD2-5174-42BB-B88C-F7F3AA098167}
+		{4302B8E4-5E12-4700-8C3F-E931CDA3CB53} = {3CCE0CD2-5174-42BB-B88C-F7F3AA098167}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {DEBA3ECA-7BB0-4C6A-8053-483E8EBE6FD2}
