@@ -65,7 +65,6 @@ namespace MrPing {
 			int numberOfPings = (int)(random.NextDouble() * MaxPings + 1);
 
 			// Now to do the image modification.
-			var something = Resources.MrPingTemplate;
 			//TODO: Figure out how to use a Resource on this, on ubuntu, the resource is interpreted
 			// as the RESX string rather than a byte array, which doesn't work. Any fixes?
 			using (var image = Image.Load(@"Modules/MrPing/res/mr.png")) {
