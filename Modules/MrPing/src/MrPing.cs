@@ -27,7 +27,6 @@ namespace MrPing {
 
 		public const int MaxPings = 100;
 
-
 		public static async Task MrPingCommand(MessageCreateEventArgs e) {
 			// Edit the Mr Ping image to randomly pick a user on the server, and a random number
 			// of pings (up to 100).
@@ -66,7 +65,10 @@ namespace MrPing {
 			int numberOfPings = (int)(random.NextDouble() * MaxPings + 1);
 
 			// Now to do the image modification.
-			using (var image = Image.Load(Resources.MrPingTemplate)) {
+			var something = Resources.MrPingTemplate;
+			//TODO: Figure out how to use a Resource on this, on ubuntu, the resource is interpreted
+			// as the RESX string rather than a byte array, which doesn't work. Any fixes?
+			using (var image = Image.Load(@"Modules/MrPing/res/mr.png")) {
 				//? It seems that memory goes up after multiple usages of this. Am I leaking something?
 				Font memberNameFont = SystemFonts.CreateFont("Arial", 25);
 				Font numberFont = SystemFonts.CreateFont("Arial", 35);
@@ -101,8 +103,7 @@ namespace MrPing {
 			await Task.Delay(0);
 		}
 
-		//? I would love to make this not async, can it be done?
-		//? It's also really slow and probably scales poorly.
+		//? This is really slow and probably scales poorly.
 		private static async Task<bool> DoesUserHaveChannelPermissions(DiscordMember member, DiscordChannel channel, Permissions permissions) {
 			var memberRoles = new List<DiscordRole>(member.Roles);
 			foreach (var permOverwrite in channel.PermissionOverwrites) {
