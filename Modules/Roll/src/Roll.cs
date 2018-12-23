@@ -14,7 +14,10 @@ namespace Roll {
 		private static readonly CommandProps properties = new CommandProps {
 			Term = "?roll",
 			Name = "Roll",
-			Description = "Rolls a given dice a given number of times.\nUsage: ?random [dice value] [optional: num rolls = 1]\n20 or fewer rolls returns all the roll results, any more and a five-number summary is used.",
+			Description = "Rolls a given dice a given number of times.",
+			Usage = $"Usage: {"?random [dice value] [optional: num rolls = 1]".Code()}\nIf you request 20 or fewer rolls, I'll print out all the individual dice numbers. Otherwise, I'll give you the five number summary.",
+			Author = "Biendeo",
+			Version = "0.2.0",
 			Func = RollCommand
 		};
 

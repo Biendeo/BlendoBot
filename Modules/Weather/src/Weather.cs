@@ -21,6 +21,9 @@ namespace Weather {
 			Term = "?weather",
 			Name = "Weather",
 			Description = "Returns the weather for a given address.\nUsage: ?weather [location]",
+			Usage = $"Usage: {"?weather [location]".Code()}",
+			Author = "Biendeo",
+			Version = "0.1.0",
 			Func = WeatherCommand,
 		};
 

@@ -22,6 +22,9 @@ namespace MrPing {
 			Term = "?mrping",
 			Name = "Mr. Ping Challenge",
 			Description = "Subjects someone to the Mr. Ping Challenge!",
+			Usage = $"Usage: {"?mrping".Code()}",
+			Author = "Biendeo",
+			Version = "0.4.0",
 			Func = MrPingCommand
 		};
 

@@ -14,6 +14,9 @@ namespace BlendoBot.Commands {
 			Term = "?regional",
 			Name = "Regional Indicator",
 			Description = "Converts a message into lovely regional indicator text.",
+			Usage = $"Usage: {"?regional [message]".Code()}",
+			Author = "Biendeo",
+			Version = "0.1.0",
 			Func = RegionalCommand
 		};
 

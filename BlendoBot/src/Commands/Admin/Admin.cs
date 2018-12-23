@@ -14,6 +14,9 @@ namespace BlendoBot.Commands.Admin {
 			Term = "?admin",
 			Name = "Admin",
 			Description = "Lets admins decide parts of the bot. Use `?admin help` to see more info.",
+			Usage = $"Uh...",
+			Author = "Biendeo",
+			Version = "0.0.1",
 			Func = ParseAndExecute
 		};
 

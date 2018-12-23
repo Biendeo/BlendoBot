@@ -28,5 +28,17 @@ namespace BlendoBotLib.Commands {
 		/// message was received. They're also async, so they'll need to return Task.
 		/// </summary>
 		public Func<MessageCreateEventArgs, Task> Func { get; set; }
+		/// <summary>
+		/// A string representing the typical usage of the command. Appears in help.
+		/// </summary>
+		public string Usage { get; set; }
+		/// <summary>
+		/// The author of the command. Appears in about.
+		/// </summary>
+		public string Author { get; set; }
+		/// <summary>
+		/// The version of the command. Appears in about.
+		/// </summary>
+		public string Version { get; set; }
 	}
 }
