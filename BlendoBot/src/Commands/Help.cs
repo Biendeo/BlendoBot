@@ -42,7 +42,7 @@ namespace BlendoBot.Commands {
 				var command = Command.AvailableCommands.FirstOrDefault(x => x.Value.Term == specifiedCommand);
 				if (command.Key == null) {
 					await Methods.SendMessage(null, new SendMessageEventArgs {
-						Message = $"No command called {specifiedCommand}",
+						Message = $"No command called {specifiedCommand.Code()}",
 						Channel = e.Channel,
 						LogMessage = "HelpErrorInvalidCommand"
 					});
