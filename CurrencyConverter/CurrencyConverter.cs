@@ -22,7 +22,7 @@ namespace CurrencyConverter {
 			Description = "Returns the conversion rate between two currencies.",
 			Usage = $"Usage: {"?currency [value] [from currency code] [to currency code] ...".Code()}\nYou can write several currencies, and a conversion will be listed for each one.",
 			Author = "Biendeo",
-			Version = "0.1.0",
+			Version = "0.1.1",
 			Func = CurrencyConvertCommand,
 		};
 
@@ -69,11 +69,11 @@ namespace CurrencyConverter {
 					try {
 						double rate = convertJson["Realtime Currency Exchange Rate"]["5. Exchange Rate"];
 						if (foundMatches == 0) {
-							sb.AppendLine($"{amount} - {convertJson["Realtime Currency Exchange Rate"]["1. From_Currency Code"]} ({((string)convertJson["Realtime Currency Exchange Rate"]["2. From_Currency Name"]).Italics()})");
+							sb.AppendLine($"{amount.ToString("0.00000").Substring(0, 7).Code()} - {convertJson["Realtime Currency Exchange Rate"]["1. From_Currency Code"]} ({((string)convertJson["Realtime Currency Exchange Rate"]["2. From_Currency Name"]).Italics()})");
 						}
-						sb.AppendLine($"{amount * rate} - {convertJson["Realtime Currency Exchange Rate"]["3. To_Currency Code"]} ({((string)convertJson["Realtime Currency Exchange Rate"]["4. To_Currency Name"]).Italics()})");
+						sb.AppendLine($"{(amount * rate).ToString("0.00000").Substring(0, 7).Code()} - {convertJson["Realtime Currency Exchange Rate"]["3. To_Currency Code"]} ({((string)convertJson["Realtime Currency Exchange Rate"]["4. To_Currency Name"]).Italics()})");
 						++foundMatches;
-					} catch {
+					} catch (Exception exc) {
 						// Unsuccessful, next one.
 						failedMatches.Add(splitInput[i]);
 					}
