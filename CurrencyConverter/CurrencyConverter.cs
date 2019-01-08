@@ -45,7 +45,6 @@ namespace CurrencyConverter {
 
 			string[] splitInput = e.Message.Content.Split(' ');
 
-
 			if (splitInput.Length < 4) {
 				await Methods.SendMessage(null, new SendMessageEventArgs {
 					Message = $"Too few arguments specified to {"?currency".Code()}",
@@ -55,7 +54,24 @@ namespace CurrencyConverter {
 				return;
 			}
 
-			double amount = double.Parse(splitInput[1]);
+			if (!double.TryParse(splitInput[1], out double amount)) {
+				await Methods.SendMessage(null, new SendMessageEventArgs {
+					Message = $"Incorrect input: the currency value supplied was not a number!",
+					Channel = e.Channel,
+					LogMessage = "CurrencyErrorNonNumericValue"
+				});
+				return;
+			}
+
+			if (amount < 0.0) {
+				await Methods.SendMessage(null, new SendMessageEventArgs {
+					Message = $"Incorrect input: the currency value supplied was less than 0!",
+					Channel = e.Channel,
+					LogMessage = "CurrencyErrorNegativeValue"
+				});
+				return;
+			}
+
 			string fromCurrency = splitInput[2];
 			int foundMatches = 0;
 			var failedMatches = new List<string>();
