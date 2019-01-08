@@ -266,3 +266,4 @@ config.json
 data.json
 BlendoBot/Properties/launchSettings.json
 blendobot-weather-config.json
+blendobot-currency-config.json
