@@ -89,7 +89,7 @@ namespace CurrencyConverter {
 						}
 						sb.AppendLine($"{(amount * rate).ToString("0.00000").Substring(0, 7).Code()} - {convertJson["Realtime Currency Exchange Rate"]["3. To_Currency Code"]} ({((string)convertJson["Realtime Currency Exchange Rate"]["4. To_Currency Name"]).Italics()})");
 						++foundMatches;
-					} catch (Exception exc) {
+					} catch (Exception) {
 						// Unsuccessful, next one.
 						failedMatches.Add(splitInput[i]);
 					}
