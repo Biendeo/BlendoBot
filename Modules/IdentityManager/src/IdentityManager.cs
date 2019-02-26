@@ -10,8 +10,8 @@ namespace IdentityManager {
 		CommandProps ICommand.Properties => properties;
 
 		public static readonly CommandProps properties = new CommandProps {
-			Term = "?remind",
-			Name = "Remind Me",
+			Term = "?identity",
+			Name = "Identity Manager",
 			Description = "Lets you store certain identities",
 			Usage = $"Usage: None yet, I don't do anything.",
 			Author = "Biendeo",
