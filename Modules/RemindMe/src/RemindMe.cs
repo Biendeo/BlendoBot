@@ -30,6 +30,7 @@ namespace RemindMe {
 
 		private static async Task<bool> Startup() {
 			OutstandingReminders = new List<Reminder>();
+			/*
 			if (File.Exists(DatabasePath)) {
 				dynamic json = JsonConvert.DeserializeObject(File.ReadAllText(DatabasePath));
 				foreach (var item in json.reminders) {
@@ -50,6 +51,7 @@ namespace RemindMe {
 				OutstandingReminders.Sort();
 				SaveReminders();
 			}
+			*/
 			return true;
 		}
 
