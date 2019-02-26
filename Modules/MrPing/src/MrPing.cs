@@ -25,7 +25,8 @@ namespace MrPing {
 			Usage = $"Usage: {"?mrping".Code()}",
 			Author = "Biendeo",
 			Version = "0.4.0",
-			Func = MrPingCommand
+			Startup = async () => { await Task.Delay(0); return true; },
+			OnMessage = MrPingCommand
 		};
 
 		public const int MaxPings = 100;
@@ -46,7 +47,9 @@ namespace MrPing {
 			var filteredMembers = new List<DiscordMember>();
 			foreach (var member in e.Channel.Users) {
 				// Apparently your presence is null if you're offline, so that needs to be a check.
-				if (!member.IsBot && member.Presence != null && (member.Presence.Status == UserStatus.Online || member.Presence.Status == UserStatus.Idle) && await DoesUserHaveChannelPermissions(member, e.Channel, Permissions.ReadMessageHistory)) {
+				//! A previous version had an additional check to see if a user could read this channel.
+				//! Later reading of the e.Channel.Users property indicates that's already sorted out.
+				if (!member.IsBot && member.Presence != null && (member.Presence.Status == UserStatus.Online || member.Presence.Status == UserStatus.Idle)) {
 					filteredMembers.Add(member);
 				}
 			}

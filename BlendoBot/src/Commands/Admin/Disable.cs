@@ -12,7 +12,7 @@ namespace BlendoBot.Commands.Admin {
 			Term = "?admin disable",
 			Name = "Disable",
 			Description = "Disables a command from regular usage on the server.\nUsage: ?admin disable [command]",
-			Func = DisableCommand
+			OnMessage = DisableCommand
 		};
 
 		public static async Task DisableCommand(MessageCreateEventArgs e) {

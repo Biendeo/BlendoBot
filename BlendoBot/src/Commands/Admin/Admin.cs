@@ -17,7 +17,7 @@ namespace BlendoBot.Commands.Admin {
 			Usage = $"Uh...",
 			Author = "Biendeo",
 			Version = "0.0.1",
-			Func = ParseAndExecute
+			OnMessage = ParseAndExecute
 		};
 
 		public static readonly Dictionary<string, CommandProps> AvailableCommands = new Dictionary<string, CommandProps> {
@@ -33,7 +33,7 @@ namespace BlendoBot.Commands.Admin {
 		public static async Task ParseAndExecute(MessageCreateEventArgs e) {
 			string commandType = e.Message.Content.Split(' ').Length > 1 ? GetCommandType(e.Message.Content) : "invalid";
 			if (AvailableCommands.ContainsKey(commandType) && (Program.Data.IsCommandEnabled(commandType, e.Guild) || Program.Data.IsUserVerified(e.Guild, e.Author))) {
-				await AvailableCommands[commandType].Func(e);
+				await AvailableCommands[commandType].OnMessage(e);
 			} else {
 				await UnknownCommand(e);
 			}

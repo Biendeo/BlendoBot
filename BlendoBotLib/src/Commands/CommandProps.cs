@@ -23,11 +23,17 @@ namespace BlendoBotLib.Commands {
 		/// </summary>
 		public string Description { get; set; }
 		/// <summary>
+		/// The functions that should setup this function. This is very useful for commands that require
+		/// some persistent memory across usages. The return determines whether the startup was
+		/// successful or not. If it is unsuccessful, the module will not be added to the list.
+		/// </summary>
+		public Func<Task<bool>> Startup { get; set; }
+		/// <summary>
 		/// The function that handles this command. Since all commands are made by creating an
 		/// event, all command handles must forward the MessageCreateEventArgs from when the
 		/// message was received. They're also async, so they'll need to return Task.
 		/// </summary>
-		public Func<MessageCreateEventArgs, Task> Func { get; set; }
+		public Func<MessageCreateEventArgs, Task> OnMessage { get; set; }
 		/// <summary>
 		/// A string representing the typical usage of the command. Appears in help.
 		/// </summary>

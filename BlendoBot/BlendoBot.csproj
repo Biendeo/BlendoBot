@@ -14,9 +14,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BlendoBotLib\BlendoBotLib.csproj" />
-    <ProjectReference Include="..\CurrencyConverter\CurrencyConverter.csproj" />
+    <ProjectReference Include="..\Modules\CurrencyConverter\CurrencyConverter.csproj" />
+    <ProjectReference Include="..\Modules\IdentityManager\IdentityManager.csproj" />
     <ProjectReference Include="..\Modules\MrPing\MrPing.csproj" />
     <ProjectReference Include="..\Modules\RegionalIndicator\RegionalIndicator.csproj" />
+    <ProjectReference Include="..\Modules\RemindMe\RemindMe.csproj" />
     <ProjectReference Include="..\Modules\Roll\Roll.csproj" />
     <ProjectReference Include="..\Modules\Weather\Weather.csproj" />
   </ItemGroup>

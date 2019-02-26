@@ -17,7 +17,8 @@ namespace BlendoBot.Commands {
 			Usage = $"Usage: {"?regional [message]".Code()}",
 			Author = "Biendeo",
 			Version = "0.1.0",
-			Func = RegionalCommand
+			Startup = async () => { await Task.Delay(0); return true; },
+			OnMessage = RegionalCommand
 		};
 
 		private static readonly Dictionary<char, string> characterMappings = new Dictionary<char, string> {

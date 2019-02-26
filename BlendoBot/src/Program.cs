@@ -40,7 +40,7 @@ namespace BlendoBot {
 
 			await Discord.ConnectAsync();
 
-			ReloadModules();
+			await ReloadModulesAsync();
 
 			await Task.Delay(-1);
 		}
@@ -120,7 +120,7 @@ namespace BlendoBot {
 			}
 		}
 
-		public static void ReloadModules() {
+		public static async Task ReloadModulesAsync() {
 			UnloadModules();
 
 			var dlls = Directory.GetFiles(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)).ToList().FindAll(s => Path.GetExtension(s) == ".dll");
@@ -133,11 +133,18 @@ namespace BlendoBot {
 					var validTypes = assembly.ExportedTypes.ToList().FindAll(t => t.GetInterfaces().ToList().Contains(typeof(ICommand)));
 					foreach (var validType in validTypes) {
 						var t = Activator.CreateInstance(validType) as ICommand;
-						Commands.Command.AvailableCommands.Add(t.Properties.Term, t.Properties);
-						Methods.Log(null, new LogEventArgs {
-							Type = LogType.Log,
-							Message = $"Successfully loaded external module {t.Properties.Name} ({t.Properties.Term})"
-						});
+						if (await t.Properties.Startup()) {
+							Commands.Command.AvailableCommands.Add(t.Properties.Term, t.Properties);
+							Methods.Log(null, new LogEventArgs {
+								Type = LogType.Log,
+								Message = $"Successfully loaded external module {t.Properties.Name} ({t.Properties.Term})"
+							});
+						} else {
+							Methods.Log(null, new LogEventArgs {
+								Type = LogType.Error,
+								Message = $"Could not load module {t.Properties.Name} ({t.Properties.Term})"
+							});
+						}
 					}
 				} catch (Exception) { }
 			}

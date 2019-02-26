@@ -12,11 +12,11 @@ namespace BlendoBot.Commands.Admin {
 			Term = "?admin reload",
 			Name = "Reload Modules",
 			Description = "Reloads any DLL modules back into the bot.",
-			Func = ReloadCommand
+			OnMessage = ReloadCommand
 		};
 
 		public static async Task ReloadCommand(MessageCreateEventArgs e) {
-			Program.ReloadModules();
+			await Program.ReloadModulesAsync();
 
 			await Methods.SendMessage(null, new SendMessageEventArgs {
 				Message = $"Loaded {Commands.Command.AvailableCommands.Count} modules.",

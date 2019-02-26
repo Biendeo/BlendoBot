@@ -16,7 +16,7 @@ namespace BlendoBot.Commands {
 			Usage = $"Use {"?help".Code()} to see a list of all commands on the server.\nUse {"?help [command]".Code()} to see help on a specific command, but you probably already know how to do that!",
 			Author = "Biendeo",
 			Version = "1.0.0",
-			Func = HelpCommand
+			OnMessage = HelpCommand
 		};
 
 	public static async Task HelpCommand(MessageCreateEventArgs e) {

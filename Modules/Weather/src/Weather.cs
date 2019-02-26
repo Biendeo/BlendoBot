@@ -24,20 +24,26 @@ namespace Weather {
 			Usage = $"Usage: {"?weather [location]".Code()}",
 			Author = "Biendeo",
 			Version = "0.1.0",
-			Func = WeatherCommand,
+			Startup = async () => { await Task.Delay(0); return true; },
+			OnMessage = WeatherCommand,
 		};
 
-		private static void LoadConfig() {
+		private static bool Startup() {
+			return LoadConfig();
+		}
+
+		private static bool LoadConfig() {
 			if (!File.Exists(ConfigPath)) {
 				Methods.Log(null, new LogEventArgs {
 					Type = LogType.Error,
 					Message = $"BlendoBot Weather cannot find the config at {ConfigPath}"
 				});
-				return;
+				return false;
 			}
 			dynamic json = JsonConvert.DeserializeObject(File.ReadAllText(ConfigPath));
 			WeatherAPIKey = json.WeatherAPIKey;
 			TimezoneAPIKey = json.TimezoneDBAPIKey;
+			return true;
 		}
 
 		public static async Task WeatherCommand(MessageCreateEventArgs e) {

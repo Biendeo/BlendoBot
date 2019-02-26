@@ -13,7 +13,7 @@ namespace BlendoBot.Commands.Admin {
 			Term = "?admin disallow",
 			Name = "Disallow",
 			Description = "Disallows a specified user to interact with disabled commands.\nUsage: ?admin disallow [@users ...]",
-			Func = DisallowCommand
+			OnMessage = DisallowCommand
 		};
 
 		public static async Task DisallowCommand(MessageCreateEventArgs e) {

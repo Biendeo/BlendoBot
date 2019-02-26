@@ -12,7 +12,7 @@ namespace BlendoBot.Commands.Admin {
 			Term = "?admin unload",
 			Name = "Unload Modules",
 			Description = "Unloads any additional DLL modules.",
-			Func = UnloadCommand
+			OnMessage = UnloadCommand
 		};
 
 		public static async Task UnloadCommand(MessageCreateEventArgs e) {

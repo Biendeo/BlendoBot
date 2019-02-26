@@ -23,19 +23,26 @@ namespace CurrencyConverter {
 			Usage = $"Usage: {"?currency [value] [from currency code] [to currency code] ...".Code()}\nYou can write several currencies, and a conversion will be listed for each one.",
 			Author = "Biendeo",
 			Version = "0.1.1",
-			Func = CurrencyConvertCommand,
+			Startup = Startup,
+			OnMessage = CurrencyConvertCommand,
 		};
 
-		private static void LoadConfig() {
+		private static async Task<bool> Startup() {
+			await Task.Delay(0);
+			return LoadConfig();
+		}
+
+		private static bool LoadConfig() {
 			if (!File.Exists(ConfigPath)) {
 				Methods.Log(null, new LogEventArgs {
 					Type = LogType.Error,
 					Message = $"BlendoBot Currency Converter cannot find the config at {ConfigPath}"
 				});
-				return;
+				return false;
 			}
 			dynamic json = JsonConvert.DeserializeObject(File.ReadAllText(ConfigPath));
 			CurrencyConverterAPIKey = json.CurrencyConverterAPIKey;
+			return true;
 		}
 
 		public static async Task CurrencyConvertCommand(MessageCreateEventArgs e) {

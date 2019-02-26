@@ -18,7 +18,7 @@ namespace BlendoBot.Commands {
 			Usage = $"Use {"?about".Code()} to see the information about the bot.\nUse {"?about [command]".Code()} to see information about another command.",
 			Author = "Biendeo",
 			Version = "1.0.0",
-			Func = AboutCommand
+			OnMessage = AboutCommand
 		};
 
 		public static async Task AboutCommand(MessageCreateEventArgs e) {

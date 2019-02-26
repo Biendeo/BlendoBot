@@ -13,7 +13,7 @@ namespace BlendoBot.Commands {
 			string commandType = GetCommandType(e.Message.Content);
 			if (AvailableCommands.ContainsKey(commandType) && (Program.Data.IsCommandEnabled(commandType, e.Guild) || Program.Data.IsUserVerified(e.Guild, e.Author))) {
 				try {
-					await AvailableCommands[commandType].Func(e);
+					await AvailableCommands[commandType].OnMessage(e);
 				} catch (Exception exc) {
 					await Methods.SendException(null, new SendExceptionEventArgs {
 						Exception = exc,

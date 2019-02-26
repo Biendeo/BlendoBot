@@ -12,7 +12,7 @@ namespace BlendoBot.Commands.Admin {
 			Term = "?admin enable",
 			Name = "Enable",
 			Description = "Enables a previously disabled command from regular usage on the server.\nUsage: ?admin enable [command]",
-			Func = EnableCommand
+			OnMessage = EnableCommand
 		};
 
 		public static async Task EnableCommand(MessageCreateEventArgs e) {

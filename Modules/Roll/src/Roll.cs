@@ -18,7 +18,8 @@ namespace Roll {
 			Usage = $"Usage: {"?random [dice value] [optional: num rolls = 1]".Code()}\nIf you request 20 or fewer rolls, I'll print out all the individual dice numbers. Otherwise, I'll give you the five number summary.",
 			Author = "Biendeo",
 			Version = "0.2.0",
-			Func = RollCommand
+			Startup = async () => { await Task.Delay(0); return true; },
+			OnMessage = RollCommand
 		};
 
 		public static async Task RollCommand(MessageCreateEventArgs e) {

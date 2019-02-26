@@ -10,7 +10,7 @@ namespace BlendoBot.Commands.Admin {
 			Term = "?admin help",
 			Name = "Help",
 			Description = "Posts what commands the admin panel can do.",
-			Func = HelpCommand
+			OnMessage = HelpCommand
 		};
 
 		public static async Task HelpCommand(MessageCreateEventArgs e) {
