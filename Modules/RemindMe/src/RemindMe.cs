@@ -17,9 +17,9 @@ namespace RemindMe {
 			Term = "?remind",
 			Name = "Remind Me",
 			Description = "Reminds you about something later on! Please note that I currently do not remember messages if I am restarted.",
-			Usage = $"Usage:\n{$"?remind {"at".Bold()} [date/time] {"to".Bold()} [message]".Code()} {"(this reminds you at a certain point in time)".Italics()}\n{$"?remind {"in".Bold()} [date/time] {"to".Bold()} [message]".Code()} {"(this reminds you after a certain interval)".Italics()}",
+			Usage = $"Usage:\n{$"?remind at [date/time] to [message]".Code()} {"(this reminds you at a certain point in time)".Italics()}\n{$"?remind in [timespan] to [message]".Code()} {"(this reminds you after a certain interval)".Italics()}\nValid date/time formats are described here: https://docs.microsoft.com/en-us/dotnet/api/system.datetime.parse?view=netcore-2.1#StringToParse\nValid timespan formats are described here: https://docs.microsoft.com/en-us/dotnet/api/system.timespan.parse?view=netcore-2.1\nPlease note that all date/time strings are interpreted as UTC time unless explicitly stated (i.e. adding {"+11:00".Code()} or such to the format).\nThe output is always formatted as {"d/MM/yyyy h:mm:ss tt K".Code()}",
 			Author = "Biendeo",
-			Version = "0.1.0",
+			Version = "0.1.1",
 			Startup = Startup,
 			OnMessage = RemindCommand
 		};
@@ -91,7 +91,16 @@ namespace RemindMe {
 			// Now decipher the time.
 			DateTime foundTime = DateTime.Now;
 			if (splitMessage[1] == "at") {
-				foundTime = DateTime.Parse(string.Join(' ', splitMessage.Skip(2).Take(toIndex - 2)));
+				try {
+					foundTime = DateTime.Parse(string.Join(' ', splitMessage.Skip(2).Take(toIndex - 2)));
+				} catch (FormatException) {
+					await Methods.SendMessage(null, new SendMessageEventArgs {
+						Message = $"The date/time you input could not be parsed! See {"?help remind".Code()} for how to format your date/time!",
+						Channel = e.Channel,
+						LogMessage = "ReminderErrorInvalidTime"
+					});
+					return;
+				}
 				if (foundTime < DateTime.Now) {
 					await Methods.SendMessage(null, new SendMessageEventArgs {
 						Message = $"The time you input was parsed as {foundTime}, which is in the past! Make your time a little more specific!",
@@ -101,8 +110,17 @@ namespace RemindMe {
 					return;
 				}
 			} else  if (splitMessage[1] == "in") {
-				var span = TimeSpan.Parse(string.Join(' ', splitMessage.Skip(2).Take(toIndex - 2)));
-				foundTime = DateTime.Now + span;
+				try {
+					var span = TimeSpan.Parse(string.Join(' ', splitMessage.Skip(2).Take(toIndex - 2)));
+					foundTime = DateTime.Now + span;
+				} catch (FormatException) {
+					await Methods.SendMessage(null, new SendMessageEventArgs {
+						Message = $"The timespan you input could not be parsed! See {"?help remind".Code()} for how to format your timespan!",
+						Channel = e.Channel,
+						LogMessage = "ReminderErrorInvalidTimespan"
+					});
+					return;
+				}
 			} else {
 				await Methods.SendMessage(null, new SendMessageEventArgs {
 					Message = "Incorrect syntax, make sure you use the word \"in\" or \"at\" to specify a time for the reminder!",
@@ -122,7 +140,7 @@ namespace RemindMe {
 			//SaveReminders();
 
 			await Methods.SendMessage(null, new SendMessageEventArgs {
-				Message = $"Okay, I'll tell you this message at {foundTime}",
+				Message = $"Okay, I'll tell you this message at {foundTime.ToString("d/MM/yyyy h:mm:ss tt K")}",
 				Channel = e.Channel,
 				LogMessage = "ReminderConfirm"
 			});
