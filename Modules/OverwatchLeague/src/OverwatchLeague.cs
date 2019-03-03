@@ -4,6 +4,7 @@ using DSharpPlus.EventArgs;
 using Microsoft.CSharp.RuntimeBinder;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
@@ -19,9 +20,33 @@ namespace OverwatchLeague {
 			Usage = $"Usage:\n{"?overwatchleague live".Code()} {"(stats about the match that is currently on)".Italics()}\n{"?overwatchleague next".Code()} {"(stats about the next match that will be played)".Italics()}\nAll times listed are in UTC.",
 			Author = "Biendeo",
 			Version = "0.1.0",
-			Startup = async () => { await Task.Delay(0); return true; },
+			Startup = Startup,
 			OnMessage = OverwatchLeagueCommand
 		};
+
+		private static Dictionary<string, string> MapNames;
+		private static Dictionary<string, string> MapModes;
+
+		private static async Task<bool> Startup() {
+			MapNames = new Dictionary<string, string>();
+			MapModes = new Dictionary<string, string>();
+
+			try {
+				using (var wc = new WebClient()) {
+					string mapJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/maps");
+					dynamic mapJson = JsonConvert.DeserializeObject(mapJsonString);
+					foreach (var map in mapJson) {
+						try {
+							MapNames.Add((string)map.guid, (string)map.name.en_US);
+							MapModes.Add((string)map.guid, (string)map.gameModes[0].Name);
+						} catch (RuntimeBinderException) { }
+					}
+				}
+			} catch (RuntimeBinderException exc) {
+				return false;
+			}
+			return true;
+		}
 
 		private static string GetMatchDetails(dynamic match) {
 			var sb = new StringBuilder();
@@ -53,11 +78,9 @@ namespace OverwatchLeague {
 			sb.AppendLine($"{homeTeam.name} vs. {awayTeam.name}");
 			sb.AppendLine($"{currentHomeScore} - {currentAwayScore}");
 
-			string[] mapTypes = { "Control", "Hybrid", "Assault", "Payload", "Control" };
-
 			foreach (var game in match.games) {
 				sb.AppendLine();
-				sb.AppendLine($"Map {game.number} on {(game.attributes.map != null ? game.attributes.map : "???")} ({mapTypes[game.number - 1]}) - {game.status}");
+				sb.AppendLine($"Map {game.number} on {MapNames[(string)game.attributes.mapGuid]} ({MapModes[(string)game.attributes.mapGuid]}) - {game.status}");
 				try {
 					sb.AppendLine($"{game.points[0]} - {game.points[1]}");
 				} catch (RuntimeBinderException) { }
