@@ -5,6 +5,7 @@ using Microsoft.CSharp.RuntimeBinder;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
@@ -115,6 +116,32 @@ namespace OverwatchLeague {
 						Message = GetMatchDetails(nextMatch),
 						Channel = e.Channel,
 						LogMessage = "OverwatchLeagueNext"
+					});
+				} else if (splitMessage.Length > 1 && splitMessage[1] == "standings") {
+					string standingsJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/standings");
+					dynamic standingsJson = JsonConvert.DeserializeObject(standingsJsonString);
+
+					var sb = new StringBuilder();
+
+					sb.Append("```");
+
+					sb.AppendLine(" # |                   Name | W - L | Diff |   Map W-D-L");
+					sb.AppendLine("---+------------------------+-------+------+------------");
+
+					var rankingIndicies = Enumerable.Range(0, 20).ToList().ConvertAll(delegate (int i) { return i.ToString(); });
+
+					foreach (var index in rankingIndicies) {
+						var team = standingsJson.ranks.content[index];
+						var mapDiff = team.records[0].gameWin - team.records[0].gameLoss;
+						sb.AppendLine($"{team.placement.ToString().PadLeft(2, ' ')} | {team.competitor.name.ToString().PadLeft(22, ' ')} | {team.records[0].matchWin.ToString().PadLeft(2, ' ')}-{team.records[0].matchLoss.ToString().PadLeft(2, ' ')} | {$"{(mapDiff > 0 ? '+' : ' ')}{mapDiff}".PadLeft(4, ' ')} | {team.records[0].gameWin.ToString().PadLeft(3, ' ')}-{team.records[0].gameTie.ToString().PadLeft(3, ' ')}-{team.records[0].gameLoss.ToString().PadLeft(3, ' ')}");
+					}
+
+					sb.Append("```");
+
+					await Methods.SendMessage(null, new SendMessageEventArgs {
+						Message = sb.ToString(),
+						Channel = e.Channel,
+						LogMessage = "OverwatchLeagueStandings"
 					});
 				} else {
 					await Methods.SendMessage(null, new SendMessageEventArgs {
