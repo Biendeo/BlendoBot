@@ -125,15 +125,15 @@ namespace OverwatchLeague {
 
 					sb.Append("```");
 
-					sb.AppendLine(" # |                   Name | W - L | Diff |   Map W-D-L");
-					sb.AppendLine("---+------------------------+-------+------+------------");
+					sb.AppendLine(" # |                         Name | W - L | Diff |   Map W-D-L");
+					sb.AppendLine("---+------------------------------+-------+------+------------");
 
 					var rankingIndicies = Enumerable.Range(0, 20).ToList().ConvertAll(delegate (int i) { return i.ToString(); });
 
 					foreach (var index in rankingIndicies) {
 						var team = standingsJson.ranks.content[index];
 						var mapDiff = team.records[0].gameWin - team.records[0].gameLoss;
-						sb.AppendLine($"{team.placement.ToString().PadLeft(2, ' ')} | {team.competitor.name.ToString().PadLeft(22, ' ')} | {team.records[0].matchWin.ToString().PadLeft(2, ' ')}-{team.records[0].matchLoss.ToString().PadLeft(2, ' ')} | {$"{(mapDiff > 0 ? '+' : ' ')}{mapDiff}".PadLeft(4, ' ')} | {team.records[0].gameWin.ToString().PadLeft(3, ' ')}-{team.records[0].gameTie.ToString().PadLeft(3, ' ')}-{team.records[0].gameLoss.ToString().PadLeft(3, ' ')}");
+						sb.AppendLine($"{team.placement.ToString().PadLeft(2, ' ')} | {team.competitor.name.ToString().PadLeft(22, ' ')} ({team.competitor.abbreviatedName}) | {team.records[0].matchWin.ToString().PadLeft(2, ' ')}-{team.records[0].matchLoss.ToString().PadLeft(2, ' ')} | {$"{(mapDiff > 0 ? '+' : ' ')}{mapDiff}".PadLeft(4, ' ')} | {team.records[0].gameWin.ToString().PadLeft(3, ' ')}-{team.records[0].gameTie.ToString().PadLeft(3, ' ')}-{team.records[0].gameLoss.ToString().PadLeft(3, ' ')}");
 					}
 
 					sb.Append("```");
