@@ -18,9 +18,9 @@ namespace OverwatchLeague {
 			Term = "?overwatchleague",
 			Name = "Overwatch League",
 			Description = "Tells you up-to-date stats about the Overwatch League.",
-			Usage = $"Usage:\n{"?overwatchleague live".Code()} {"(stats about the match that is currently on)".Italics()}\n{"?overwatchleague next".Code()} {"(stats about the next match that will be played)".Italics()}\n{"?overwatchleague standings".Code()} {"(the overall standings of the league)".Italics()}\n{"?overwatchleague schedule [stage] [week]".Code()} {"(shows times and scores for each match in the given week)".Italics()}\nAll times listed are in UTC.",
+			Usage = $"Usage:\n{"?overwatchleague live".Code()} {"(stats about the match that is currently on)".Italics()}\n{"?overwatchleague next".Code()} {"(stats about the next match that will be played)".Italics()}\n{"?overwatchleague standings".Code()} {"(the overall standings of the league)".Italics()}\n{"?overwatchleague schedule [stage] [week]".Code()} {"(shows times and scores for each match in the given week)".Italics()}\n{"?overwatchleague schedule [abbreviated team name]".Code()} {"(shows times and scores for each match that a team plays)".Italics()}\nAll times listed are in UTC.",
 			Author = "Biendeo",
-			Version = "0.1.0",
+			Version = "0.4.0",
 			Startup = Startup,
 			OnMessage = OverwatchLeagueCommand
 		};
@@ -43,7 +43,7 @@ namespace OverwatchLeague {
 						} catch (RuntimeBinderException) { }
 					}
 				}
-			} catch (RuntimeBinderException exc) {
+			} catch (RuntimeBinderException) {
 				return false;
 			}
 			return true;
@@ -143,8 +143,8 @@ namespace OverwatchLeague {
 						Channel = e.Channel,
 						LogMessage = "OverwatchLeagueStandings"
 					});
-				} else if (splitMessage.Length > 3 && splitMessage[1] == "schedule") {
-					if (int.TryParse(splitMessage[2], out int stage) && int.TryParse(splitMessage[3], out int week) && stage > 0 && stage <= 4 && week > 0 && week <= 5) {
+				} else if (splitMessage.Length > 2 && splitMessage[1] == "schedule") {
+					if (splitMessage.Length > 3 && int.TryParse(splitMessage[2], out int stage) && int.TryParse(splitMessage[3], out int week) && stage > 0 && stage <= 4 && week > 0 && week <= 5) {
 						string scheduleJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/schedule");
 						dynamic scheduleJson = JsonConvert.DeserializeObject(scheduleJsonString);
 
@@ -178,11 +178,71 @@ namespace OverwatchLeague {
 						await Methods.SendMessage(null, new SendMessageEventArgs {
 							Message = sb.ToString(),
 							Channel = e.Channel,
-							LogMessage = "OverwatchLeagueScheduyle"
+							LogMessage = "OverwatchLeagueScheduleWeek"
 						});
+					} else if (splitMessage.Length > 2 && splitMessage[2].Length == 3) {
+						string teamName = splitMessage[2].ToUpper();
+						string matchesJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/matches");
+						dynamic matchesJson = JsonConvert.DeserializeObject(matchesJsonString);
+						int countedMatches = 0;
+						var sb = new StringBuilder();
+
+						sb.Append("```");
+
+						foreach (var match in matchesJson.content) {
+							if (match.competitors[0].abbreviatedName == teamName || match.competitors[1].abbreviatedName == teamName) {
+								++countedMatches;
+
+								string homeTeam = match.competitors[0].abbreviatedName;
+								string awayTeam = match.competitors[1].abbreviatedName;
+
+								int homeScore = match.scores[0].value;
+								int awayScore = match.scores[1].value;
+
+								var startTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.startDate);
+
+								if (homeTeam == teamName) {
+									sb.Append($"{startTime.ToString("d/MM hh:mm tt K").PadLeft(15, ' ')} - {homeTeam} vs. {awayTeam}");
+									if (match.status != "PENDING") {
+										sb.Append($" ({homeScore} - {awayScore})");
+									}
+								} else {
+									sb.Append($"{startTime.ToString("d/MM hh:mm tt K").PadLeft(15, ' ')} - {awayTeam} vs. {homeTeam}");
+									if (match.status != "PENDING") {
+										sb.Append($" ({awayScore} - {homeScore})");
+									}
+								}
+								if (match.status == "IN_PROGRESS") {
+									sb.Append(" (LIVE)");
+								} else if (match.status == "CONCLUDED") {
+									if (match.winner.abbreviatedName == teamName) {
+										sb.Append(" (W)");
+									} else {
+										sb.Append(" (L)");
+									}
+								}
+								sb.AppendLine();
+							}
+						}
+
+						sb.Append("```");
+
+						if (countedMatches == 0) {
+							await Methods.SendMessage(null, new SendMessageEventArgs {
+								Message = $"Invalid team code. Use {"?overwatchleague standings".Code()} to find your team's abbreviated name!",
+								Channel = e.Channel,
+								LogMessage = "OverwatchLeagueScheduleTeamInvalid"
+							});
+						} else {
+							await Methods.SendMessage(null, new SendMessageEventArgs {
+								Message = sb.ToString(),
+								Channel = e.Channel,
+								LogMessage = "OverwatchLeagueScheduleTeam"
+							});
+						}
 					} else {
 						await Methods.SendMessage(null, new SendMessageEventArgs {
-							Message = $"Invalid stage number or week number. Try again!",
+							Message = $"Invalid usage of the schedule command!",
 							Channel = e.Channel,
 							LogMessage = "OverwatchLeagueScheduleInvalid"
 						});
