@@ -1,5 +1,6 @@
 ﻿using BlendoBotLib;
 using BlendoBotLib.Commands;
+using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using Microsoft.CSharp.RuntimeBinder;
 using Newtonsoft.Json;
@@ -18,7 +19,7 @@ namespace OverwatchLeague {
 			Term = "?overwatchleague",
 			Name = "Overwatch League",
 			Description = "Tells you up-to-date stats about the Overwatch League.",
-			Usage = $"Usage:\n{"?overwatchleague live".Code()} {"(stats about the match that is currently on)".Italics()}\n{"?overwatchleague next".Code()} {"(stats about the next match that will be played)".Italics()}\n{"?overwatchleague standings".Code()} {"(the overall standings of the league)".Italics()}\n{"?overwatchleague schedule [stage] [week]".Code()} {"(shows times and scores for each match in the given week)".Italics()}\n{"?overwatchleague schedule [abbreviated team name]".Code()} {"(shows times and scores for each match that a team plays)".Italics()}\nAll times listed are in UTC.",
+			Usage = $"Usage:\n{"?overwatchleague live".Code()} {"(stats about the match that is currently on)".Italics()}\n{"?overwatchleague next".Code()} {"(stats about the next match that will be played)".Italics()}\n{"?overwatchleague standings".Code()} {"(the overall standings of the league)".Italics()}\n{"?overwatchleague schedule [stage] [week]".Code()} {"(shows times and scores for each match in the given week)".Italics()}\n{"?overwatchleague schedule [stage] playoffs".Code()} {"(shows times and scores for each match in the given stage's playoffs)".Italics()}\n{"?overwatchleague schedule [abbreviated team name]".Code()} {"(shows times and scores for each match that a team plays)".Italics()}\nAll times listed are in UTC.",
 			Author = "Biendeo",
 			Version = "0.4.0",
 			Startup = Startup,
@@ -59,18 +60,18 @@ namespace OverwatchLeague {
 			var currentHomeScore = match.scores[0].value;
 			var currentAwayScore = match.scores[1].value;
 
-			sb.AppendLine($"Planned time: {new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.startDateTS).ToString("d/MM/yyyy h:mm:ss tt K")} - {new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.endDateTS).ToString("d/MM/yyyy h:mm:ss tt K")}");
+			sb.AppendLine($"Planned time: {new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.startDateTS).ToString("d/MM/yyyy h:mm:ss tt")} UTC - {new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.endDateTS).ToString("d/MM/yyyy h:mm:ss tt K")} UTC");
 			sb.Append("Real time: ");
 
 			try {
-				sb.Append(new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.actualStartDate).ToString("d/MM/yyyy h:mm:ss tt K"));
+				sb.Append(new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.actualStartDate).ToString("d/MM/yyyy h:mm:ss tt") + " UTC");
 				sb.Append(" - ");
 			} catch (RuntimeBinderException) {
 				sb.Append("??? - ");
 			}
 
 			try {
-				sb.Append(new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.actualEndDate).ToString("d/MM/yyyy h:mm:ss tt K"));
+				sb.Append(new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.actualEndDate).ToString("d/MM/yyyy h:mm:ss tt") + " UTC");
 			} catch (RuntimeBinderException) {
 				sb.Append("???");
 			}
@@ -144,7 +145,7 @@ namespace OverwatchLeague {
 						LogMessage = "OverwatchLeagueStandings"
 					});
 				} else if (splitMessage.Length > 2 && splitMessage[1] == "schedule") {
-					if (splitMessage.Length > 3 && int.TryParse(splitMessage[2], out int stage) && int.TryParse(splitMessage[3], out int week) && stage > 0 && stage <= 4 && week > 0 && week <= 5) {
+					if (splitMessage.Length > 3 && (int.TryParse(splitMessage[2], out int stage) && stage > 0 && stage <= 4) && ((int.TryParse(splitMessage[3], out int week) && week > 0 && week <= 5) || splitMessage[3] == "playoffs")) {
 						string scheduleJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/schedule");
 						dynamic scheduleJson = JsonConvert.DeserializeObject(scheduleJsonString);
 
@@ -152,18 +153,28 @@ namespace OverwatchLeague {
 
 						sb.Append("```");
 
-						var weekMatches = scheduleJson.data.stages[stage - 1].weeks[week - 1].matches;
+						dynamic relevantMatches;
 
-						foreach (var match in weekMatches) {
-							string homeTeam = match.competitors[0].abbreviatedName;
-							string awayTeam = match.competitors[1].abbreviatedName;
+						if (splitMessage[3] == "playoffs") {
+							Newtonsoft.Json.Linq.JArray a = scheduleJson.data.stages[stage - 1].matches;
+							relevantMatches = a.Skip(70).ToArray();
+						} else {
+							relevantMatches = scheduleJson.data.stages[stage - 1].weeks[week - 1].matches;
+						}
+
+						foreach (var match in relevantMatches) {
+							dynamic home = match.competitors[0];
+							dynamic away = match.competitors[1];
+
+							string homeTeam = home != null ? home.abbreviatedName : "???";
+							string awayTeam = away != null ? away.abbreviatedName : "???";
 
 							int homeScore = match.scores[0].value;
 							int awayScore = match.scores[1].value;
 
 							var startTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.startDateTS);
 
-							sb.Append($"{startTime.ToString("d/MM hh:mm tt K").PadLeft(15, ' ')} - {homeTeam} vs. {awayTeam}");
+							sb.Append($"{startTime.ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC - {homeTeam} vs. {awayTeam}");
 							if (match.status != "PENDING") {
 								sb.Append($" ({homeScore} - {awayScore})");
 							}
@@ -202,12 +213,12 @@ namespace OverwatchLeague {
 								var startTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.startDate);
 
 								if (homeTeam == teamName) {
-									sb.Append($"{startTime.ToString("d/MM hh:mm tt K").PadLeft(15, ' ')} - {homeTeam} vs. {awayTeam}");
+									sb.Append($"{startTime.ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC - {homeTeam} vs. {awayTeam}");
 									if (match.status != "PENDING") {
 										sb.Append($" ({homeScore} - {awayScore})");
 									}
 								} else {
-									sb.Append($"{startTime.ToString("d/MM hh:mm tt K").PadLeft(15, ' ')} - {awayTeam} vs. {homeTeam}");
+									sb.Append($"{startTime.ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC - {awayTeam} vs. {homeTeam}");
 									if (match.status != "PENDING") {
 										sb.Append($" ({awayScore} - {homeScore})");
 									}
