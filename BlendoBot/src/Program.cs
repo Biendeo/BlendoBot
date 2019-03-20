@@ -50,6 +50,14 @@ namespace BlendoBot {
 				Type = LogType.Log,
 				Message = $"Sending message {e.LogMessage} to channel #{e.Channel.Name} ({e.Channel.Guild.Name})"
 			});
+			if (e.LogMessage.Length > 2000) {
+				int oldLength = e.Message.Length;
+				e.LogMessage = e.LogMessage.Substring(0, 2000);
+				Methods.Log(sender, new LogEventArgs {
+					Type = LogType.Warning,
+					Message = $"Last message was {oldLength} characters long, truncated to 2000"
+				});
+			}
 			return await e.Channel.SendMessageAsync(e.Message);
 		}
 
@@ -66,7 +74,18 @@ namespace BlendoBot {
 				Type = LogType.Error,
 				Message = $"{e.LogExceptionType}\n{e.Exception}"
 			});
-			return await e.Channel.SendMessageAsync($"A {e.LogExceptionType} occurred. Alert the authorities!\n```\n{e.Exception}\n```");
+			string messageHeader = $"A {e.LogExceptionType} occurred. Alert the authorities!\n```\n";
+			string messageFooter = "\n```";
+			string exceptionString = e.Exception.ToString();
+			if (exceptionString.Length + messageHeader.Length + messageFooter.Length > 2000) {
+				int oldLength = exceptionString.Length;
+				exceptionString = exceptionString.Substring(0, 2000 - messageHeader.Length - messageFooter.Length);
+				Methods.Log(sender, new LogEventArgs {
+					Type = LogType.Warning,
+					Message = $"Last message was {oldLength} characters long, truncated to {exceptionString.Length}"
+				});
+			}
+			return await e.Channel.SendMessageAsync(messageHeader + exceptionString + messageFooter);
 		}
 
 		private static void Methods_MessageLogged(object sender, LogEventArgs e) {
