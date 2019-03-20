@@ -12,6 +12,7 @@ using SixLabors.Primitives;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace MrPing {
@@ -22,15 +23,15 @@ namespace MrPing {
 			Term = "?mrping",
 			Name = "Mr. Ping Challenge",
 			Description = "Subjects someone to the Mr. Ping Challenge!",
-			Usage = $"Usage: {"?mrping".Code()}",
+			Usage = $"Usage: {"?mrping".Code()}\nNote: Any non-ASCII characters in a username will be replaced with {"¿".Code()}.",
 			Author = "Biendeo",
-			Version = "0.4.0",
+			Version = "0.4.1",
 			Startup = async () => { await Task.Delay(0); return true; },
 			OnMessage = MrPingCommand
 		};
 
 		public const int MaxPings = 100;
-
+		
 		public static async Task MrPingCommand(MessageCreateEventArgs e) {
 			// Edit the Mr Ping image to randomly pick a user on the server, and a random number
 			// of pings (up to 100).
@@ -84,7 +85,9 @@ namespace MrPing {
 						VerticalAlignment = VerticalAlignment.Center,
 						WrapTextWidth = 175.0f
 					};
-					workingImage.Mutate(ctx => ctx.DrawText(textGraphicsOptions, $"@{chosenMember.Username} #{chosenMember.Discriminator}", memberNameFont, Rgba32.DarkBlue, new PointF(0, 290)).DrawText(textGraphicsOptions, $"{numberOfPings}", numberFont, Rgba32.DarkRed, new PointF(-45, 357)));
+					string tempName = "👀👀👀👀👀👀";
+					string cleanUsername = Regex.Replace(tempName, @"[^\u0000-\u007F]+", "¿");
+					workingImage.Mutate(ctx => ctx.DrawText(textGraphicsOptions, $"@{cleanUsername} #{chosenMember.Discriminator}", memberNameFont, Rgba32.DarkBlue, new PointF(0, 290)).DrawText(textGraphicsOptions, $"{numberOfPings}", numberFont, Rgba32.DarkRed, new PointF(-45, 357)));
 
 					string filePath = $"mrping-{chosenMember.Username}.png";
 					workingImage.Save(filePath);
