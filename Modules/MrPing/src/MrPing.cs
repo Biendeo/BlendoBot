@@ -25,7 +25,7 @@ namespace MrPing {
 			Description = "Subjects someone to the Mr. Ping Challenge!",
 			Usage = $"Usage: {"?mrping".Code()}\nNote: Any non-ASCII characters in a username will be replaced with {"¿".Code()}.",
 			Author = "Biendeo",
-			Version = "0.4.1",
+			Version = "0.4.2",
 			Startup = async () => { await Task.Delay(0); return true; },
 			OnMessage = MrPingCommand
 		};
@@ -85,8 +85,7 @@ namespace MrPing {
 						VerticalAlignment = VerticalAlignment.Center,
 						WrapTextWidth = 175.0f
 					};
-					string tempName = "👀👀👀👀👀👀";
-					string cleanUsername = Regex.Replace(tempName, @"[^\u0000-\u007F]+", "¿");
+					string cleanUsername = Regex.Replace(chosenMember.Username, @"[^\u0000-\u007F]+", "¿");
 					workingImage.Mutate(ctx => ctx.DrawText(textGraphicsOptions, $"@{cleanUsername} #{chosenMember.Discriminator}", memberNameFont, Rgba32.DarkBlue, new PointF(0, 290)).DrawText(textGraphicsOptions, $"{numberOfPings}", numberFont, Rgba32.DarkRed, new PointF(-45, 357)));
 
 					string filePath = $"mrping-{chosenMember.Username}.png";
