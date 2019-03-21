@@ -4,6 +4,7 @@ using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using Microsoft.CSharp.RuntimeBinder;
 using Newtonsoft.Json;
+using OverwatchLeague.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,7 +30,14 @@ namespace OverwatchLeague {
 		private static Dictionary<string, string> MapNames;
 		private static Dictionary<string, string> MapModes;
 
+		private static Database database;
+
 		private static async Task<bool> Startup() {
+			if (database == null) {
+				database = new Database();
+			}
+			await database.ReloadDatabase();
+
 			MapNames = new Dictionary<string, string>();
 			MapModes = new Dictionary<string, string>();
 
