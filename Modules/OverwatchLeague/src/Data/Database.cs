@@ -13,12 +13,14 @@ namespace OverwatchLeague.Data {
 		private List<Division> divisions;
 		private List<Map> maps;
 		private List<GameMode> gameModes;
+		private List<Match> matches;
 
 		public Database() {
 			teams = new List<Team>();
 			divisions = new List<Division>();
 			maps = new List<Map>();
 			gameModes = new List<GameMode>();
+			matches = new List<Match>();
 		}
 
 		public void Clear() {
@@ -26,12 +28,14 @@ namespace OverwatchLeague.Data {
 			divisions.Clear();
 			maps.Clear();
 			gameModes.Clear();
+			matches.Clear();
 		}
 
 		public async Task ReloadDatabase() {
 			Clear();
 			await LoadTeamsAndDivisions();
 			await LoadMapsAndModes();
+			await LoadMatches();
 		}
 
 		private async Task LoadTeamsAndDivisions() {
@@ -78,7 +82,6 @@ namespace OverwatchLeague.Data {
 
 				// Just store the maps straight.
 				foreach (var map in mapsJson) {
-					// The division ID is a string for some reason.
 					ulong guid = Convert.ToUInt64(map.guid.Value, 16);
 					string name = map.name.en_US;
 
@@ -98,6 +101,66 @@ namespace OverwatchLeague.Data {
 							}
 							mode.AddMap(newMap);
 							newMap.AddGameMode(mode);
+						}
+					}
+				}
+			}
+		}
+
+		private async Task LoadMatches() {
+			using (var wc = new WebClient()) {
+				string matchesJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/matches");
+				dynamic matchesJson = JsonConvert.DeserializeObject(matchesJsonString);
+
+				foreach (var match in matchesJson.content) {
+					int id = match.id;
+					Team homeTeam = teams.Find(t => t.Id == match.competitors[0].id.Value);
+					Team awayTeam = teams.Find(t => t.Id == match.competitors[1].id.Value);
+					int homeScore = match.scores[0].value;
+					int awayScore = match.scores[1].value;
+					string status = match.status;
+					DateTime startTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.startDate);
+					DateTime endTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.endDate);
+					DateTime? actualStartTime = null;
+					if (match["actualStartTime"] != null) {
+						actualStartTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.actualStartTime);
+					}
+					DateTime? actualEndTime = null;
+					if (match["actualEndTime"] != null) {
+						actualEndTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.actualEndTime);
+					}
+
+					Match m = new Match(id, homeTeam, awayTeam, homeScore, awayScore, status, startTime, endTime, actualStartTime, actualEndTime);
+					matches.Add(m);
+					if (homeTeam != null) {
+						homeTeam.AddMatch(m);
+					}
+					if (awayTeam != null) {
+						awayTeam.AddMatch(m);
+					}
+
+					// Now the individual games of the matches.
+					foreach (var game in match.games) {
+						int gameId = game.id;
+						int gameNumber = game.number;
+						int gameHomePoints = 0;
+						int gameAwayPoints = 0;
+						if (game["points"] != null) {
+							gameHomePoints = game.points[0];
+							gameAwayPoints = game.points[1];
+						}
+						ulong mapGuid = 0;
+						if (game["attributes"]["mapGuid"] != null) {
+							mapGuid = Convert.ToUInt64(game.attributes.mapGuid.Value, 16);
+						}
+						Map map = maps.Find(x => x.Guid == mapGuid);
+						string gameStatus = game.status;
+
+						MatchGame g = new MatchGame(gameId, gameNumber, gameHomePoints, gameAwayPoints, m, map, gameStatus);
+
+						m.AddGame(g);
+						if (map != null) {
+							map.AddGame(g);
 						}
 					}
 				}
