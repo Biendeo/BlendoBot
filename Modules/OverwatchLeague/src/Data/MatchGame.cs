@@ -22,5 +22,21 @@ namespace OverwatchLeague.Data {
 			Map = map;
 			this.status = status;
 		}
+
+		public void SetHomeScore(int score) {
+			HomeScore = score;
+		}
+
+		public void SetAwayScore(int score) {
+			AwayScore = score;
+		}
+
+		public void SetMap(Map map) {
+			Map = map;
+		}
+
+		public void SetStatus(string status) {
+			this.status = status;
+		}
 	}
 }

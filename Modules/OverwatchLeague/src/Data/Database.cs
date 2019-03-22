@@ -7,6 +7,7 @@ using System.Drawing;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using System.Timers;
 
 namespace OverwatchLeague.Data {
 	public class Database {
@@ -22,6 +23,7 @@ namespace OverwatchLeague.Data {
 		public ReadOnlyCollection<Match> Matches { get { return matches.AsReadOnly(); } }
 		private List<Stage> stages;
 		public ReadOnlyCollection<Stage> Stages { get { return stages.AsReadOnly(); } }
+		private Timer fullUpdateTimer;
 
 		public Database() {
 			teams = new List<Team>();
@@ -30,6 +32,16 @@ namespace OverwatchLeague.Data {
 			gameModes = new List<GameMode>();
 			matches = new List<Match>();
 			stages = new List<Stage>();
+
+			// The next time to update should always 
+			fullUpdateTimer = new Timer((NextFullUpdate() - DateTime.UtcNow).TotalMilliseconds);
+			fullUpdateTimer.Elapsed += FullUpdateTimer_Elapsed;
+			fullUpdateTimer.Enabled = true;
+		}
+
+		private async void FullUpdateTimer_Elapsed(object sender, ElapsedEventArgs e) {
+			await ReloadDatabase();
+			fullUpdateTimer.Interval = (NextFullUpdate() - DateTime.UtcNow).TotalMilliseconds;
 		}
 
 		public void Clear() {
@@ -307,6 +319,11 @@ namespace OverwatchLeague.Data {
 			}
 
 			return standings;
+		}
+
+		private static DateTime NextFullUpdate() {
+			// The next full update should be at 3AM PST which is 11AM UTC.
+			return DateTime.UtcNow.AddDays(1).AddHours(-DateTime.UtcNow.Hour + 11).AddMinutes(-DateTime.UtcNow.Minute).AddSeconds(-DateTime.UtcNow.Second);
 		}
 	}
 }

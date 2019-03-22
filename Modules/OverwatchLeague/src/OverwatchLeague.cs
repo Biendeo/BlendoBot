@@ -27,14 +27,14 @@ namespace OverwatchLeague {
 			OnMessage = OverwatchLeagueCommand
 		};
 
-		private static Database database;
+		public static Database Database;
 
 		private static async Task<bool> Startup() {
-			if (database == null) {
-				database = new Database();
+			if (Database == null) {
+				Database = new Database();
 			}
 			try {
-				await database.ReloadDatabase();
+				await Database.ReloadDatabase();
 			} catch (Exception exc) {
 				Console.Error.WriteLine(exc);
 				return false;
@@ -85,7 +85,7 @@ namespace OverwatchLeague {
 
 			using (var wc = new WebClient()) {
 				if (splitMessage.Length > 1 && splitMessage[1] == "live") {
-					Match match = (from c in database.Matches where c.EndTime > DateTime.UtcNow select c).First();
+					Match match = (from c in Database.Matches where c.EndTime > DateTime.UtcNow select c).First();
 
 					if (match == null) {
 						await Methods.SendMessage(null, new SendMessageEventArgs {
@@ -101,7 +101,7 @@ namespace OverwatchLeague {
 						});
 					}
 				} else if (splitMessage.Length > 1 && splitMessage[1] == "next") {
-					Match match = (from c in database.Matches where c.StartTime > DateTime.UtcNow select c).First();
+					Match match = (from c in Database.Matches where c.StartTime > DateTime.UtcNow select c).First();
 
 					if (match == null) {
 						await Methods.SendMessage(null, new SendMessageEventArgs {
@@ -124,7 +124,7 @@ namespace OverwatchLeague {
 					sb.AppendLine(" # |                         Name | W - L | Diff |   Map W-D-L");
 					sb.AppendLine("---+------------------------------+-------+------+------------");
 
-					foreach (Standing s in database.GetStandings()) {
+					foreach (Standing s in Database.GetStandings()) {
 						sb.AppendLine($"{s.Position.ToString().PadLeft(2, ' ')} | {s.Team.Name.ToString().PadLeft(22, ' ')} ({s.Team.AbbreviatedName}) | {s.MatchWins.ToString().PadLeft(2, ' ')}-{s.MatchLosses.ToString().PadLeft(2, ' ')} | {$"{(s.MapDiff > 0 ? '+' : ' ')}{s.MapDiff}".PadLeft(4, ' ')} | {s.MapWins.ToString().PadLeft(3, ' ')}-{s.MapDraws.ToString().PadLeft(3, ' ')}-{s.MapLosses.ToString().PadLeft(3, ' ')}");
 					}
 
@@ -144,9 +144,9 @@ namespace OverwatchLeague {
 						Week relevantWeek;
 
 						if (splitMessage[3] == "playoffs") {
-							relevantWeek = database.Stages[stage - 1].Playoffs;
+							relevantWeek = Database.Stages[stage - 1].Playoffs;
 						} else {
-							relevantWeek = database.Stages[stage - 1].Weeks[week - 1];
+							relevantWeek = Database.Stages[stage - 1].Weeks[week - 1];
 						}
 
 						foreach (Match match in relevantWeek.Matches) {
@@ -179,7 +179,7 @@ namespace OverwatchLeague {
 						});
 					} else if (splitMessage.Length > 2 && splitMessage[2].Length == 3) {
 						string teamName = splitMessage[2].ToUpper();
-						Team team = (from c in database.Teams where c.AbbreviatedName == teamName select c).First();
+						Team team = (from c in Database.Teams where c.AbbreviatedName == teamName select c).First();
 
 						if (team == null) {
 							await Methods.SendMessage(null, new SendMessageEventArgs {
