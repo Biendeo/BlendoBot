@@ -27,7 +27,7 @@ namespace OverwatchLeague {
 			OnMessage = OverwatchLeagueCommand
 		};
 
-		public static Database Database;
+		internal static Database Database;
 
 		private static async Task<bool> Startup() {
 			if (Database == null) {
