@@ -137,39 +137,34 @@ namespace OverwatchLeague {
 					});
 				} else if (splitMessage.Length > 2 && splitMessage[1] == "schedule") {
 					if (splitMessage.Length > 3 && (int.TryParse(splitMessage[2], out int stage) && stage > 0 && stage <= 4) && ((int.TryParse(splitMessage[3], out int week) && week > 0 && week <= 5) || splitMessage[3] == "playoffs")) {
-						string scheduleJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/schedule");
-						dynamic scheduleJson = JsonConvert.DeserializeObject(scheduleJsonString);
-
 						var sb = new StringBuilder();
 
 						sb.Append("```");
 
-						dynamic relevantMatches;
+						Week relevantWeek;
 
 						if (splitMessage[3] == "playoffs") {
-							Newtonsoft.Json.Linq.JArray a = scheduleJson.data.stages[stage - 1].matches;
-							relevantMatches = a.Skip(70).ToArray();
+							relevantWeek = database.Stages[stage - 1].Playoffs;
 						} else {
-							relevantMatches = scheduleJson.data.stages[stage - 1].weeks[week - 1].matches;
+							relevantWeek = database.Stages[stage - 1].Weeks[week - 1];
 						}
 
-						foreach (var match in relevantMatches) {
-							dynamic home = match.competitors[0];
-							dynamic away = match.competitors[1];
-
-							string homeTeam = home != null ? home.abbreviatedName : "???";
-							string awayTeam = away != null ? away.abbreviatedName : "???";
-
-							int homeScore = match.scores[0].value;
-							int awayScore = match.scores[1].value;
-
-							var startTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.startDateTS);
-
-							sb.Append($"{startTime.ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC - {homeTeam} vs. {awayTeam}");
-							if (match.status != "PENDING") {
-								sb.Append($" ({homeScore} - {awayScore})");
+						foreach (Match match in relevantWeek.Matches) {
+							sb.Append($"{match.StartTime.ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC - ");
+							if (match.HomeTeam != null) {
+								sb.Append($"{match.HomeTeam.AbbreviatedName} - ");
+							} else {
+								sb.Append("??? - ");
 							}
-							if (match.status == "IN_PROGRESS") {
+							if (match.AwayTeam != null) {
+								sb.Append($"{match.AwayTeam.AbbreviatedName}");
+							} else {
+								sb.Append("???");
+							}
+							if (match.Status != MatchStatus.Pending) {
+								sb.Append($" ({match.HomeScore} - {match.AwayScore})");
+							}
+							if (match.Status == MatchStatus.InProgress) {
 								sb.Append(" (LIVE)");
 							}
 							sb.AppendLine();
@@ -184,58 +179,45 @@ namespace OverwatchLeague {
 						});
 					} else if (splitMessage.Length > 2 && splitMessage[2].Length == 3) {
 						string teamName = splitMessage[2].ToUpper();
-						string matchesJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/matches");
-						dynamic matchesJson = JsonConvert.DeserializeObject(matchesJsonString);
-						int countedMatches = 0;
-						var sb = new StringBuilder();
+						Team team = (from c in database.Teams where c.AbbreviatedName == teamName select c).First();
 
-						sb.Append("```");
-
-						foreach (var match in matchesJson.content) {
-							if (match.competitors[0].abbreviatedName == teamName || match.competitors[1].abbreviatedName == teamName) {
-								++countedMatches;
-
-								string homeTeam = match.competitors[0].abbreviatedName;
-								string awayTeam = match.competitors[1].abbreviatedName;
-
-								int homeScore = match.scores[0].value;
-								int awayScore = match.scores[1].value;
-
-								var startTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.startDate);
-
-								if (homeTeam == teamName) {
-									sb.Append($"{startTime.ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC - {homeTeam} vs. {awayTeam}");
-									if (match.status != "PENDING") {
-										sb.Append($" ({homeScore} - {awayScore})");
-									}
-								} else {
-									sb.Append($"{startTime.ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC - {awayTeam} vs. {homeTeam}");
-									if (match.status != "PENDING") {
-										sb.Append($" ({awayScore} - {homeScore})");
-									}
-								}
-								if (match.status == "IN_PROGRESS") {
-									sb.Append(" (LIVE)");
-								} else if (match.status == "CONCLUDED") {
-									if (match.winner.abbreviatedName == teamName) {
-										sb.Append(" (W)");
-									} else {
-										sb.Append(" (L)");
-									}
-								}
-								sb.AppendLine();
-							}
-						}
-
-						sb.Append("```");
-
-						if (countedMatches == 0) {
+						if (team == null) {
 							await Methods.SendMessage(null, new SendMessageEventArgs {
 								Message = $"Invalid team code. Use {"?overwatchleague standings".Code()} to find your team's abbreviated name!",
 								Channel = e.Channel,
 								LogMessage = "OverwatchLeagueScheduleTeamInvalid"
 							});
 						} else {
+							var sb = new StringBuilder();
+
+							sb.Append("```");
+
+							foreach (var match in team.Matches) {
+								if (match.HomeTeam == team) {
+									sb.Append($"{match.StartTime.ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC - {match.HomeTeam.AbbreviatedName} vs. {match.AwayTeam.AbbreviatedName}");
+									if (match.Status != MatchStatus.Pending) {
+										sb.Append($" ({match.HomeScore} - {match.AwayScore})");
+									}
+									if (match.Status == MatchStatus.Concluded) {
+										sb.Append($" ({(match.HomeScore > match.AwayScore ? 'W' : 'L')})");
+									}
+								} else {
+									sb.Append($"{match.StartTime.ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC - {match.AwayTeam.AbbreviatedName} vs. {match.HomeTeam.AbbreviatedName}");
+									if (match.Status != MatchStatus.Pending) {
+										sb.Append($" ({match.AwayScore} - {match.HomeScore})");
+									}
+									if (match.Status == MatchStatus.Concluded) {
+										sb.Append($" ({(match.AwayScore > match.HomeScore ? 'W' : 'L')})");
+									}
+								}
+								if (match.Status == MatchStatus.InProgress) {
+									sb.Append(" (LIVE)");
+								}
+								sb.AppendLine();
+							}
+
+							sb.Append("```");
+
 							await Methods.SendMessage(null, new SendMessageEventArgs {
 								Message = sb.ToString(),
 								Channel = e.Channel,
