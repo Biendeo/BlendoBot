@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 using System.Text;
 
 namespace OverwatchLeague.Data {
-	public class Match {
+	public class Match : IComparable<Match> {
 		public int Id { get; private set; }
 		public Team HomeTeam { get; private set; }
 		public Team AwayTeam { get; private set; }
@@ -18,6 +18,8 @@ namespace OverwatchLeague.Data {
 		public DateTime? ActualEndTime { get; private set; }
 		private List<MatchGame> games;
 		public ReadOnlyCollection<MatchGame> Games { get { return games.AsReadOnly(); } }
+		public Week Week { get; private set; }
+		public Stage Stage { get { return Week.Stage; } }
 
 
 		public Match(int id, Team homeTeam, Team awayTeam, int homeScore, int awayScore, string status, DateTime startTime, DateTime endTime, DateTime? actualStartTime, DateTime? actualEndTime) {
@@ -47,6 +49,13 @@ namespace OverwatchLeague.Data {
 			} else {
 				return -1;
 			}
+		}
+
+		public void SetWeek(Week week) {
+			Week = week;
+		}
+		public int CompareTo(Match other) {
+			return StartTime.CompareTo(other.StartTime);
 		}
 	}
 }

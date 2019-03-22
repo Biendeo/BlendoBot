@@ -14,6 +14,7 @@ namespace OverwatchLeague.Data {
 		private List<Map> maps;
 		private List<GameMode> gameModes;
 		private List<Match> matches;
+		private List<Stage> stages;
 
 		public Database() {
 			teams = new List<Team>();
@@ -21,6 +22,7 @@ namespace OverwatchLeague.Data {
 			maps = new List<Map>();
 			gameModes = new List<GameMode>();
 			matches = new List<Match>();
+			stages = new List<Stage>();
 		}
 
 		public void Clear() {
@@ -29,6 +31,7 @@ namespace OverwatchLeague.Data {
 			maps.Clear();
 			gameModes.Clear();
 			matches.Clear();
+			stages.Clear();
 		}
 
 		public async Task ReloadDatabase() {
@@ -36,6 +39,7 @@ namespace OverwatchLeague.Data {
 			await LoadTeamsAndDivisions();
 			await LoadMapsAndModes();
 			await LoadMatches();
+			await LoadSchedule();
 		}
 
 		private async Task LoadTeamsAndDivisions() {
@@ -161,6 +165,71 @@ namespace OverwatchLeague.Data {
 						m.AddGame(g);
 						if (map != null) {
 							map.AddGame(g);
+						}
+					}
+				}
+			}
+		}
+
+		private async Task LoadSchedule() {
+			using (var wc = new WebClient()) {
+				string scheduleJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/schedule");
+				dynamic scheduleJson = JsonConvert.DeserializeObject(scheduleJsonString);
+
+				foreach (var stage in scheduleJson.data.stages) {
+					int id = stage.id;
+					string name = stage.name;
+
+					Stage s = new Stage(id, name);
+
+					stages.Add(s);
+
+					// Associate several weeks for the stage.
+					foreach (var week in stage.weeks) {
+						int weekId = week.id;
+						string weekName = week.name;
+
+						Week w = new Week(weekId, weekName);
+
+						s.AddWeek(w);
+						w.SetStage(s);
+
+						// Associate all the matches for this week.
+						foreach (var match in week.matches) {
+							int matchId = match.id;
+							Match m = matches.Find(x => x.Id == matchId);
+							m.SetWeek(w);
+							w.AddMatch(m);
+						}
+					}
+
+					// Every stage also has a playoff week.
+					Week playoffWeek = new Week(-1, "PLAYOFFS");
+					s.SetPlayoffs(playoffWeek);
+					playoffWeek.SetStage(s);
+
+					// And then we find what matches haven't been allocated yet and set them.
+					foreach (var match in stage.matches) {
+						int matchId = match.id;
+						Match m = matches.Find(x => x.Id == matchId);
+						if (m == null) {
+							// The match didn't exist so we need to make it.
+							Team homeTeam = null;
+							Team awayTeam = null;
+							int homeScore = match.scores[0].value;
+							int awayScore = match.scores[1].value;
+							string status = match.status;
+							DateTime startTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.startDateTS);
+							DateTime endTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.endDateTS);
+							DateTime? actualStartTime = null; // These are always null in schedule.
+							DateTime? actualEndTime = null;
+
+							m = new Match(matchId, homeTeam, awayTeam, homeScore, awayScore, status, startTime, endTime, actualStartTime, actualEndTime);
+							matches.Add(m);
+						}
+						if (m.Week == null) {
+							m.SetWeek(playoffWeek);
+							playoffWeek.AddMatch(m);
 						}
 					}
 				}
