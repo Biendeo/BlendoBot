@@ -117,9 +117,6 @@ namespace OverwatchLeague {
 						});
 					}
 				} else if (splitMessage.Length > 1 && splitMessage[1] == "standings") {
-					string standingsJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/standings");
-					dynamic standingsJson = JsonConvert.DeserializeObject(standingsJsonString);
-
 					var sb = new StringBuilder();
 
 					sb.Append("```");
@@ -127,12 +124,8 @@ namespace OverwatchLeague {
 					sb.AppendLine(" # |                         Name | W - L | Diff |   Map W-D-L");
 					sb.AppendLine("---+------------------------------+-------+------+------------");
 
-					var rankingIndicies = Enumerable.Range(0, 20).ToList().ConvertAll(delegate (int i) { return i.ToString(); });
-
-					foreach (var index in rankingIndicies) {
-						var team = standingsJson.ranks.content[index];
-						var mapDiff = team.records[0].gameWin - team.records[0].gameLoss;
-						sb.AppendLine($"{team.placement.ToString().PadLeft(2, ' ')} | {team.competitor.name.ToString().PadLeft(22, ' ')} ({team.competitor.abbreviatedName}) | {team.records[0].matchWin.ToString().PadLeft(2, ' ')}-{team.records[0].matchLoss.ToString().PadLeft(2, ' ')} | {$"{(mapDiff > 0 ? '+' : ' ')}{mapDiff}".PadLeft(4, ' ')} | {team.records[0].gameWin.ToString().PadLeft(3, ' ')}-{team.records[0].gameTie.ToString().PadLeft(3, ' ')}-{team.records[0].gameLoss.ToString().PadLeft(3, ' ')}");
+					foreach (Standing s in database.GetStandings()) {
+						sb.AppendLine($"{s.Position.ToString().PadLeft(2, ' ')} | {s.Team.Name.ToString().PadLeft(22, ' ')} ({s.Team.AbbreviatedName}) | {s.MatchWins.ToString().PadLeft(2, ' ')}-{s.MatchLosses.ToString().PadLeft(2, ' ')} | {$"{(s.MapDiff > 0 ? '+' : ' ')}{s.MapDiff}".PadLeft(4, ' ')} | {s.MapWins.ToString().PadLeft(3, ' ')}-{s.MapDraws.ToString().PadLeft(3, ' ')}-{s.MapLosses.ToString().PadLeft(3, ' ')}");
 					}
 
 					sb.Append("```");

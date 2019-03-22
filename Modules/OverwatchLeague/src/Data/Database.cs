@@ -242,5 +242,71 @@ namespace OverwatchLeague.Data {
 				}
 			}
 		}
+
+		public List<Standing> GetStandings(int stage = 0) {
+			List<int> stageIndiciesToUse;
+			if (stage >= 1 && stage <= 4) {
+				stageIndiciesToUse = new List<int> { stage - 1 };
+			} else {
+				stageIndiciesToUse = new List<int> { 0, 1, 2, 3 };
+			}
+
+			List<Standing> standings = new List<Standing>();
+			foreach (Team team in teams) {
+				Standing s = new Standing { Team = team };
+
+				foreach (int i in stageIndiciesToUse) {
+					foreach (Week week in stages[i].Weeks) {
+						foreach (Match match in week.Matches) {
+							if (match.Status == MatchStatus.Concluded) {
+								if (match.HomeTeam == team) {
+									s.MapWins += match.HomeScore;
+									s.MapDraws += match.DrawMaps;
+									s.MapLosses += match.AwayScore;
+									if (match.HomeScore > match.AwayScore) {
+										++s.MatchWins;
+									} else {
+										++s.MatchLosses;
+									}
+								} else if (match.AwayTeam == team) {
+									s.MapWins += match.AwayScore;
+									s.MapDraws += match.DrawMaps;
+									s.MapLosses += match.HomeScore;
+									if (match.AwayScore > match.HomeScore) {
+										++s.MatchWins;
+									} else {
+										++s.MatchLosses;
+									}
+								}
+							}
+						}
+					}
+				}
+				standings.Add(s);
+			}
+
+			standings.Sort((a, b) => {
+				if ((a.MatchWins - a.MatchLosses) == (b.MatchWins - b.MatchLosses)) {
+					return b.MapDiff.CompareTo(a.MapDiff);
+				} else {
+					return (b.MatchWins - b.MatchLosses).CompareTo(a.MatchWins - a.MatchLosses);
+				}
+			});
+
+			int lastPosition = 1;
+			for (int i = 1; i <= teams.Count; ++i) {
+				Standing newStanding = standings[i - 1];
+				if (i == 1 || ((standings[i - 2].MapWins - standings[i - 2].MapLosses) == (standings[i - 1].MapWins - standings[i - 1].MapLosses) && standings[i - 2].MapDiff == standings[i - 1].MapDiff)) {
+					newStanding.Position = lastPosition;
+					standings[i - 1] = newStanding;
+				} else {
+					newStanding.Position = i;
+					standings[i - 1] = newStanding;
+					lastPosition = i;
+				}
+			}
+
+			return standings;
+		}
 	}
 }

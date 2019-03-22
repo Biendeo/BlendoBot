@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Text;
 
 namespace OverwatchLeague.Data {
@@ -10,6 +11,7 @@ namespace OverwatchLeague.Data {
 		public Team AwayTeam { get; private set; }
 		public int HomeScore { get; private set; }
 		public int AwayScore { get; private set; }
+		public int DrawMaps { get { return Games.Where(x => x.HomeScore == x.AwayScore).Count(); } }
 		private string status;
 		public MatchStatus Status { get { return MatchStatusExtensions.FromString(status); } }
 		public DateTime StartTime { get; private set; }
