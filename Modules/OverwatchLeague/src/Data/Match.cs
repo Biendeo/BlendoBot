@@ -44,6 +44,10 @@ namespace OverwatchLeague.Data {
 
 			updateTimer = new Timer();
 			updateTimer.Elapsed += UpdateTimer_Elapsed;
+			
+			// No point attempting to update the map if it won't start within 24 hours, since the whole
+			// DB is being updated anyways. This gets around a weird bug where the time start is more
+			// than int32Max ticks away.
 			if ((StartTime - DateTime.UtcNow) < TimeSpan.FromDays(1)) {
 				if (DateTime.UtcNow < StartTime) {
 					updateTimer.Interval = (StartTime - DateTime.UtcNow).TotalMilliseconds;

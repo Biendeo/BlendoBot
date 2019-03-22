@@ -22,7 +22,7 @@ namespace OverwatchLeague {
 			Description = "Tells you up-to-date stats about the Overwatch League.",
 			Usage = $"Usage:\n{"?overwatchleague live".Code()} {"(stats about the match that is currently on)".Italics()}\n{"?overwatchleague next".Code()} {"(stats about the next match that will be played)".Italics()}\n{"?overwatchleague standings".Code()} {"(the overall standings of the league)".Italics()}\n{"?overwatchleague schedule [stage] [week]".Code()} {"(shows times and scores for each match in the given week)".Italics()}\n{"?overwatchleague schedule [stage] playoffs".Code()} {"(shows times and scores for each match in the given stage's playoffs)".Italics()}\n{"?overwatchleague schedule [abbreviated team name]".Code()} {"(shows times and scores for each match that a team plays)".Italics()}\nAll times listed are in UTC.",
 			Author = "Biendeo",
-			Version = "0.4.0",
+			Version = "1.0.0",
 			Startup = Startup,
 			OnMessage = OverwatchLeagueCommand
 		};
@@ -85,7 +85,7 @@ namespace OverwatchLeague {
 
 			using (var wc = new WebClient()) {
 				if (splitMessage.Length > 1 && splitMessage[1] == "live") {
-					Match match = (from c in Database.Matches where c.EndTime > DateTime.UtcNow select c).First();
+					Match match = (from c in Database.Matches where c.EndTime > DateTime.UtcNow && c.StartTime < DateTime.UtcNow select c).FirstOrDefault();
 
 					if (match == null) {
 						await Methods.SendMessage(null, new SendMessageEventArgs {
@@ -101,7 +101,7 @@ namespace OverwatchLeague {
 						});
 					}
 				} else if (splitMessage.Length > 1 && splitMessage[1] == "next") {
-					Match match = (from c in Database.Matches where c.StartTime > DateTime.UtcNow select c).First();
+					Match match = (from c in Database.Matches where c.StartTime > DateTime.UtcNow select c).FirstOrDefault();
 
 					if (match == null) {
 						await Methods.SendMessage(null, new SendMessageEventArgs {
@@ -152,9 +152,9 @@ namespace OverwatchLeague {
 						foreach (Match match in relevantWeek.Matches) {
 							sb.Append($"{match.StartTime.ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC - ");
 							if (match.HomeTeam != null) {
-								sb.Append($"{match.HomeTeam.AbbreviatedName} - ");
+								sb.Append($"{match.HomeTeam.AbbreviatedName} vs. ");
 							} else {
-								sb.Append("??? - ");
+								sb.Append("??? vs. ");
 							}
 							if (match.AwayTeam != null) {
 								sb.Append($"{match.AwayTeam.AbbreviatedName}");
@@ -179,7 +179,7 @@ namespace OverwatchLeague {
 						});
 					} else if (splitMessage.Length > 2 && splitMessage[2].Length == 3) {
 						string teamName = splitMessage[2].ToUpper();
-						Team team = (from c in Database.Teams where c.AbbreviatedName == teamName select c).First();
+						Team team = (from c in Database.Teams where c.AbbreviatedName == teamName select c).FirstOrDefault();
 
 						if (team == null) {
 							await Methods.SendMessage(null, new SendMessageEventArgs {

@@ -32,6 +32,9 @@ namespace OverwatchLeague.Data {
 
 		public void AddMatch(Match m) {
 			matches.Add(m);
+			matches.Sort((a, b) => {
+				return a.StartTime.CompareTo(b.StartTime);
+			});
 		}
 	}
 }
