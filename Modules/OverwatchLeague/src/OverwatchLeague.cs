@@ -4,6 +4,7 @@ using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using Microsoft.CSharp.RuntimeBinder;
 using Newtonsoft.Json;
+using OverwatchLeague.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,71 +22,56 @@ namespace OverwatchLeague {
 			Description = "Tells you up-to-date stats about the Overwatch League.",
 			Usage = $"Usage:\n{"?overwatchleague live".Code()} {"(stats about the match that is currently on)".Italics()}\n{"?overwatchleague next".Code()} {"(stats about the next match that will be played)".Italics()}\n{"?overwatchleague standings".Code()} {"(the overall standings of the league)".Italics()}\n{"?overwatchleague schedule [stage] [week]".Code()} {"(shows times and scores for each match in the given week)".Italics()}\n{"?overwatchleague schedule [stage] playoffs".Code()} {"(shows times and scores for each match in the given stage's playoffs)".Italics()}\n{"?overwatchleague schedule [abbreviated team name]".Code()} {"(shows times and scores for each match that a team plays)".Italics()}\nAll times listed are in UTC.",
 			Author = "Biendeo",
-			Version = "0.4.0",
+			Version = "1.0.0",
 			Startup = Startup,
 			OnMessage = OverwatchLeagueCommand
 		};
 
-		private static Dictionary<string, string> MapNames;
-		private static Dictionary<string, string> MapModes;
+		internal static Database Database;
 
 		private static async Task<bool> Startup() {
-			MapNames = new Dictionary<string, string>();
-			MapModes = new Dictionary<string, string>();
-
+			if (Database == null) {
+				Database = new Database();
+			}
 			try {
-				using (var wc = new WebClient()) {
-					string mapJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/maps");
-					dynamic mapJson = JsonConvert.DeserializeObject(mapJsonString);
-					foreach (var map in mapJson) {
-						try {
-							MapNames.Add((string)map.guid, (string)map.name.en_US);
-							MapModes.Add((string)map.guid, (string)map.gameModes[0].Name);
-						} catch (RuntimeBinderException) { }
-					}
-				}
-			} catch (RuntimeBinderException) {
+				await Database.ReloadDatabase();
+			} catch (Exception exc) {
+				Console.Error.WriteLine(exc);
 				return false;
 			}
+
 			return true;
 		}
 
-		private static string GetMatchDetails(dynamic match) {
+		private static string GetMatchDetails(Match match) {
 			var sb = new StringBuilder();
 
 			sb.Append("```");
-			var homeTeam = match.competitors[0];
-			var awayTeam = match.competitors[1];
+			Team homeTeam = match.HomeTeam;
+			Team awayTeam = match.AwayTeam;
 
-			var currentHomeScore = match.scores[0].value;
-			var currentAwayScore = match.scores[1].value;
+			int currentHomeScore = match.HomeScore;
+			int currentAwayScore = match.AwayScore;
 
-			sb.AppendLine($"Planned time: {new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.startDateTS).ToString("d/MM/yyyy h:mm:ss tt")} UTC - {new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.endDateTS).ToString("d/MM/yyyy h:mm:ss tt K")} UTC");
-			sb.Append("Real time: ");
-
-			try {
-				sb.Append(new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.actualStartDate).ToString("d/MM/yyyy h:mm:ss tt") + " UTC");
+			sb.AppendLine($"Planned time: {match.StartTime.ToString("d/MM/yyyy h:mm:ss tt")} UTC - {match.EndTime.ToString("d/MM/yyyy h:mm:ss tt K")} UTC");
+			if (match.ActualStartTime != null) {
+				sb.Append("Real time: ");
+				sb.Append(match.ActualStartTime?.ToString("d/MM/yyyy h:mm:ss tt") + " UTC");
 				sb.Append(" - ");
-			} catch (RuntimeBinderException) {
-				sb.Append("??? - ");
+				if (match.ActualEndTime != null) {
+					sb.AppendLine(match.ActualEndTime?.ToString("d/MM/yyyy h:mm:ss tt") + " UTC");
+				} else {
+					sb.AppendLine("???");
+				}
 			}
 
-			try {
-				sb.Append(new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.actualEndDate).ToString("d/MM/yyyy h:mm:ss tt") + " UTC");
-			} catch (RuntimeBinderException) {
-				sb.Append("???");
-			}
-			sb.AppendLine();
-
-			sb.AppendLine($"{homeTeam.name} vs. {awayTeam.name}");
+			sb.AppendLine($"{homeTeam.Name} ({homeTeam.AbbreviatedName}) vs. {awayTeam.Name} ({awayTeam.AbbreviatedName})");
 			sb.AppendLine($"{currentHomeScore} - {currentAwayScore}");
 
-			foreach (var game in match.games) {
+			foreach (MatchGame game in match.Games) {
 				sb.AppendLine();
-				sb.AppendLine($"Map {game.number} on {MapNames[(string)game.attributes.mapGuid]} ({MapModes[(string)game.attributes.mapGuid]}) - {game.status}");
-				try {
-					sb.AppendLine($"{game.points[0]} - {game.points[1]}");
-				} catch (RuntimeBinderException) { }
+				sb.AppendLine($"Map {game.MapNumber} on {game.Map.Name} ({game.Map.GameModes[0].Name}) - {game.Status}");
+				sb.AppendLine($"{game.HomeScore} - {game.AwayScore}");
 			}
 
 			sb.Append("```");
@@ -99,29 +85,38 @@ namespace OverwatchLeague {
 
 			using (var wc = new WebClient()) {
 				if (splitMessage.Length > 1 && splitMessage[1] == "live") {
-					string liveMatchJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/live-match");
-					dynamic liveMatchJson = JsonConvert.DeserializeObject(liveMatchJsonString);
-					var liveMatch = liveMatchJson.data.liveMatch;
+					Match match = (from c in Database.Matches where c.EndTime > DateTime.UtcNow && c.StartTime < DateTime.UtcNow select c).FirstOrDefault();
 
-					await Methods.SendMessage(null, new SendMessageEventArgs {
-						Message = GetMatchDetails(liveMatch),
-						Channel = e.Channel,
-						LogMessage = "OverwatchLeagueLive"
-					});
+					if (match == null) {
+						await Methods.SendMessage(null, new SendMessageEventArgs {
+							Message = "No match is currently live!",
+							Channel = e.Channel,
+							LogMessage = "OverwatchLeagueLiveNoMatch"
+						});
+					} else {
+						await Methods.SendMessage(null, new SendMessageEventArgs {
+							Message = GetMatchDetails(match),
+							Channel = e.Channel,
+							LogMessage = "OverwatchLeagueLive"
+						});
+					}
 				} else if (splitMessage.Length > 1 && splitMessage[1] == "next") {
-					string liveMatchJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/live-match");
-					dynamic liveMatchJson = JsonConvert.DeserializeObject(liveMatchJsonString);
-					var nextMatch = liveMatchJson.data.nextMatch;
+					Match match = (from c in Database.Matches where c.StartTime > DateTime.UtcNow select c).FirstOrDefault();
 
-					await Methods.SendMessage(null, new SendMessageEventArgs {
-						Message = GetMatchDetails(nextMatch),
-						Channel = e.Channel,
-						LogMessage = "OverwatchLeagueNext"
-					});
+					if (match == null) {
+						await Methods.SendMessage(null, new SendMessageEventArgs {
+							Message = "There's no next match planned!",
+							Channel = e.Channel,
+							LogMessage = "OverwatchLeagueNextNoMatch"
+						});
+					} else {
+						await Methods.SendMessage(null, new SendMessageEventArgs {
+							Message = GetMatchDetails(match),
+							Channel = e.Channel,
+							LogMessage = "OverwatchLeagueNext"
+						});
+					}
 				} else if (splitMessage.Length > 1 && splitMessage[1] == "standings") {
-					string standingsJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/standings");
-					dynamic standingsJson = JsonConvert.DeserializeObject(standingsJsonString);
-
 					var sb = new StringBuilder();
 
 					sb.Append("```");
@@ -129,12 +124,8 @@ namespace OverwatchLeague {
 					sb.AppendLine(" # |                         Name | W - L | Diff |   Map W-D-L");
 					sb.AppendLine("---+------------------------------+-------+------+------------");
 
-					var rankingIndicies = Enumerable.Range(0, 20).ToList().ConvertAll(delegate (int i) { return i.ToString(); });
-
-					foreach (var index in rankingIndicies) {
-						var team = standingsJson.ranks.content[index];
-						var mapDiff = team.records[0].gameWin - team.records[0].gameLoss;
-						sb.AppendLine($"{team.placement.ToString().PadLeft(2, ' ')} | {team.competitor.name.ToString().PadLeft(22, ' ')} ({team.competitor.abbreviatedName}) | {team.records[0].matchWin.ToString().PadLeft(2, ' ')}-{team.records[0].matchLoss.ToString().PadLeft(2, ' ')} | {$"{(mapDiff > 0 ? '+' : ' ')}{mapDiff}".PadLeft(4, ' ')} | {team.records[0].gameWin.ToString().PadLeft(3, ' ')}-{team.records[0].gameTie.ToString().PadLeft(3, ' ')}-{team.records[0].gameLoss.ToString().PadLeft(3, ' ')}");
+					foreach (Standing s in Database.GetStandings()) {
+						sb.AppendLine($"{s.Position.ToString().PadLeft(2, ' ')} | {s.Team.Name.ToString().PadLeft(22, ' ')} ({s.Team.AbbreviatedName}) | {s.MatchWins.ToString().PadLeft(2, ' ')}-{s.MatchLosses.ToString().PadLeft(2, ' ')} | {$"{(s.MapDiff > 0 ? '+' : ' ')}{s.MapDiff}".PadLeft(4, ' ')} | {s.MapWins.ToString().PadLeft(3, ' ')}-{s.MapDraws.ToString().PadLeft(3, ' ')}-{s.MapLosses.ToString().PadLeft(3, ' ')}");
 					}
 
 					sb.Append("```");
@@ -146,39 +137,34 @@ namespace OverwatchLeague {
 					});
 				} else if (splitMessage.Length > 2 && splitMessage[1] == "schedule") {
 					if (splitMessage.Length > 3 && (int.TryParse(splitMessage[2], out int stage) && stage > 0 && stage <= 4) && ((int.TryParse(splitMessage[3], out int week) && week > 0 && week <= 5) || splitMessage[3] == "playoffs")) {
-						string scheduleJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/schedule");
-						dynamic scheduleJson = JsonConvert.DeserializeObject(scheduleJsonString);
-
 						var sb = new StringBuilder();
 
 						sb.Append("```");
 
-						dynamic relevantMatches;
+						Week relevantWeek;
 
 						if (splitMessage[3] == "playoffs") {
-							Newtonsoft.Json.Linq.JArray a = scheduleJson.data.stages[stage - 1].matches;
-							relevantMatches = a.Skip(70).ToArray();
+							relevantWeek = Database.Stages[stage - 1].Playoffs;
 						} else {
-							relevantMatches = scheduleJson.data.stages[stage - 1].weeks[week - 1].matches;
+							relevantWeek = Database.Stages[stage - 1].Weeks[week - 1];
 						}
 
-						foreach (var match in relevantMatches) {
-							dynamic home = match.competitors[0];
-							dynamic away = match.competitors[1];
-
-							string homeTeam = home != null ? home.abbreviatedName : "???";
-							string awayTeam = away != null ? away.abbreviatedName : "???";
-
-							int homeScore = match.scores[0].value;
-							int awayScore = match.scores[1].value;
-
-							var startTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.startDateTS);
-
-							sb.Append($"{startTime.ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC - {homeTeam} vs. {awayTeam}");
-							if (match.status != "PENDING") {
-								sb.Append($" ({homeScore} - {awayScore})");
+						foreach (Match match in relevantWeek.Matches) {
+							sb.Append($"{match.StartTime.ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC - ");
+							if (match.HomeTeam != null) {
+								sb.Append($"{match.HomeTeam.AbbreviatedName} vs. ");
+							} else {
+								sb.Append("??? vs. ");
 							}
-							if (match.status == "IN_PROGRESS") {
+							if (match.AwayTeam != null) {
+								sb.Append($"{match.AwayTeam.AbbreviatedName}");
+							} else {
+								sb.Append("???");
+							}
+							if (match.Status != MatchStatus.Pending) {
+								sb.Append($" ({match.HomeScore} - {match.AwayScore})");
+							}
+							if (match.Status == MatchStatus.InProgress) {
 								sb.Append(" (LIVE)");
 							}
 							sb.AppendLine();
@@ -193,58 +179,45 @@ namespace OverwatchLeague {
 						});
 					} else if (splitMessage.Length > 2 && splitMessage[2].Length == 3) {
 						string teamName = splitMessage[2].ToUpper();
-						string matchesJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/matches");
-						dynamic matchesJson = JsonConvert.DeserializeObject(matchesJsonString);
-						int countedMatches = 0;
-						var sb = new StringBuilder();
+						Team team = (from c in Database.Teams where c.AbbreviatedName == teamName select c).FirstOrDefault();
 
-						sb.Append("```");
-
-						foreach (var match in matchesJson.content) {
-							if (match.competitors[0].abbreviatedName == teamName || match.competitors[1].abbreviatedName == teamName) {
-								++countedMatches;
-
-								string homeTeam = match.competitors[0].abbreviatedName;
-								string awayTeam = match.competitors[1].abbreviatedName;
-
-								int homeScore = match.scores[0].value;
-								int awayScore = match.scores[1].value;
-
-								var startTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.startDate);
-
-								if (homeTeam == teamName) {
-									sb.Append($"{startTime.ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC - {homeTeam} vs. {awayTeam}");
-									if (match.status != "PENDING") {
-										sb.Append($" ({homeScore} - {awayScore})");
-									}
-								} else {
-									sb.Append($"{startTime.ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC - {awayTeam} vs. {homeTeam}");
-									if (match.status != "PENDING") {
-										sb.Append($" ({awayScore} - {homeScore})");
-									}
-								}
-								if (match.status == "IN_PROGRESS") {
-									sb.Append(" (LIVE)");
-								} else if (match.status == "CONCLUDED") {
-									if (match.winner.abbreviatedName == teamName) {
-										sb.Append(" (W)");
-									} else {
-										sb.Append(" (L)");
-									}
-								}
-								sb.AppendLine();
-							}
-						}
-
-						sb.Append("```");
-
-						if (countedMatches == 0) {
+						if (team == null) {
 							await Methods.SendMessage(null, new SendMessageEventArgs {
 								Message = $"Invalid team code. Use {"?overwatchleague standings".Code()} to find your team's abbreviated name!",
 								Channel = e.Channel,
 								LogMessage = "OverwatchLeagueScheduleTeamInvalid"
 							});
 						} else {
+							var sb = new StringBuilder();
+
+							sb.Append("```");
+
+							foreach (var match in team.Matches) {
+								if (match.HomeTeam == team) {
+									sb.Append($"{match.StartTime.ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC - {match.HomeTeam.AbbreviatedName} vs. {match.AwayTeam.AbbreviatedName}");
+									if (match.Status != MatchStatus.Pending) {
+										sb.Append($" ({match.HomeScore} - {match.AwayScore})");
+									}
+									if (match.Status == MatchStatus.Concluded) {
+										sb.Append($" ({(match.HomeScore > match.AwayScore ? 'W' : 'L')})");
+									}
+								} else {
+									sb.Append($"{match.StartTime.ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC - {match.AwayTeam.AbbreviatedName} vs. {match.HomeTeam.AbbreviatedName}");
+									if (match.Status != MatchStatus.Pending) {
+										sb.Append($" ({match.AwayScore} - {match.HomeScore})");
+									}
+									if (match.Status == MatchStatus.Concluded) {
+										sb.Append($" ({(match.AwayScore > match.HomeScore ? 'W' : 'L')})");
+									}
+								}
+								if (match.Status == MatchStatus.InProgress) {
+									sb.Append(" (LIVE)");
+								}
+								sb.AppendLine();
+							}
+
+							sb.Append("```");
+
 							await Methods.SendMessage(null, new SendMessageEventArgs {
 								Message = sb.ToString(),
 								Channel = e.Channel,
