@@ -27,73 +27,51 @@ namespace OverwatchLeague {
 			OnMessage = OverwatchLeagueCommand
 		};
 
-		private static Dictionary<string, string> MapNames;
-		private static Dictionary<string, string> MapModes;
-
 		private static Database database;
 
 		private static async Task<bool> Startup() {
 			if (database == null) {
 				database = new Database();
 			}
-			await database.ReloadDatabase();
-
-			MapNames = new Dictionary<string, string>();
-			MapModes = new Dictionary<string, string>();
-
 			try {
-				using (var wc = new WebClient()) {
-					string mapJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/maps");
-					dynamic mapJson = JsonConvert.DeserializeObject(mapJsonString);
-					foreach (var map in mapJson) {
-						try {
-							MapNames.Add((string)map.guid, (string)map.name.en_US);
-							MapModes.Add((string)map.guid, (string)map.gameModes[0].Name);
-						} catch (RuntimeBinderException) { }
-					}
-				}
-			} catch (RuntimeBinderException) {
+				await database.ReloadDatabase();
+			} catch (Exception exc) {
+				Console.Error.WriteLine(exc);
 				return false;
 			}
+
 			return true;
 		}
 
-		private static string GetMatchDetails(dynamic match) {
+		private static string GetMatchDetails(Match match) {
 			var sb = new StringBuilder();
 
 			sb.Append("```");
-			var homeTeam = match.competitors[0];
-			var awayTeam = match.competitors[1];
+			Team homeTeam = match.HomeTeam;
+			Team awayTeam = match.AwayTeam;
 
-			var currentHomeScore = match.scores[0].value;
-			var currentAwayScore = match.scores[1].value;
+			int currentHomeScore = match.HomeScore;
+			int currentAwayScore = match.AwayScore;
 
-			sb.AppendLine($"Planned time: {new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.startDateTS).ToString("d/MM/yyyy h:mm:ss tt")} UTC - {new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.endDateTS).ToString("d/MM/yyyy h:mm:ss tt K")} UTC");
-			sb.Append("Real time: ");
-
-			try {
-				sb.Append(new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.actualStartDate).ToString("d/MM/yyyy h:mm:ss tt") + " UTC");
+			sb.AppendLine($"Planned time: {match.StartTime.ToString("d/MM/yyyy h:mm:ss tt")} UTC - {match.EndTime.ToString("d/MM/yyyy h:mm:ss tt K")} UTC");
+			if (match.ActualStartTime != null) {
+				sb.Append("Real time: ");
+				sb.Append(match.ActualStartTime?.ToString("d/MM/yyyy h:mm:ss tt") + " UTC");
 				sb.Append(" - ");
-			} catch (RuntimeBinderException) {
-				sb.Append("??? - ");
+				if (match.ActualEndTime != null) {
+					sb.AppendLine(match.ActualEndTime?.ToString("d/MM/yyyy h:mm:ss tt") + " UTC");
+				} else {
+					sb.AppendLine("???");
+				}
 			}
 
-			try {
-				sb.Append(new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.actualEndDate).ToString("d/MM/yyyy h:mm:ss tt") + " UTC");
-			} catch (RuntimeBinderException) {
-				sb.Append("???");
-			}
-			sb.AppendLine();
-
-			sb.AppendLine($"{homeTeam.name} vs. {awayTeam.name}");
+			sb.AppendLine($"{homeTeam.Name} ({homeTeam.AbbreviatedName}) vs. {awayTeam.Name} ({awayTeam.AbbreviatedName})");
 			sb.AppendLine($"{currentHomeScore} - {currentAwayScore}");
 
-			foreach (var game in match.games) {
+			foreach (MatchGame game in match.Games) {
 				sb.AppendLine();
-				sb.AppendLine($"Map {game.number} on {MapNames[(string)game.attributes.mapGuid]} ({MapModes[(string)game.attributes.mapGuid]}) - {game.status}");
-				try {
-					sb.AppendLine($"{game.points[0]} - {game.points[1]}");
-				} catch (RuntimeBinderException) { }
+				sb.AppendLine($"Map {game.MapNumber} on {game.Map.Name} ({game.Map.GameModes[0].Name}) - {game.Status}");
+				sb.AppendLine($"{game.HomeScore} - {game.AwayScore}");
 			}
 
 			sb.Append("```");
@@ -107,25 +85,37 @@ namespace OverwatchLeague {
 
 			using (var wc = new WebClient()) {
 				if (splitMessage.Length > 1 && splitMessage[1] == "live") {
-					string liveMatchJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/live-match");
-					dynamic liveMatchJson = JsonConvert.DeserializeObject(liveMatchJsonString);
-					var liveMatch = liveMatchJson.data.liveMatch;
+					Match match = (from c in database.Matches where c.EndTime > DateTime.UtcNow select c).First();
 
-					await Methods.SendMessage(null, new SendMessageEventArgs {
-						Message = GetMatchDetails(liveMatch),
-						Channel = e.Channel,
-						LogMessage = "OverwatchLeagueLive"
-					});
+					if (match == null) {
+						await Methods.SendMessage(null, new SendMessageEventArgs {
+							Message = "No match is currently live!",
+							Channel = e.Channel,
+							LogMessage = "OverwatchLeagueLiveNoMatch"
+						});
+					} else {
+						await Methods.SendMessage(null, new SendMessageEventArgs {
+							Message = GetMatchDetails(match),
+							Channel = e.Channel,
+							LogMessage = "OverwatchLeagueLive"
+						});
+					}
 				} else if (splitMessage.Length > 1 && splitMessage[1] == "next") {
-					string liveMatchJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/live-match");
-					dynamic liveMatchJson = JsonConvert.DeserializeObject(liveMatchJsonString);
-					var nextMatch = liveMatchJson.data.nextMatch;
+					Match match = (from c in database.Matches where c.StartTime > DateTime.UtcNow select c).First();
 
-					await Methods.SendMessage(null, new SendMessageEventArgs {
-						Message = GetMatchDetails(nextMatch),
-						Channel = e.Channel,
-						LogMessage = "OverwatchLeagueNext"
-					});
+					if (match == null) {
+						await Methods.SendMessage(null, new SendMessageEventArgs {
+							Message = "There's no next match planned!",
+							Channel = e.Channel,
+							LogMessage = "OverwatchLeagueNextNoMatch"
+						});
+					} else {
+						await Methods.SendMessage(null, new SendMessageEventArgs {
+							Message = GetMatchDetails(match),
+							Channel = e.Channel,
+							LogMessage = "OverwatchLeagueNext"
+						});
+					}
 				} else if (splitMessage.Length > 1 && splitMessage[1] == "standings") {
 					string standingsJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/standings");
 					dynamic standingsJson = JsonConvert.DeserializeObject(standingsJsonString);

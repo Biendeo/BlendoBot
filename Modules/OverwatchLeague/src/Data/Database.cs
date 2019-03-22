@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Drawing;
 using System.Net;
 using System.Text;
@@ -10,11 +11,17 @@ using System.Threading.Tasks;
 namespace OverwatchLeague.Data {
 	public class Database {
 		private List<Team> teams;
+		public ReadOnlyCollection<Team> Teams { get { return teams.AsReadOnly(); } }
 		private List<Division> divisions;
+		public ReadOnlyCollection<Division> Divisions { get { return divisions.AsReadOnly(); } }
 		private List<Map> maps;
+		public ReadOnlyCollection<Map> Maps { get { return maps.AsReadOnly(); } }
 		private List<GameMode> gameModes;
+		public ReadOnlyCollection<GameMode> GameModes { get { return gameModes.AsReadOnly(); } }
 		private List<Match> matches;
+		public ReadOnlyCollection<Match> Matches { get { return matches.AsReadOnly(); } }
 		private List<Stage> stages;
+		public ReadOnlyCollection<Stage> Stages { get { return stages.AsReadOnly(); } }
 
 		public Database() {
 			teams = new List<Team>();
