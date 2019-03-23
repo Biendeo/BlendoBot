@@ -124,8 +124,8 @@ namespace OverwatchLeague.Data {
 							AddGame(g);
 						} else {
 							if (game["points"] != null) {
-								g.SetHomeScore(game.points[0]);
-								g.SetAwayScore(game.points[1]);
+								g.SetHomeScore(game.points[0].Value);
+								g.SetAwayScore(game.points[1].Value);
 							}
 							if (g.Map == null) {
 								ulong mapGuid = 0;
