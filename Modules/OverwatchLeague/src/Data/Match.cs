@@ -66,7 +66,7 @@ namespace OverwatchLeague.Data {
 				updateTimer.Interval = (StartTime - DateTime.UtcNow).TotalMilliseconds;
 				return;
 			} else if (DateTime.UtcNow < EndTime) {
-				updateTimer.Interval = 1000 * 60;
+				updateTimer.Interval = 1000 * 15;
 
 				using (var wc = new WebClient()) {
 					string matchJsonString = await wc.DownloadStringTaskAsync($"https://api.overwatchleague.com/matches/{Id}");
@@ -124,8 +124,10 @@ namespace OverwatchLeague.Data {
 							AddGame(g);
 						} else {
 							if (game["points"] != null) {
-								g.SetHomeScore(game.points[0].Value);
-								g.SetAwayScore(game.points[1].Value);
+								int gameHomePoints = game.points[0];
+								int gameAwayPoints = game.points[1];
+								g.SetHomeScore(gameHomePoints);
+								g.SetAwayScore(gameAwayPoints);
 							}
 							if (g.Map == null) {
 								ulong mapGuid = 0;
