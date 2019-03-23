@@ -70,8 +70,13 @@ namespace OverwatchLeague {
 
 			foreach (MatchGame game in match.Games) {
 				sb.AppendLine();
-				sb.AppendLine($"Map {game.MapNumber} on {game.Map.Name} ({game.Map.GameModes[0].Name}) - {game.Status}");
-				sb.AppendLine($"{game.HomeScore} - {game.AwayScore}");
+				if (game != null) {
+					sb.AppendLine($"Map {game.MapNumber} on {game.Map.Name} ({game.Map.GameModes[0].Name}) - {game.Status}");
+					sb.AppendLine($"{game.HomeScore} - {game.AwayScore}");
+				} else {
+					sb.AppendLine("Map ??? on ??? (???) - PENDING");
+					sb.AppendLine("0 - 0");
+				}
 			}
 
 			sb.Append("```");
