@@ -22,7 +22,7 @@ namespace OverwatchLeague {
 			Description = "Tells you up-to-date stats about the Overwatch League.",
 			Usage = $"Usage:\n{"?overwatchleague live".Code()} {"(stats about the match that is currently on)".Italics()}\n{"?overwatchleague next".Code()} {"(stats about the next match that will be played)".Italics()}\n{"?overwatchleague standings".Code()} {"(the overall standings of the league)".Italics()}\n{"?overwatchleague schedule [stage] [week]".Code()} {"(shows times and scores for each match in the given week)".Italics()}\n{"?overwatchleague schedule [stage] playoffs".Code()} {"(shows times and scores for each match in the given stage's playoffs)".Italics()}\n{"?overwatchleague schedule [abbreviated team name]".Code()} {"(shows times and scores for each match that a team plays)".Italics()}\nAll times listed are in UTC.",
 			Author = "Biendeo",
-			Version = "1.0.0",
+			Version = "1.0.6",
 			Startup = Startup,
 			OnMessage = OverwatchLeagueCommand
 		};
@@ -69,9 +69,14 @@ namespace OverwatchLeague {
 			sb.AppendLine($"{currentHomeScore} - {currentAwayScore}");
 
 			foreach (MatchGame game in match.Games) {
+				Map map = game.Map;
 				sb.AppendLine();
 				if (game != null) {
-					sb.AppendLine($"Map {game.MapNumber} on {game.Map.Name} ({game.Map.GameModes[0].Name}) - {game.Status}");
+					if (map != null) {
+						sb.AppendLine($"Map {game.MapNumber} on {game.Map.Name} ({game.Map.GameModes[0].Name}) - {game.Status}");
+					} else {
+						sb.AppendLine($"Map {game.MapNumber} on ??? (???) - {game.Status}");
+					}
 					sb.AppendLine($"{game.HomeScore} - {game.AwayScore}");
 				} else {
 					sb.AppendLine("Map ??? on ??? (???) - PENDING");
