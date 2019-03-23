@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using BlendoBotLib;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -62,8 +63,16 @@ namespace OverwatchLeague.Data {
 		}
 
 		private async void UpdateTimer_Elapsed(object sender, ElapsedEventArgs e) {
+			Methods.Log(this, new LogEventArgs {
+				Type = LogType.Log,
+				Message = $"OverwatchLeague is performing a match-based update for match id {Id}"
+			});
 			if (DateTime.UtcNow < StartTime) {
 				updateTimer.Interval = (StartTime - DateTime.UtcNow).TotalMilliseconds;
+				Methods.Log(this, new LogEventArgs {
+					Type = LogType.Log,
+					Message = $"OverwatchLeague updated match {Id}, but will wait until it starts at {StartTime.ToString("yyyy-MM-dd HH:mm:ss")} before updating again"
+				});
 				return;
 			} else if (DateTime.UtcNow < EndTime) {
 				updateTimer.Interval = 1000 * 15;
@@ -145,7 +154,15 @@ namespace OverwatchLeague.Data {
 						}
 					}
 				}
+				Methods.Log(this, new LogEventArgs {
+					Type = LogType.Log,
+					Message = $"OverwatchLeague updated match id {Id} and will update again in 15 seconds"
+				});
 			} else {
+				Methods.Log(this, new LogEventArgs {
+					Type = LogType.Log,
+					Message = $"OverwatchLeague has finished updating match id {Id}"
+				});
 				updateTimer.Enabled = false;
 			}
 		}

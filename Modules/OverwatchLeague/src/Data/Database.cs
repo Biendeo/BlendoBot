@@ -1,4 +1,5 @@
-﻿using Microsoft.CSharp.RuntimeBinder;
+﻿using BlendoBotLib;
+using Microsoft.CSharp.RuntimeBinder;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -40,8 +41,16 @@ namespace OverwatchLeague.Data {
 		}
 
 		private async void FullUpdateTimer_Elapsed(object sender, ElapsedEventArgs e) {
+			Methods.Log(this, new LogEventArgs {
+				Type = LogType.Log,
+				Message = $"OverwatchLeague is performing a full update."
+			});
 			await ReloadDatabase();
 			fullUpdateTimer.Interval = (NextFullUpdate() - DateTime.UtcNow).TotalMilliseconds;
+			Methods.Log(this, new LogEventArgs {
+				Type = LogType.Log,
+				Message = $"OverwatchLeague will fully update again at {NextFullUpdate().ToString("yyyy-MM-dd HH:mm:ss")}"
+			});
 		}
 
 		public void Clear() {
@@ -62,6 +71,10 @@ namespace OverwatchLeague.Data {
 		}
 
 		private async Task LoadTeamsAndDivisions() {
+			Methods.Log(this, new LogEventArgs {
+				Type = LogType.Log,
+				Message = $"OverwatchLeague is requesting teams..."
+			});
 			// Both teams and divisions are available through one API call.
 			using (var wc = new WebClient()) {
 				string teamsJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/teams");
@@ -99,6 +112,10 @@ namespace OverwatchLeague.Data {
 		}
 
 		private async Task LoadMapsAndModes() {
+			Methods.Log(this, new LogEventArgs {
+				Type = LogType.Log,
+				Message = $"OverwatchLeague is requesting maps..."
+			});
 			using (var wc = new WebClient()) {
 				string mapsJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/maps");
 				dynamic mapsJson = JsonConvert.DeserializeObject(mapsJsonString);
@@ -131,6 +148,10 @@ namespace OverwatchLeague.Data {
 		}
 
 		private async Task LoadMatches() {
+			Methods.Log(this, new LogEventArgs {
+				Type = LogType.Log,
+				Message = $"OverwatchLeague is requesting matches..."
+			});
 			using (var wc = new WebClient()) {
 				string matchesJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/matches");
 				dynamic matchesJson = JsonConvert.DeserializeObject(matchesJsonString);
@@ -191,6 +212,10 @@ namespace OverwatchLeague.Data {
 		}
 
 		private async Task LoadSchedule() {
+			Methods.Log(this, new LogEventArgs {
+				Type = LogType.Log,
+				Message = $"OverwatchLeague is requesting the schedule..."
+			});
 			using (var wc = new WebClient()) {
 				string scheduleJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/schedule");
 				dynamic scheduleJson = JsonConvert.DeserializeObject(scheduleJsonString);
