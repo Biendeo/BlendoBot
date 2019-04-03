@@ -6,6 +6,9 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace BlendoBot.Commands {
+	/// <summary>
+	/// The help command, which simply prints out the <see cref="CommandProps.Usage"/> property of a <see cref="ICommand"/>, or
+	/// </summary>
 	public class Help : ICommand {
 		CommandProps ICommand.Properties => properties;
 
@@ -20,8 +23,12 @@ namespace BlendoBot.Commands {
 		};
 
 	public static async Task HelpCommand(MessageCreateEventArgs e) {
+			// The help command definitely prints out a string. Which string will be determined by the arguments.
 			var sb = new StringBuilder();
 			if (e.Message.Content.Length == properties.Term.Length) {
+				// This block runs if the ?help is run with no arguments (fortunately Discord trims whitespace).
+				// All the commands are iterated through and their terms are printed out so the user knows which
+				// commands are available.
 				sb.AppendLine($"Use {($"{properties.Term} [command]").Code()} for specific help.");
 				sb.AppendLine("List of available commands:");
 				foreach (var command in Command.AvailableCommands) {
@@ -35,6 +42,8 @@ namespace BlendoBot.Commands {
 					LogMessage = "HelpGeneric"
 				});
 			} else {
+				// This block runs if the ?help is run with an argument. The relevant command is searched and its usage
+				// is printed out, or an error message if that command doesn't exist.
 				string specifiedCommand = e.Message.Content.Substring(properties.Term.Length + 1);
 				if (!specifiedCommand.StartsWith('?')) {
 					specifiedCommand = $"?{specifiedCommand}";

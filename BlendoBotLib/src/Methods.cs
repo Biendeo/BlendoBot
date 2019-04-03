@@ -5,39 +5,33 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace BlendoBotLib {
+	/// <summary>
+	/// A static class that is accessible by everything, allowing modules to call important functions.
+	/// </summary>
 	public static class Methods {
-		/*
-		public static event EventHandler<SendMessageEventArgs> MessageSent;
-		public static event EventHandler<SendFileEventArgs> FileSent;
-		public static event EventHandler<SendExceptionEventArgs> ExceptionSent;
-		public static event EventHandler<LogEventArgs> MessageLogged;
-
-		public static async Task<DiscordMessage> SendMessage(SendMessageEventArgs e) {
-			MessageSent?.Invoke(null, e);
-			return await e.DiscordMessage;
-		}
-
-		public static async Task<DiscordMessage> SendFile(SendFileEventArgs e) {
-			FileSent?.Invoke(null, e);
-		}
-
-		public static async Task<DiscordMessage> SendException(SendExceptionEventArgs e) {
-			ExceptionSent?.Invoke(null, e);
-		}
-
-		public static void Log(LogEventArgs e) {
-			MessageLogged?.Invoke(null, e);
-		}
-		*/
-
 		public delegate Task<DiscordMessage> MessageSent(object o, SendMessageEventArgs e);
 		public delegate Task<DiscordMessage> FileSent(object o, SendFileEventArgs e);
 		public delegate Task<DiscordMessage> ExceptionSent(object o, SendExceptionEventArgs e);
 		public delegate void MessageLogged(object o, LogEventArgs e);
 
+		/// <summary>
+		/// Sends a message given a source object (for debugging) and an args object.
+		/// </summary>
 		public static MessageSent SendMessage;
+
+		/// <summary>
+		/// Sends a file given a source object (for debugging) and an args object.
+		/// </summary>
 		public static FileSent SendFile;
+
+		/// <summary>
+		/// Sends an exception given a source object (for debugging) and an args object.
+		/// </summary>
 		public static ExceptionSent SendException;
+
+		/// <summary>
+		/// Logs a message given a source object (for debugging) and an args object.
+		/// </summary>
 		public static MessageLogged Log;
 	}
 }
