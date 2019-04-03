@@ -25,7 +25,7 @@ namespace BlendoBot.Commands {
 			var sb = new StringBuilder();
 
 			if (e.Message.Content.Length == properties.Term.Length) {
-				sb.AppendLine($"`{Program.Props.Name} {Program.Props.Version} ({Program.Props.Description}) by {Program.Props.Author}`");
+				sb.AppendLine($"{Program.Props.Name} {Program.Props.Version} ({Program.Props.Description}) by {Program.Props.Author}\nBeen running for {(DateTime.Now - Program.StartTime).Days} days, {(DateTime.Now - Program.StartTime).Hours} hours, {(DateTime.Now - Program.StartTime).Minutes} minutes, and {(DateTime.Now - Program.StartTime).Seconds} seconds.");
 				await Methods.SendMessage(null, new SendMessageEventArgs {
 					Message = sb.ToString(),
 					Channel = e.Channel,

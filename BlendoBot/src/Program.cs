@@ -16,6 +16,7 @@ namespace BlendoBot {
 		public static readonly Config Props = Config.FromJson("config.json");
 		public static readonly Data Data = Data.Load();
 		public static string LogFile;
+		public static DateTime StartTime;
 
 		public static void Main(string[] args) {
 			MainAsync(args).ConfigureAwait(false).GetAwaiter().GetResult();
@@ -36,7 +37,8 @@ namespace BlendoBot {
 			Methods.SendException = Methods_ExceptionSent;
 			Methods.Log = Methods_MessageLogged;
 
-			LogFile = Path.Join("log", $"{DateTime.Now.ToString("yyyyMMddHHmmss")}.log");
+			StartTime = DateTime.Now;
+			LogFile = Path.Join("log", $"{StartTime.ToString("yyyyMMddHHmmss")}.log");
 
 			await Discord.ConnectAsync();
 
