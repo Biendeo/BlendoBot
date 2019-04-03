@@ -24,7 +24,7 @@ namespace BlendoBot {
 
 		private static async Task MainAsync(string[] args) {
 			Discord = new DiscordClient(new DiscordConfiguration {
-				Token = Props.Token,
+				Token = Props.Private.Token,
 				TokenType = TokenType.Bot
 			});
 

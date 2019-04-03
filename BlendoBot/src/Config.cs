@@ -5,33 +5,53 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
+// Since this is serialized, you'll get undefined warnings otherwise.
+#pragma warning disable 0649
+
 namespace BlendoBot {
+	[JsonObject(MemberSerialization.OptOut)]
+	internal class ConfigPrivate {
+		internal string Token;
+	}
+
+	[JsonObject(MemberSerialization.OptOut)]
+	internal class ConfigPublic {
+		internal string Name;
+		internal string Version;
+		internal string Description;
+		internal string Author;
+		internal string ActivityName;
+		[JsonIgnore]
+		internal ActivityType ActivityType;
+	}
+
+	[JsonObject(MemberSerialization.OptIn)]
 	public class Config {
-		public string Token;
-		public string Name;
-		public string Version;
-		public string Description;
-		public string Author;
-		public string ActivityName;
-		public ActivityType ActivityType;
+		[JsonProperty]
+		internal ConfigPrivate Private;
+		[JsonProperty]
+		internal ConfigPublic Public;
+
+		public string Name { get { return Public.Name; } }
+		public string Version { get { return Public.Version; } }
+		public string Description { get { return Public.Description; } }
+		public string Author { get { return Public.Author; } }
+		public string ActivityName { get { return Public.ActivityName; } }
+		public ActivityType ActivityType { get { return Public.ActivityType; } }
 
 		public static Config FromJson(string filePath) {
-			dynamic json = JsonConvert.DeserializeObject(File.ReadAllText(filePath));
-
-			return new Config {
-				Token = json.Private.Token,
-				Name = json.Public.Name,
-				Version = json.Public.Version,
-				Description = json.Public.Description,
-				Author = json.Public.Author,
-				ActivityName = json.Public.ActivityName,
-				ActivityType = (ActivityType)Enum.Parse(typeof(ActivityType), json.Public.ActivityType.Value),
-			};
-		}
-
-		[Obsolete]
-		public bool IsUserAuthorised(DiscordUser user) {
-			return false; //return AuthorisedUsers.Exists((User u) => { return u.Name == user.Username && u.Discriminator == user.Discriminator; });
+			if (!File.Exists(filePath)) {
+				Console.Error.WriteLine($"Config.FromJson() can't find {filePath}! Aborting program...");
+				Environment.Exit(1);
+			}
+			Config c = JsonConvert.DeserializeObject<Config>(File.ReadAllText(filePath));
+			if (c.Name == null || c.Version == null || c.Description == null || c.Author == null || c.ActivityName == null || c.Private.Token == null) {
+				Console.Error.WriteLine("Config.FromJson() read in an incomplete json. You need to add in all the fields!");
+				Environment.Exit(1);
+			}
+			return c;
 		}
 	}
 }
+
+#pragma warning restore 0649
