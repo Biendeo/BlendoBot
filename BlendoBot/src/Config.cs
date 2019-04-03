@@ -9,22 +9,32 @@ using System.Text;
 #pragma warning disable 0649
 
 namespace BlendoBot {
+	/// <summary>
+	/// Contains the private properties of the config.
+	/// </summary>
 	[JsonObject(MemberSerialization.OptOut)]
 	internal class ConfigPrivate {
-		internal string Token;
+		public string Token;
 	}
 
+	/// <summary>
+	/// Contains the public properties of the config.
+	/// </summary>
 	[JsonObject(MemberSerialization.OptOut)]
 	internal class ConfigPublic {
-		internal string Name;
-		internal string Version;
-		internal string Description;
-		internal string Author;
-		internal string ActivityName;
+		public string Name;
+		public string Version;
+		public string Description;
+		public string Author;
+		public string ActivityName;
 		[JsonIgnore]
-		internal ActivityType ActivityType;
+		public ActivityType ActivityType;
 	}
 
+	/// <summary>
+	/// The main config object. This exposes several properties that exist within the <see cref="ConfigPublic"/>, and
+	/// can be deserialized from JSON.
+	/// </summary>
 	[JsonObject(MemberSerialization.OptIn)]
 	public class Config {
 		[JsonProperty]
@@ -39,15 +49,21 @@ namespace BlendoBot {
 		public string ActivityName { get { return Public.ActivityName; } }
 		public ActivityType ActivityType { get { return Public.ActivityType; } }
 
+		/// <summary>
+		/// Creates a JSON object from a file path. Returns null if the file doesn't exist or
+		/// if the object doesn't contain every element.
+		/// </summary>
+		/// <param name="filePath"></param>
+		/// <returns></returns>
 		public static Config FromJson(string filePath) {
 			if (!File.Exists(filePath)) {
 				Console.Error.WriteLine($"Config.FromJson() can't find {filePath}! Aborting program...");
-				Environment.Exit(1);
+				return null;
 			}
 			Config c = JsonConvert.DeserializeObject<Config>(File.ReadAllText(filePath));
 			if (c.Name == null || c.Version == null || c.Description == null || c.Author == null || c.ActivityName == null || c.Private.Token == null) {
 				Console.Error.WriteLine("Config.FromJson() read in an incomplete json. You need to add in all the fields!");
-				Environment.Exit(1);
+				return null;
 			}
 			return c;
 		}

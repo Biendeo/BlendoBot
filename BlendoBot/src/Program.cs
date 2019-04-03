@@ -23,6 +23,9 @@ namespace BlendoBot {
 		}
 
 		private static async Task MainAsync(string[] args) {
+			if (Props == null) {
+				Environment.Exit(1);
+			}
 			Discord = new DiscordClient(new DiscordConfiguration {
 				Token = Props.Private.Token,
 				TokenType = TokenType.Bot
