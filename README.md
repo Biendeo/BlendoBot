@@ -86,8 +86,12 @@ The help command tells you how a command can be used. Using it without any argum
 
 The neat part of BlendoBot is that you do not need to modify the BlendoBot program itself to add a new command! Simply create your own module in the same way as the existing modules, and compile it to a DLL. Then, if the DLL is in the same folder as the BlendoBot executable, then when the bot launches, the modules will be loaded in!
 
-*TODO: How do you do that?*
+First, make a new C# project targetting *.NET Core 2.1* and output as a *Class Library*. These can be set in your project properties. You will also need to add a reference to *BlendoBotLib* to your project. This will now allow your program to compile properly and utilise the BlendoBot library to help it interact.
+
+BlendoBot requires two aspects in your module in order to add it into the program.
+- Your compiled module's library (i.e. the DLL file) should be located in the same folder as the BlendoBot executable. In this solution I have added every module as a dependency to BlendoBot so that they automatically copy the DLLs to the same folder. You can alternatively use a post-build script or command to automate this.
+- Your compiled module must have at least one class that implements the `ICommand` interface defined in BlendoBotLib. This interface defines things such as what the user types to trigger that command, and other properties. You can have multiple of these in your library, but you won't be able to access anything if you do not have any.
 
 ### Contributing to the current source code
 
-*TODO*
+For the moment, just drop a pull request and I'll evaluate it.
