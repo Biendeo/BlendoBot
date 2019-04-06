@@ -20,9 +20,9 @@ namespace OverwatchLeague {
 			Term = "?overwatchleague",
 			Name = "Overwatch League",
 			Description = "Tells you up-to-date stats about the Overwatch League.",
-			Usage = $"Usage:\n{"?overwatchleague live".Code()} {"(stats about the match that is currently on)".Italics()}\n{"?overwatchleague next".Code()} {"(stats about the next match that will be played)".Italics()}\n{"?overwatchleague standings".Code()} {"(the overall standings of the league)".Italics()}\n{"?overwatchleague schedule [stage] [week]".Code()} {"(shows times and scores for each match in the given week)".Italics()}\n{"?overwatchleague schedule [stage] playoffs".Code()} {"(shows times and scores for each match in the given stage's playoffs)".Italics()}\n{"?overwatchleague schedule [abbreviated team name]".Code()} {"(shows times and scores for each match that a team plays)".Italics()}\nAll times listed are in UTC.",
+			Usage = $"Usage:\n{"?overwatchleague live".Code()} {"(stats about the match that is currently on)".Italics()}\n{"?overwatchleague next".Code()} {"(stats about the next match that will be played)".Italics()}\n{"?overwatchleague standings".Code()} {"(the overall standings of the league)".Italics()}\n{"?overwatchleague standings [stage]".Code()} {"(the overall standings of the stage)".Italics()}\n{"?overwatchleague schedule [stage] [week]".Code()} {"(shows times and scores for each match in the given week)".Italics()}\n{"?overwatchleague schedule [stage] playoffs".Code()} {"(shows times and scores for each match in the given stage's playoffs)".Italics()}\n{"?overwatchleague schedule [abbreviated team name]".Code()} {"(shows times and scores for each match that a team plays)".Italics()}\nAll times listed are in UTC.",
 			Author = "Biendeo",
-			Version = "1.0.6",
+			Version = "1.0.7",
 			Startup = Startup,
 			OnMessage = OverwatchLeagueCommand
 		};
@@ -127,6 +127,27 @@ namespace OverwatchLeague {
 						});
 					}
 				} else if (splitMessage.Length > 1 && splitMessage[1] == "standings") {
+					int stageNum = 0;
+					if (splitMessage.Length > 2) {
+						if (int.TryParse(splitMessage[2], out stageNum)) {
+							if (stageNum < 1 || stageNum > 4) {
+								await Methods.SendMessage(null, new SendMessageEventArgs {
+									Message = $"Invalid stage number; please make sure your stage number is between 1-4.",
+									Channel = e.Channel,
+									LogMessage = "OverwatchLeagueStandingsInvalidStage"
+								});
+								return;
+							}
+						} else {
+							await Methods.SendMessage(null, new SendMessageEventArgs {
+								Message = $"Invalid stage number; please make sure your stage number is between 1-4.",
+								Channel = e.Channel,
+								LogMessage = "OverwatchLeagueStandingsInvalidStage"
+							});
+							return;
+						}
+					}
+
 					var sb = new StringBuilder();
 
 					sb.Append("```");
@@ -134,7 +155,7 @@ namespace OverwatchLeague {
 					sb.AppendLine(" # |                         Name | W - L | Diff |   Map W-D-L");
 					sb.AppendLine("---+------------------------------+-------+------+------------");
 
-					foreach (Standing s in Database.GetStandings()) {
+					foreach (Standing s in Database.GetStandings(stageNum)) {
 						sb.AppendLine($"{s.Position.ToString().PadLeft(2, ' ')} | {s.Team.Name.ToString().PadLeft(22, ' ')} ({s.Team.AbbreviatedName}) | {s.MatchWins.ToString().PadLeft(2, ' ')}-{s.MatchLosses.ToString().PadLeft(2, ' ')} | {$"{(s.MapDiff > 0 ? '+' : ' ')}{s.MapDiff}".PadLeft(4, ' ')} | {s.MapWins.ToString().PadLeft(3, ' ')}-{s.MapDraws.ToString().PadLeft(3, ' ')}-{s.MapLosses.ToString().PadLeft(3, ' ')}");
 					}
 
