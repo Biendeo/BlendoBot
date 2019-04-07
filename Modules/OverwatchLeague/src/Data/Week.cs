@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Text;
 
 namespace OverwatchLeague.Data {
@@ -10,6 +11,18 @@ namespace OverwatchLeague.Data {
 		public Stage Stage { get; private set; }
 		private List<Match> matches;
 		public ReadOnlyCollection<Match> Matches { get { return matches.AsReadOnly(); } }
+
+		public bool IsCurrent { get {
+			return matches.Exists(m => m.StartTime < DateTime.Now) && matches.Exists(m => m.EndTime > DateTime.Now);
+		} }
+
+		public DateTime FirstStartTime { get {
+			return matches.Min(m => m.StartTime);
+		} }
+
+		public DateTime LastEndTime { get {
+			return matches.Max(m => m.EndTime);
+		} }
 
 		public Week(int weekNumber, string name) {
 			WeekNumber = weekNumber;

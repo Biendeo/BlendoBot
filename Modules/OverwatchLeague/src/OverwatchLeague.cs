@@ -20,9 +20,9 @@ namespace OverwatchLeague {
 			Term = "?overwatchleague",
 			Name = "Overwatch League",
 			Description = "Tells you up-to-date stats about the Overwatch League.",
-			Usage = $"Usage:\n{"?overwatchleague live".Code()} {"(stats about the match that is currently on)".Italics()}\n{"?overwatchleague next".Code()} {"(stats about the next match that will be played)".Italics()}\n{"?overwatchleague standings".Code()} {"(the overall standings of the league)".Italics()}\n{"?overwatchleague standings [stage]".Code()} {"(the overall standings of the stage)".Italics()}\n{"?overwatchleague schedule [stage] [week]".Code()} {"(shows times and scores for each match in the given week)".Italics()}\n{"?overwatchleague schedule [stage] playoffs".Code()} {"(shows times and scores for each match in the given stage's playoffs)".Italics()}\n{"?overwatchleague schedule [abbreviated team name]".Code()} {"(shows times and scores for each match that a team plays)".Italics()}\nAll times listed are in UTC.",
+			Usage = $"Usage:\n{"?overwatchleague live".Code()} {"(stats about the match that is currently on)".Italics()}\n{"?overwatchleague next".Code()} {"(stats about the next match that will be played)".Italics()}\n{"?overwatchleague standings".Code()} {"(the overall standings of the league)".Italics()}\n{"?overwatchleague standings [stage]".Code()} {"(the overall standings of the stage)".Italics()}\n{"?overwatchleague schedule".Code()} {"(shows times and scores for each match in the current or next week)".Italics()}\n{"?overwatchleague schedule [stage] [week]".Code()} {"(shows times and scores for each match in the given week)".Italics()}\n{"?overwatchleague schedule [stage] playoffs".Code()} {"(shows times and scores for each match in the given stage's playoffs)".Italics()}\n{"?overwatchleague schedule [abbreviated team name]".Code()} {"(shows times and scores for each match that a team plays)".Italics()}\nAll times listed are in UTC.",
 			Author = "Biendeo",
-			Version = "1.0.7",
+			Version = "1.0.8",
 			Startup = Startup,
 			OnMessage = OverwatchLeagueCommand
 		};
@@ -166,8 +166,42 @@ namespace OverwatchLeague {
 						Channel = e.Channel,
 						LogMessage = "OverwatchLeagueStandings"
 					});
-				} else if (splitMessage.Length > 2 && splitMessage[1] == "schedule") {
-					if (splitMessage.Length > 3 && (int.TryParse(splitMessage[2], out int stage) && stage > 0 && stage <= 4) && ((int.TryParse(splitMessage[3], out int week) && week > 0 && week <= 5) || splitMessage[3] == "playoffs")) {
+				} else if (splitMessage.Length > 1 && splitMessage[1] == "schedule") {
+					if (splitMessage.Length == 2) {
+						Week relevantWeek = Database.GetCurrentWeek();
+						var sb = new StringBuilder();
+
+						sb.Append("```");
+
+						foreach (Match match in relevantWeek.Matches) {
+							sb.Append($"{match.StartTime.ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC - ");
+							if (match.HomeTeam != null) {
+								sb.Append($"{match.HomeTeam.AbbreviatedName} vs. ");
+							} else {
+								sb.Append("??? vs. ");
+							}
+							if (match.AwayTeam != null) {
+								sb.Append($"{match.AwayTeam.AbbreviatedName}");
+							} else {
+								sb.Append("???");
+							}
+							if (match.Status != MatchStatus.Pending) {
+								sb.Append($" ({match.HomeScore} - {match.AwayScore})");
+							}
+							if (match.Status == MatchStatus.InProgress) {
+								sb.Append(" (LIVE)");
+							}
+							sb.AppendLine();
+						}
+
+						sb.Append("```");
+
+						await Methods.SendMessage(null, new SendMessageEventArgs {
+							Message = sb.ToString(),
+							Channel = e.Channel,
+							LogMessage = "OverwatchLeagueScheduleCurrent"
+						});
+					} else if (splitMessage.Length > 3 && (int.TryParse(splitMessage[2], out int stage) && stage > 0 && stage <= 4) && ((int.TryParse(splitMessage[3], out int week) && week > 0 && week <= 5) || splitMessage[3] == "playoffs")) {
 						var sb = new StringBuilder();
 
 						sb.Append("```");
@@ -261,6 +295,7 @@ namespace OverwatchLeague {
 							Channel = e.Channel,
 							LogMessage = "OverwatchLeagueScheduleInvalid"
 						});
+						return;
 					}
 				} else {
 					await Methods.SendMessage(null, new SendMessageEventArgs {

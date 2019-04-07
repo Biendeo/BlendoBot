@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Drawing;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
@@ -34,7 +35,7 @@ namespace OverwatchLeague.Data {
 			matches = new List<Match>();
 			stages = new List<Stage>();
 
-			// The next time to update should always 
+			// The next time to update should always
 			fullUpdateTimer = new Timer((NextFullUpdate() - DateTime.UtcNow).TotalMilliseconds);
 			fullUpdateTimer.Elapsed += FullUpdateTimer_Elapsed;
 			fullUpdateTimer.Enabled = true;
@@ -344,6 +345,10 @@ namespace OverwatchLeague.Data {
 			}
 
 			return standings;
+		}
+
+		public Week GetCurrentWeek() {
+			return stages.Find(s => s.LastEndTime > DateTime.Now)?.CurrentWeek;
 		}
 
 		private static DateTime NextFullUpdate() {
