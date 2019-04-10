@@ -36,7 +36,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Other Files", "Other Files"
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UserTimeZone", "Modules\UserTimezone\UserTimeZone.csproj", "{6E682D21-2E3D-41E2-BC41-0223173CA51C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UserTimeZone", "Modules\UserTimeZone\UserTimeZone.csproj", "{6E682D21-2E3D-41E2-BC41-0223173CA51C}"
 	ProjectSection(ProjectDependencies) = postProject
 		{01D849DE-AF80-4A47-B688-E70D62F510CF} = {01D849DE-AF80-4A47-B688-E70D62F510CF}
 	EndProjectSection
