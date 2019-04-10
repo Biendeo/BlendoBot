@@ -20,6 +20,7 @@
     <ProjectReference Include="..\Modules\RegionalIndicator\RegionalIndicator.csproj" />
     <ProjectReference Include="..\Modules\RemindMe\RemindMe.csproj" />
     <ProjectReference Include="..\Modules\Roll\Roll.csproj" />
+    <ProjectReference Include="..\Modules\UserTimezone\UserTimeZone.csproj" />
     <ProjectReference Include="..\Modules\Weather\Weather.csproj" />
   </ItemGroup>
 
