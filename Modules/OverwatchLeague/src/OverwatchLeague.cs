@@ -18,10 +18,10 @@ namespace OverwatchLeague {
 		CommandProps ICommand.Properties => properties;
 
 		private static readonly CommandProps properties = new CommandProps {
-			Term = "?overwatchleague",
+			Term = "?owl",
 			Name = "Overwatch League",
 			Description = "Tells you up-to-date stats about the Overwatch League.",
-			Usage = $"Usage:\n{"?overwatchleague live".Code()} {"(stats about the match that is currently on)".Italics()}\n{"?overwatchleague next".Code()} {"(stats about the next match that will be played)".Italics()}\n{"?overwatchleague standings".Code()} {"(the overall standings of the league)".Italics()}\n{"?overwatchleague standings [stage]".Code()} {"(the overall standings of the stage)".Italics()}\n{"?overwatchleague schedule".Code()} {"(shows times and scores for each match in the current or next week)".Italics()}\n{"?overwatchleague schedule [stage] [week]".Code()} {"(shows times and scores for each match in the given week)".Italics()}\n{"?overwatchleague schedule [stage] playoffs".Code()} {"(shows times and scores for each match in the given stage's playoffs)".Italics()}\n{"?overwatchleague schedule [abbreviated team name]".Code()} {"(shows times and scores for each match that a team plays)".Italics()}\nAll times are determined by the user's {"?usertimezone".Code()} setting.",
+			Usage = $"Usage:\n{"?owl live".Code()} {"(stats about the match that is currently on)".Italics()}\n{"?owl next".Code()} {"(stats about the next match that will be played)".Italics()}\n{"?owl standings".Code()} {"(the overall standings of the league)".Italics()}\n{"?owl standings [stage]".Code()} {"(the overall standings of the stage)".Italics()}\n{"?owl schedule".Code()} {"(shows times and scores for each match in the current or next week)".Italics()}\n{"?owl schedule [stage] [week]".Code()} {"(shows times and scores for each match in the given week)".Italics()}\n{"?owl schedule [stage] playoffs".Code()} {"(shows times and scores for each match in the given stage's playoffs)".Italics()}\n{"?owl schedule [abbreviated team name]".Code()} {"(shows times and scores for each match that a team plays)".Italics()}\nAll times are determined by the user's {"?usertimezone".Code()} setting.",
 			Author = "Biendeo",
 			Version = "1.0.8",
 			Startup = Startup,
@@ -250,7 +250,7 @@ namespace OverwatchLeague {
 
 						if (team == null) {
 							await Methods.SendMessage(null, new SendMessageEventArgs {
-								Message = $"Invalid team code. Use {"?overwatchleague standings".Code()} to find your team's abbreviated name!",
+								Message = $"Invalid team code. Use {"?owl standings".Code()} to find your team's abbreviated name!",
 								Channel = e.Channel,
 								LogMessage = "OverwatchLeagueScheduleTeamInvalid"
 							});
