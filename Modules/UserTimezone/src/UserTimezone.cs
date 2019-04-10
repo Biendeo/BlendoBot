@@ -48,14 +48,6 @@ namespace UserTimeZone {
 
 		public static async Task UserTimezoneCommand(MessageCreateEventArgs e) {
 			string[] splitMessage = e.Message.Content.Split(' ');
-
-			int i = 1;
-			foreach (var t in TimeZoneInfo.GetSystemTimeZones()) {
-				Console.WriteLine($"({i.ToString().PadLeft(3, ' ')}) {t.Id}, {t.DisplayName}, {t.StandardName}, {t.DaylightName}, {t.BaseUtcOffset}");
-				++i;
-			}
-
-
 			if (splitMessage.Length == 1) {
 				TimeZoneInfo timezone = GetUserTimeZone(e.Author);
 				await Methods.SendMessage(null, new SendMessageEventArgs {
