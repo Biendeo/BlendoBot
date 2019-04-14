@@ -45,7 +45,7 @@ namespace OverwatchLeague.Data {
 
 			updateTimer = new Timer();
 			updateTimer.Elapsed += UpdateTimer_Elapsed;
-			
+
 			// No point attempting to update the map if it won't start within 24 hours, since the whole
 			// DB is being updated anyways. This gets around a weird bug where the time start is more
 			// than int32Max ticks away.
@@ -74,7 +74,7 @@ namespace OverwatchLeague.Data {
 					Message = $"OverwatchLeague updated match {Id}, but will wait until it starts at {StartTime.ToString("yyyy-MM-dd HH:mm:ss")} before updating again"
 				});
 				return;
-			} else if (DateTime.UtcNow < EndTime) {
+			} else {
 				updateTimer.Interval = 1000 * 15;
 
 				using (var wc = new WebClient()) {
@@ -153,17 +153,19 @@ namespace OverwatchLeague.Data {
 							}
 						}
 					}
+
+					if (Status == MatchStatus.Concluded) {
+						Methods.Log(this, new LogEventArgs {
+							Type = LogType.Log,
+							Message = $"OverwatchLeague has finished updating match id {Id}"
+						});
+						updateTimer.Enabled = false;
+					}
 				}
 				Methods.Log(this, new LogEventArgs {
 					Type = LogType.Log,
 					Message = $"OverwatchLeague updated match id {Id} and will update again in 15 seconds"
 				});
-			} else {
-				Methods.Log(this, new LogEventArgs {
-					Type = LogType.Log,
-					Message = $"OverwatchLeague has finished updating match id {Id}"
-				});
-				updateTimer.Enabled = false;
 			}
 		}
 
