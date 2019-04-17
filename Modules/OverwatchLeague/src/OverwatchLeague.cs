@@ -29,6 +29,8 @@ namespace OverwatchLeague {
 		};
 
 		internal static Database Database;
+		private static readonly string TimeFormatStringLong = "d/MM/yyyy h:mm:ss tt zzz";
+		private static readonly string TimeFormatStringShort = "d/MM hh:mm tt zzz";
 
 		private static async Task<bool> Startup() {
 			if (Database == null) {
@@ -54,13 +56,13 @@ namespace OverwatchLeague {
 			int currentHomeScore = match.HomeScore;
 			int currentAwayScore = match.AwayScore;
 
-			sb.AppendLine($"Planned time: {match.StartTime.Add(timeZone.BaseUtcOffset).ToString("d/MM/yyyy h:mm:ss tt")} UTC{UserTimeZone.UserTimeZone.TimeZoneOffsetToString(timeZone)} - {match.EndTime.Add(timeZone.BaseUtcOffset).ToString("d/MM/yyyy h:mm:ss tt")} UTC{UserTimeZone.UserTimeZone.TimeZoneOffsetToString(timeZone)}");
+			sb.AppendLine($"Planned time: {TimeZoneInfo.ConvertTimeFromUtc(match.StartTime, timeZone).ToString(TimeFormatStringLong)} - {TimeZoneInfo.ConvertTimeFromUtc(match.EndTime, timeZone).ToString(TimeFormatStringLong)}");
 			if (match.ActualStartTime != null) {
 				sb.Append("Real time: ");
-				sb.Append(match.ActualStartTime?.Add(timeZone.BaseUtcOffset).ToString("d/MM/yyyy h:mm:ss tt") + $" UTC{UserTimeZone.UserTimeZone.TimeZoneOffsetToString(timeZone)}");
+				sb.Append(TimeZoneInfo.ConvertTimeFromUtc(match.ActualStartTime ?? default, timeZone).ToString(TimeFormatStringLong));
 				sb.Append(" - ");
 				if (match.ActualEndTime != null) {
-					sb.AppendLine(match.ActualEndTime?.Add(timeZone.BaseUtcOffset).ToString("d/MM/yyyy h:mm:ss tt") + $" UTC{UserTimeZone.UserTimeZone.TimeZoneOffsetToString(timeZone)}");
+					sb.AppendLine(TimeZoneInfo.ConvertTimeFromUtc(match.ActualEndTime ?? default, timeZone).ToString(TimeFormatStringLong));
 				} else {
 					sb.AppendLine("???");
 				}
@@ -176,7 +178,7 @@ namespace OverwatchLeague {
 						sb.Append("```");
 
 						foreach (Match match in relevantWeek.Matches) {
-							sb.Append($"{match.StartTime.Add(userTimeZone.BaseUtcOffset).ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC{UserTimeZone.UserTimeZone.TimeZoneOffsetToString(userTimeZone)} - ");
+							sb.Append($"{TimeZoneInfo.ConvertTimeFromUtc(match.StartTime, userTimeZone).ToString(TimeFormatStringShort).PadLeft(22, ' ')} - ");
 							if (match.HomeTeam != null) {
 								sb.Append($"{match.HomeTeam.AbbreviatedName} vs. ");
 							} else {
@@ -217,7 +219,7 @@ namespace OverwatchLeague {
 						}
 
 						foreach (Match match in relevantWeek.Matches) {
-							sb.Append($"{match.StartTime.Add(userTimeZone.BaseUtcOffset).ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC{UserTimeZone.UserTimeZone.TimeZoneOffsetToString(userTimeZone)} - ");
+							sb.Append($"{TimeZoneInfo.ConvertTimeFromUtc(match.StartTime, userTimeZone).ToString(TimeFormatStringShort).PadLeft(22, ' ')} - ");
 							if (match.HomeTeam != null) {
 								sb.Append($"{match.HomeTeam.AbbreviatedName} vs. ");
 							} else {
@@ -261,7 +263,7 @@ namespace OverwatchLeague {
 
 							foreach (var match in team.Matches) {
 								if (match.HomeTeam == team) {
-									sb.Append($"{match.StartTime.Add(userTimeZone.BaseUtcOffset).ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC{UserTimeZone.UserTimeZone.TimeZoneOffsetToString(userTimeZone)} - {match.HomeTeam.AbbreviatedName} vs. {match.AwayTeam.AbbreviatedName}");
+									sb.Append($"{TimeZoneInfo.ConvertTimeFromUtc(match.StartTime, userTimeZone).ToString(TimeFormatStringShort).PadLeft(22, ' ')} - {match.HomeTeam.AbbreviatedName} vs. {match.AwayTeam.AbbreviatedName}");
 									if (match.Status != MatchStatus.Pending) {
 										sb.Append($" ({match.HomeScore} - {match.AwayScore})");
 									}
@@ -269,7 +271,7 @@ namespace OverwatchLeague {
 										sb.Append($" ({(match.HomeScore > match.AwayScore ? 'W' : 'L')})");
 									}
 								} else {
-									sb.Append($"{match.StartTime.Add(userTimeZone.BaseUtcOffset).ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC{UserTimeZone.UserTimeZone.TimeZoneOffsetToString(userTimeZone)} - {match.AwayTeam.AbbreviatedName} vs. {match.HomeTeam.AbbreviatedName}");
+									sb.Append($"{TimeZoneInfo.ConvertTimeFromUtc(match.StartTime, userTimeZone).ToString(TimeFormatStringShort).PadLeft(22, ' ')} - {match.AwayTeam.AbbreviatedName} vs. {match.HomeTeam.AbbreviatedName}");
 									if (match.Status != MatchStatus.Pending) {
 										sb.Append($" ({match.AwayScore} - {match.HomeScore})");
 									}
