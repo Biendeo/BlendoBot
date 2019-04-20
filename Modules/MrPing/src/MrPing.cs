@@ -4,13 +4,9 @@ using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using MrPing.Properties;
-using SixLabors.Fonts;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
-using SixLabors.Primitives;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -25,22 +21,19 @@ namespace MrPing {
 			Description = "Subjects someone to the Mr. Ping Challenge!",
 			Usage = $"Usage: {"?mrping".Code()}\nNote: Any non-ASCII characters in a username will be replaced with {"¿".Code()}.",
 			Author = "Biendeo",
-			Version = "0.4.2",
+			Version = "0.5.0",
 			Startup = async () => { await Task.Delay(0); return true; },
 			OnMessage = MrPingCommand
 		};
 
 		public const int MaxPings = 100;
-		
+
 		public static async Task MrPingCommand(MessageCreateEventArgs e) {
 			// Edit the Mr Ping image to randomly pick a user on the server, and a random number
 			// of pings (up to 100).
 
-			DiscordMessage waitingMessage = await Methods.SendMessage(null, new SendMessageEventArgs {
-				Message = "Randomly choosing a victim...",
-				Channel = e.Channel,
-				LogMessage = "MrPingWaiting"
-			});
+			//! New change, BlendoBot will appear as if it's typing in the channel while it's waiting.
+			await e.Channel.TriggerTypingAsync();
 
 			// First, choose a user from the server.
 			var random = new Random();
@@ -61,7 +54,7 @@ namespace MrPing {
 					Channel = e.Channel,
 					LogMessage = "MrPingErrorNoUsers"
 				});
-				await waitingMessage.DeleteAsync();
+				//await waitingMessage.DeleteAsync();
 				return;
 			}
 
@@ -74,36 +67,33 @@ namespace MrPing {
 			// Now to do the image modification.
 			//TODO: Figure out how to use a Resource on this, on ubuntu, the resource is interpreted
 			// as the RESX string rather than a byte array, which doesn't work. Any fixes?
-			using (var image = Image.Load(@"Modules/MrPing/res/mr.png")) {
+			using (var image = Image.FromFile(@"Modules/MrPing/res/mr.png")) {
 				//? It seems that memory goes up after multiple usages of this. Am I leaking something?
-				Font memberNameFont = SystemFonts.CreateFont("Arial", 25);
-				Font numberFont = SystemFonts.CreateFont("Arial", 35);
-				using (var workingImage = image.Clone()) {
-					var textGraphicsOptions = new TextGraphicsOptions(true) {
-						ApplyKerning = true,
-						HorizontalAlignment = HorizontalAlignment.Center,
-						VerticalAlignment = VerticalAlignment.Center,
-						WrapTextWidth = 175.0f
-					};
-					string cleanUsername = Regex.Replace(chosenMember.Username, @"[^\u0000-\u007F]+", "¿");
-					workingImage.Mutate(ctx => ctx.DrawText(textGraphicsOptions, $"@{cleanUsername} #{chosenMember.Discriminator}", memberNameFont, Rgba32.DarkBlue, new PointF(0, 290)).DrawText(textGraphicsOptions, $"{numberOfPings}", numberFont, Rgba32.DarkRed, new PointF(-45, 357)));
+				using (var graphics = Graphics.FromImage(image)) {
+					using (var nameFont = new Font("Arial", 25)) {
+						using (var numberFont = new Font("Arial", 35)) {
+							using (var format = new StringFormat()) {
+								format.Alignment = StringAlignment.Center;
+								format.LineAlignment = StringAlignment.Center;
+								graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+								graphics.DrawString($"@{chosenMember.Username} #{chosenMember.Discriminator}", nameFont, Brushes.DarkBlue, new RectangleF(0, 260, 175, 70), format);
+								graphics.DrawString($"{numberOfPings}", numberFont, Brushes.DarkRed, new RectangleF(-45, 322, 175, 70), format);
+								graphics.Flush();
 
-					string filePath = $"mrping-{chosenMember.Username}.png";
-					workingImage.Save(filePath);
+								string filePath = $"mrping-{chosenMember.Username}.png";
+								image.Save(filePath);
 
-					//? Is this necessary because I'm using using?
-					workingImage.Dispose();
+								await Methods.SendFile(null, new SendFileEventArgs {
+									Channel = e.Channel,
+									FilePath = filePath,
+									LogMessage = "MrPingFileSuccess"
+								});
 
-					await Methods.SendFile(null, new SendFileEventArgs {
-						Channel = e.Channel,
-						FilePath = filePath,
-						LogMessage = "MrPingFileSuccess"
-					});
-
-					await waitingMessage.DeleteAsync();
-
-					if (File.Exists(filePath)) {
-						File.Delete(filePath);
+								if (File.Exists(filePath)) {
+									File.Delete(filePath);
+								}
+							}
+						}
 					}
 				}
 			}

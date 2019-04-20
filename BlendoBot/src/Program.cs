@@ -106,7 +106,7 @@ namespace BlendoBot {
 			Data.VerifyData();
 			Methods.Log(null, new LogEventArgs {
 				Type = LogType.Log,
-				Message = $"{Props.Name} ({Props.Version}) is up and ready!"
+				Message = $"{Props.Name} ({Props.Version}) is connected to Discord!"
 			});
 		}
 
