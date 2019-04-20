@@ -70,14 +70,14 @@ namespace MrPing {
 			using (var image = Image.FromFile(@"Modules/MrPing/res/mr.png")) {
 				//? It seems that memory goes up after multiple usages of this. Am I leaking something?
 				using (var graphics = Graphics.FromImage(image)) {
-					using (var nameFont = new Font("Arial", 25)) {
-						using (var numberFont = new Font("Arial", 35)) {
+					using (var nameFont = new Font("Arial", 20)) {
+						using (var numberFont = new Font("Arial", 30)) {
 							using (var format = new StringFormat()) {
 								format.Alignment = StringAlignment.Center;
 								format.LineAlignment = StringAlignment.Center;
 								graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-								graphics.DrawString($"@{chosenMember.Username} #{chosenMember.Discriminator}", nameFont, Brushes.DarkBlue, new RectangleF(0, 260, 175, 70), format);
-								graphics.DrawString($"{numberOfPings}", numberFont, Brushes.DarkRed, new RectangleF(-45, 322, 175, 70), format);
+								graphics.DrawString($"@{chosenMember.Username} #{chosenMember.Discriminator}", nameFont, Brushes.DarkBlue, new RectangleF(0, 255, 175, 70), format);
+								graphics.DrawString($"{numberOfPings}", numberFont, Brushes.DarkRed, new RectangleF(-45, 317, 175, 70), format);
 								graphics.Flush();
 
 								string filePath = $"mrping-{chosenMember.Username}.png";
