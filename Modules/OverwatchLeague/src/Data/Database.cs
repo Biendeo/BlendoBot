@@ -220,6 +220,10 @@ namespace OverwatchLeague.Data {
 			using (var wc = new WebClient()) {
 				string scheduleJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/schedule");
 				dynamic scheduleJson = JsonConvert.DeserializeObject(scheduleJsonString);
+				Methods.Log(this, new LogEventArgs {
+					Type = LogType.Warning,
+					Message = $"OverwatchLeague has a null check in case a match appears in the schedule but not the match list. If you do not get any more warnings after this, then everything has been sorted and this can be removed. Otherwise, be cautious about these matches. They seem to be associated with the all-star matches."
+				});
 
 				foreach (var stage in scheduleJson.data.stages) {
 					int id = stage.id;
@@ -243,8 +247,15 @@ namespace OverwatchLeague.Data {
 						foreach (var match in week.matches) {
 							int matchId = match.id;
 							Match m = matches.Find(x => x.Id == matchId);
-							m.SetWeek(w);
-							w.AddMatch(m);
+							if (m == null) {
+								Methods.Log(this, new LogEventArgs {
+									Type = LogType.Warning,
+									Message = $"OverwatchLeague found match ID {matchId} in the schedule, but not the matches JSON. Watch this!"
+								});
+							} else {
+								m.SetWeek(w);
+								w.AddMatch(m);
+							}
 						}
 					}
 
