@@ -157,20 +157,27 @@ namespace BlendoBot {
 					var validTypes = assembly.ExportedTypes.ToList().FindAll(t => t.GetInterfaces().ToList().Contains(typeof(ICommand)));
 					foreach (var validType in validTypes) {
 						var t = Activator.CreateInstance(validType) as ICommand;
-						if (await t.Properties.Startup()) {
-							Commands.Command.AvailableCommands.Add(t.Properties.Term, t.Properties);
-							Methods.Log(null, new LogEventArgs {
-								Type = LogType.Log,
-								Message = $"Successfully loaded external module {t.Properties.Name} ({t.Properties.Term})"
-							});
-						} else {
+						try {
+							if (await t.Properties.Startup()) {
+								Commands.Command.AvailableCommands.Add(t.Properties.Term, t.Properties);
+								Methods.Log(null, new LogEventArgs {
+									Type = LogType.Log,
+									Message = $"Successfully loaded external module {t.Properties.Name} ({t.Properties.Term})"
+								});
+							} else {
+								Methods.Log(null, new LogEventArgs {
+									Type = LogType.Error,
+									Message = $"Could not load module {t.Properties.Name} ({t.Properties.Term}), startup failed"
+								});
+							}
+						} catch (Exception exc) {
 							Methods.Log(null, new LogEventArgs {
 								Type = LogType.Error,
-								Message = $"Could not load module {t.Properties.Name} ({t.Properties.Term})"
+								Message = $"Could not load module {t.Properties.Name} ({t.Properties.Term}), exception thrown\n{exc}"
 							});
 						}
 					}
-				} catch (Exception) { }
+				} catch (Exception) { } // I don't think this is really safe, can I rework this?
 			}
 		}
 
