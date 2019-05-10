@@ -42,16 +42,23 @@ namespace OverwatchLeague.Data {
 		}
 
 		private async void FullUpdateTimer_Elapsed(object sender, ElapsedEventArgs e) {
-			Methods.Log(this, new LogEventArgs {
-				Type = LogType.Log,
-				Message = $"OverwatchLeague is performing a full update."
-			});
-			await ReloadDatabase();
+			try {
+				Methods.Log(this, new LogEventArgs {
+					Type = LogType.Log,
+					Message = $"OverwatchLeague is performing a full update."
+				});
+				await ReloadDatabase();
+				Methods.Log(this, new LogEventArgs {
+					Type = LogType.Log,
+					Message = $"OverwatchLeague will fully update again at {NextFullUpdate().ToString("yyyy-MM-dd HH:mm:ss")}"
+				});
+			} catch (Exception exc) {
+				Methods.Log(this, new LogEventArgs {
+					Type = LogType.Error,
+					Message = $"OverwatchLeague failed to update, trying again at {NextFullUpdate().ToString("yyyy-MM-dd HH:mm:ss")}\n{exc}"
+				});
+			}
 			fullUpdateTimer.Interval = (NextFullUpdate() - DateTime.UtcNow).TotalMilliseconds;
-			Methods.Log(this, new LogEventArgs {
-				Type = LogType.Log,
-				Message = $"OverwatchLeague will fully update again at {NextFullUpdate().ToString("yyyy-MM-dd HH:mm:ss")}"
-			});
 		}
 
 		public void Clear() {
