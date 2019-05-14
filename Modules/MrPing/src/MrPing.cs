@@ -80,7 +80,7 @@ namespace MrPing {
 								graphics.DrawString($"{numberOfPings}", numberFont, Brushes.DarkRed, new RectangleF(-45, 317, 175, 70), format);
 								graphics.Flush();
 
-								string filePath = $"mrping-{chosenMember.Username}.png";
+								string filePath = $"mrping-{Guid.NewGuid()}.png";
 								image.Save(filePath);
 
 								await Methods.SendFile(null, new SendFileEventArgs {
