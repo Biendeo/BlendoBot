@@ -21,9 +21,9 @@ namespace OverwatchLeague {
 			Term = "?owl",
 			Name = "Overwatch League",
 			Description = "Tells you up-to-date stats about the Overwatch League.",
-			Usage = $"Usage:\n{"?owl live".Code()} {"(stats about the match that is currently on)".Italics()}\n{"?owl next".Code()} {"(stats about the next match that will be played)".Italics()}\n{"?owl standings".Code()} {"(the overall standings of the league)".Italics()}\n{"?owl standings [stage]".Code()} {"(the overall standings of the stage)".Italics()}\n{"?owl schedule".Code()} {"(shows times and scores for each match in the current or next week)".Italics()}\n{"?owl schedule [stage] [week]".Code()} {"(shows times and scores for each match in the given week)".Italics()}\n{"?owl schedule [stage] playoffs".Code()} {"(shows times and scores for each match in the given stage's playoffs)".Italics()}\n{"?owl schedule [abbreviated team name]".Code()} {"(shows times and scores for each match that a team plays)".Italics()}\nAll times are determined by the user's {"?usertimezone".Code()} setting.",
+			Usage = $"Usage:\n{"?owl live".Code()} {"(stats about the match that is currently on)".Italics()}\n{"?owl next".Code()} {"(stats about the next match that will be played)".Italics()}\n{"?owl match [match id]".Code()} {"(stats about the specified match (match IDs are the 5-digit numbers in square brackets in the schedule commands))".Italics()}\n{"?owl standings".Code()} {"(the overall standings of the league)".Italics()}\n{"?owl standings [stage]".Code()} {"(the overall standings of the stage)".Italics()}\n{"?owl schedule".Code()} {"(shows times and scores for each match in the current or next week)".Italics()}\n{"?owl schedule [stage] [week]".Code()} {"(shows times and scores for each match in the given week)".Italics()}\n{"?owl schedule [stage] playoffs".Code()} {"(shows times and scores for each match in the given stage's playoffs)".Italics()}\n{"?owl schedule [abbreviated team name]".Code()} {"(shows times and scores for each match that a team plays)".Italics()}\nAll times are determined by the user's {"?usertimezone".Code()} setting.",
 			Author = "Biendeo",
-			Version = "1.0.8",
+			Version = "1.1.0",
 			Startup = Startup,
 			OnMessage = OverwatchLeagueCommand
 		};
@@ -54,6 +54,7 @@ namespace OverwatchLeague {
 			int currentHomeScore = match.HomeScore;
 			int currentAwayScore = match.AwayScore;
 
+			sb.AppendLine($"Match ID: {match.Id}");
 			sb.AppendLine($"Planned time: {match.StartTime.Add(timeZone.BaseUtcOffset).ToString("d/MM/yyyy h:mm:ss tt")} UTC{UserTimeZone.UserTimeZone.TimeZoneOffsetToString(timeZone)} - {match.EndTime.Add(timeZone.BaseUtcOffset).ToString("d/MM/yyyy h:mm:ss tt")} UTC{UserTimeZone.UserTimeZone.TimeZoneOffsetToString(timeZone)}");
 			if (match.ActualStartTime != null) {
 				sb.Append("Real time: ");
@@ -128,6 +129,29 @@ namespace OverwatchLeague {
 							LogMessage = "OverwatchLeagueNext"
 						});
 					}
+				} else if (splitMessage.Length > 2 && splitMessage[1] == "match") {
+					if (int.TryParse(splitMessage[2], out int matchId)) {
+						Match match = (from c in Database.Matches where c.Id == matchId select c).FirstOrDefault();
+						if (match == null) {
+							await Methods.SendMessage(null, new SendMessageEventArgs {
+								Message = $"No match matches ID {matchId}!",
+								Channel = e.Channel,
+								LogMessage = "OverwatchLeagueMatchNoMatch"
+							});
+						} else {
+							await Methods.SendMessage(null, new SendMessageEventArgs {
+								Message = GetMatchDetails(match, userTimeZone),
+								Channel = e.Channel,
+								LogMessage = "OverwatchLeagueMatch"
+							});
+						}
+					} else {
+						await Methods.SendMessage(null, new SendMessageEventArgs {
+							Message = "Match ID is invalid!",
+							Channel = e.Channel,
+							LogMessage = "OverwatchLeagueMatchInvalidArgument"
+						});
+					}
 				} else if (splitMessage.Length > 1 && splitMessage[1] == "standings") {
 					int stageNum = 0;
 					if (splitMessage.Length > 2) {
@@ -176,7 +200,7 @@ namespace OverwatchLeague {
 						sb.Append("```");
 
 						foreach (Match match in relevantWeek.Matches) {
-							sb.Append($"{match.StartTime.Add(userTimeZone.BaseUtcOffset).ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC{UserTimeZone.UserTimeZone.TimeZoneOffsetToString(userTimeZone)} - ");
+							sb.Append($"[{match.Id.ToString().PadLeft(5, ' ')}] {match.StartTime.Add(userTimeZone.BaseUtcOffset).ToString("d/MM hh:mm tt").PadLeft(14, ' ')} UTC{UserTimeZone.UserTimeZone.TimeZoneOffsetToString(userTimeZone)} - ");
 							if (match.HomeTeam != null) {
 								sb.Append($"{match.HomeTeam.AbbreviatedName} vs. ");
 							} else {
@@ -217,7 +241,7 @@ namespace OverwatchLeague {
 						}
 
 						foreach (Match match in relevantWeek.Matches) {
-							sb.Append($"{match.StartTime.Add(userTimeZone.BaseUtcOffset).ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC{UserTimeZone.UserTimeZone.TimeZoneOffsetToString(userTimeZone)} - ");
+							sb.Append($"[{match.Id.ToString().PadLeft(5, ' ')}] {match.StartTime.Add(userTimeZone.BaseUtcOffset).ToString("d/MM hh:mm tt").PadLeft(14, ' ')} UTC{UserTimeZone.UserTimeZone.TimeZoneOffsetToString(userTimeZone)} - ");
 							if (match.HomeTeam != null) {
 								sb.Append($"{match.HomeTeam.AbbreviatedName} vs. ");
 							} else {
@@ -261,7 +285,7 @@ namespace OverwatchLeague {
 
 							foreach (var match in team.Matches) {
 								if (match.HomeTeam == team) {
-									sb.Append($"{match.StartTime.Add(userTimeZone.BaseUtcOffset).ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC{UserTimeZone.UserTimeZone.TimeZoneOffsetToString(userTimeZone)} - {match.HomeTeam.AbbreviatedName} vs. {match.AwayTeam.AbbreviatedName}");
+									sb.Append($"[{match.Id.ToString().PadLeft(5, ' ')}] {match.StartTime.Add(userTimeZone.BaseUtcOffset).ToString("d/MM hh:mm tt").PadLeft(14, ' ')} UTC{UserTimeZone.UserTimeZone.TimeZoneOffsetToString(userTimeZone)} - {match.HomeTeam.AbbreviatedName} vs. {match.AwayTeam.AbbreviatedName}");
 									if (match.Status != MatchStatus.Pending) {
 										sb.Append($" ({match.HomeScore} - {match.AwayScore})");
 									}
@@ -269,7 +293,7 @@ namespace OverwatchLeague {
 										sb.Append($" ({(match.HomeScore > match.AwayScore ? 'W' : 'L')})");
 									}
 								} else {
-									sb.Append($"{match.StartTime.Add(userTimeZone.BaseUtcOffset).ToString("d/MM hh:mm tt").PadLeft(15, ' ')} UTC{UserTimeZone.UserTimeZone.TimeZoneOffsetToString(userTimeZone)} - {match.AwayTeam.AbbreviatedName} vs. {match.HomeTeam.AbbreviatedName}");
+									sb.Append($"[{match.Id.ToString().PadLeft(5, ' ')}] {match.StartTime.Add(userTimeZone.BaseUtcOffset).ToString("d/MM hh:mm tt").PadLeft(14, ' ')} UTC{UserTimeZone.UserTimeZone.TimeZoneOffsetToString(userTimeZone)} - {match.AwayTeam.AbbreviatedName} vs. {match.HomeTeam.AbbreviatedName}");
 									if (match.Status != MatchStatus.Pending) {
 										sb.Append($" ({match.AwayScore} - {match.HomeScore})");
 									}
@@ -301,7 +325,7 @@ namespace OverwatchLeague {
 					}
 				} else {
 					await Methods.SendMessage(null, new SendMessageEventArgs {
-						Message = $"I couldn't determine what you wanted. Make sure your command is handled by {"?help overwatchleague".Code()}",
+						Message = $"I couldn't determine what you wanted. Make sure your command is handled by {"?help owl".Code()}",
 						Channel = e.Channel,
 						LogMessage = "OverwatchLeagueUnknownCommand"
 					});
