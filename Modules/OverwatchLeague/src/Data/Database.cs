@@ -52,7 +52,7 @@ namespace OverwatchLeague.Data {
 					Type = LogType.Log,
 					Message = $"OverwatchLeague will fully update again at {NextFullUpdate().ToString("yyyy-MM-dd HH:mm:ss")}"
 				});
-			} catch (Exception exc) {
+			} catch (WebException exc) {
 				Methods.Log(this, new LogEventArgs {
 					Type = LogType.Error,
 					Message = $"OverwatchLeague failed to update, trying again at {NextFullUpdate().ToString("yyyy-MM-dd HH:mm:ss")}\n{exc}"
