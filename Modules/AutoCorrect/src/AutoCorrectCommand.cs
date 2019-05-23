@@ -1,13 +1,17 @@
 using System;
+using System.IO;
 using System.Threading.Tasks;
 using BlendoBotLib;
 using BlendoBotLib.Commands;
 using DSharpPlus.EventArgs;
+using Newtonsoft.Json;
 
 namespace AutoCorrect
 {
     public class AutoCorrectCommand : ICommand, IDisposable
     {
+        private const string ConfigPath = "blendobot-autocorrect-config.json";
+
         public CommandProps Properties => new CommandProps
             {
                 Term = "?ac",
@@ -27,7 +31,15 @@ namespace AutoCorrect
 
         private async Task<bool> Startup()
         {
-            this.AutoCorrectProvider = new GoogleSearchAutoCorrectProvider();
+            // api key is optional, increases daily call limit from 100 to 250
+            var apiKey = string.Empty;
+            if (File.Exists(ConfigPath))
+            {
+                dynamic config = JsonConvert.DeserializeObject(File.ReadAllText(ConfigPath));
+                apiKey = config.GrammarBotApiKey;
+            }
+
+            this.AutoCorrectProvider = new GrammarBotAutoCorrectProvider(apiKey);
             return await Task.FromResult(true).ConfigureAwait(false);
         }
 
