@@ -22,7 +22,7 @@ namespace BlendoBot.Commands {
 			OnMessage = HelpCommand
 		};
 
-	public static async Task HelpCommand(MessageCreateEventArgs e) {
+		public static async Task HelpCommand(MessageCreateEventArgs e) {
 			// The help command definitely prints out a string. Which string will be determined by the arguments.
 			var sb = new StringBuilder();
 			if (e.Message.Content.Length == properties.Term.Length) {
