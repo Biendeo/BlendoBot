@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BlendoBotLib\BlendoBotLib.csproj" />
+    <ProjectReference Include="..\Modules\AutoCorrect\AutoCorrect.csproj" />
     <ProjectReference Include="..\Modules\CurrencyConverter\CurrencyConverter.csproj" />
     <ProjectReference Include="..\Modules\MrPing\MrPing.csproj" />
     <ProjectReference Include="..\Modules\OverwatchLeague\OverwatchLeague.csproj" />
