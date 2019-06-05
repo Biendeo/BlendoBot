@@ -227,14 +227,16 @@ namespace OverwatchLeague.Data {
 			using (var wc = new WebClient()) {
 				string scheduleJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/schedule");
 				dynamic scheduleJson = JsonConvert.DeserializeObject(scheduleJsonString);
-				Methods.Log(this, new LogEventArgs {
-					Type = LogType.Warning,
-					Message = $"OverwatchLeague has a null check in case a match appears in the schedule but not the match list. If you do not get any more warnings after this, then everything has been sorted and this can be removed. Otherwise, be cautious about these matches. They seem to be associated with the all-star matches."
-				});
 
 				foreach (var stage in scheduleJson.data.stages) {
 					int id = stage.id;
 					string name = stage.name;
+
+					// The all-star weekend is not really important in the long term and tries to read teams and matches
+					// that don't exist in the matches API. It's easier to ignore it.
+					if (name == "All-Stars") {
+						continue;
+					}
 
 					Stage s = new Stage(id, name);
 
