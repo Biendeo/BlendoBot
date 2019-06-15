@@ -21,7 +21,7 @@ namespace MrPing {
 			Description = "Subjects someone to the Mr. Ping Challenge!",
 			Usage = $"Usage: {"?mrping".Code()}\nNote: Any non-ASCII characters in a username will be replaced with {"¿".Code()}.",
 			Author = "Biendeo",
-			Version = "0.5.0",
+			Version = "1.0.0",
 			Startup = async () => { await Task.Delay(0); return true; },
 			OnMessage = MrPingCommand
 		};
@@ -70,27 +70,29 @@ namespace MrPing {
 			using (var image = Image.FromFile(@"Modules/MrPing/res/mr.png")) {
 				//? It seems that memory goes up after multiple usages of this. Am I leaking something?
 				using (var graphics = Graphics.FromImage(image)) {
-					using (var nameFont = new Font("Arial", 20)) {
-						using (var numberFont = new Font("Arial", 30)) {
-							using (var format = new StringFormat()) {
-								format.Alignment = StringAlignment.Center;
-								format.LineAlignment = StringAlignment.Center;
-								graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-								graphics.DrawString($"@{chosenMember.Username} #{chosenMember.Discriminator}", nameFont, Brushes.DarkBlue, new RectangleF(0, 255, 175, 70), format);
-								graphics.DrawString($"{numberOfPings}", numberFont, Brushes.DarkRed, new RectangleF(-45, 317, 175, 70), format);
-								graphics.Flush();
+					using (var intendedNameFont = new Font("Arial", 20)) {
+						using (var nameFont = FindFont(graphics, $"@{chosenMember.Username} #{chosenMember.Discriminator}", new RectangleF(0, 255, 175, 70), intendedNameFont)) {
+							using (var numberFont = new Font("Arial", 30)) {
+								using (var format = new StringFormat()) {
+									format.Alignment = StringAlignment.Center;
+									format.LineAlignment = StringAlignment.Center;
+									graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+									graphics.DrawString($"@{chosenMember.Username} #{chosenMember.Discriminator}", nameFont, Brushes.DarkBlue, new RectangleF(0, 255, 175, 70), format);
+									graphics.DrawString($"{numberOfPings}", numberFont, Brushes.DarkRed, new RectangleF(-45, 317, 175, 70), format);
+									graphics.Flush();
 
-								string filePath = $"mrping-{Guid.NewGuid()}.png";
-								image.Save(filePath);
+									string filePath = $"mrping-{Guid.NewGuid()}.png";
+									image.Save(filePath);
 
-								await Methods.SendFile(null, new SendFileEventArgs {
-									Channel = e.Channel,
-									FilePath = filePath,
-									LogMessage = "MrPingFileSuccess"
-								});
+									await Methods.SendFile(null, new SendFileEventArgs {
+										Channel = e.Channel,
+										FilePath = filePath,
+										LogMessage = "MrPingFileSuccess"
+									});
 
-								if (File.Exists(filePath)) {
-									File.Delete(filePath);
+									if (File.Exists(filePath)) {
+										File.Delete(filePath);
+									}
 								}
 							}
 						}
@@ -98,6 +100,18 @@ namespace MrPing {
 				}
 			}
 			await Task.Delay(0);
+		}
+
+		private Font ResizeFont(Graphics g, string s, RectangleF r, Font font) {
+			SizeF RealSize = g.MeasureString(s, font);
+			float HeightScaleRatio = r.Height / RealSize.Height;
+			float WidthScaleRatio = r.Width / RealSize.Width;
+
+			float ScaleRatio = (HeightScaleRatio < WidthScaleRatio) ? ScaleRatio = HeightScaleRatio : ScaleRatio = WidthScaleRatio;
+
+			float ScaleFontSize = PreferedFont.Size * ScaleRatio;
+
+			return new Font(font.FontFamily, ScaleFontSize);
 		}
 
 		//? This is really slow and probably scales poorly.
