@@ -22,9 +22,20 @@ namespace MrPing {
 			Usage = $"Usage: {"?mrping".Code()}\nNote: Any non-ASCII characters in a username will be replaced with {"¿".Code()}.",
 			Author = "Biendeo",
 			Version = "1.0.0",
-			Startup = async () => { await Task.Delay(0); return true; },
+			Startup = Startup,
 			OnMessage = MrPingCommand
 		};
+
+		internal static Database Database;
+
+		private static async Task<bool> Startup() {
+			if (Database == null) {
+				Database = new Database();
+			}
+
+			await Task.Delay(0);
+			return true;
+		}
 
 		public const int MaxPings = 100;
 
@@ -71,7 +82,7 @@ namespace MrPing {
 				//? It seems that memory goes up after multiple usages of this. Am I leaking something?
 				using (var graphics = Graphics.FromImage(image)) {
 					using (var intendedNameFont = new Font("Arial", 20)) {
-						using (var nameFont = FindFont(graphics, $"@{chosenMember.Username} #{chosenMember.Discriminator}", new RectangleF(0, 255, 175, 70), intendedNameFont)) {
+						using (var nameFont = ResizeFont(graphics, $"@{chosenMember.Username} #{chosenMember.Discriminator}", new RectangleF(0, 255, 175, 70), intendedNameFont)) {
 							using (var numberFont = new Font("Arial", 30)) {
 								using (var format = new StringFormat()) {
 									format.Alignment = StringAlignment.Center;
@@ -90,6 +101,8 @@ namespace MrPing {
 										LogMessage = "MrPingFileSuccess"
 									});
 
+									Database.NewChallenge(chosenMember, e.Author, numberOfPings, e.Guild, e.Channel);
+
 									if (File.Exists(filePath)) {
 										File.Delete(filePath);
 									}
@@ -102,19 +115,20 @@ namespace MrPing {
 			await Task.Delay(0);
 		}
 
-		private Font ResizeFont(Graphics g, string s, RectangleF r, Font font) {
-			SizeF RealSize = g.MeasureString(s, font);
-			float HeightScaleRatio = r.Height / RealSize.Height;
-			float WidthScaleRatio = r.Width / RealSize.Width;
+		private static Font ResizeFont(Graphics g, string s, RectangleF r, Font font) {
+			SizeF realSize = g.MeasureString(s, font);
+			float heightRatio = r.Height / realSize.Height;
+			float widthRatio = r.Width / realSize.Width;
 
-			float ScaleRatio = (HeightScaleRatio < WidthScaleRatio) ? ScaleRatio = HeightScaleRatio : ScaleRatio = WidthScaleRatio;
+			float scaleRatio = (heightRatio < widthRatio) ? heightRatio : widthRatio;
 
-			float ScaleFontSize = PreferedFont.Size * ScaleRatio;
+			float scaleSize = font.Size * scaleRatio;
 
-			return new Font(font.FontFamily, ScaleFontSize);
+			return new Font(font.FontFamily, scaleSize);
 		}
 
 		//? This is really slow and probably scales poorly.
+		[Obsolete("This function only served its purpose to find users that were online/afk and had write permissions in the channel. It has been superceded by just checking presence.", true)]
 		private static async Task<bool> DoesUserHaveChannelPermissions(DiscordMember member, DiscordChannel channel, Permissions permissions) {
 			var memberRoles = new List<DiscordRole>(member.Roles);
 			foreach (var permOverwrite in channel.PermissionOverwrites) {

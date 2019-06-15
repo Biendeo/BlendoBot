@@ -1,5 +1,6 @@
 ﻿using BlendoBotLib;
 using BlendoBotLib.Commands;
+using BlendoBotLib.MessageListeners;
 using DSharpPlus.EventArgs;
 using System;
 using System.Collections.Generic;
@@ -14,6 +15,7 @@ namespace BlendoBot.Commands {
 		/// A dictionary of all the commands, with the keys being the strings for easy lookup.
 		/// </summary>
 		public static Dictionary<string, CommandProps> AvailableCommands = new Dictionary<string, CommandProps>();
+		public static List<MessageListenerProps> MessageListeners = new List<MessageListenerProps>();
 
 		/// <summary>
 		/// Handles commands given a <see cref="MessageCreateEventArgs"/>. This should parse the command and execute the
