@@ -113,8 +113,13 @@ namespace BlendoBot {
 		private static async Task MessageCreated(MessageCreateEventArgs e) {
 			// The rule is: don't react to my own messages, and commands need to be triggered with
 			// a ? character.
-			if (!e.Author.IsCurrent && e.Message.Content.Length > 1 && e.Message.Content.StartsWith("?") && e.Message.Content[1].IsAlphabetical()) {
-				await Commands.Command.ParseAndExecute(e);
+			if (!e.Author.IsCurrent && e.Message.Content.Length > 1 && !e.Author.IsBot) {
+				if (e.Message.Content.StartsWith("?") && e.Message.Content[1].IsAlphabetical()) {
+					await Commands.Command.ParseAndExecute(e);
+				}
+				foreach (var listener in Commands.Command.MessageListeners) {
+					await listener.OnMessage(e);
+				}
 			}
 		}
 
@@ -155,26 +160,52 @@ namespace BlendoBot {
 					var assembly = Assembly.LoadFrom(dll);
 					var types = assembly.ExportedTypes;
 					var validTypes = assembly.ExportedTypes.ToList().FindAll(t => t.GetInterfaces().ToList().Contains(typeof(ICommand)));
+					validTypes.AddRange(assembly.ExportedTypes.ToList().FindAll(t => t.GetInterfaces().ToList().Contains(typeof(IMessageListener))));
 					foreach (var validType in validTypes) {
-						var t = Activator.CreateInstance(validType) as ICommand;
-						try {
-							if (await t.Properties.Startup()) {
-								Commands.Command.AvailableCommands.Add(t.Properties.Term, t.Properties);
-								Methods.Log(null, new LogEventArgs {
-									Type = LogType.Log,
-									Message = $"Successfully loaded external module {t.Properties.Name} ({t.Properties.Term})"
-								});
-							} else {
+						object instance = Activator.CreateInstance(validType);
+						if (instance as ICommand != null) {
+							var t = instance as ICommand;
+							try {
+								if (await t.Properties.Startup()) {
+									Commands.Command.AvailableCommands.Add(t.Properties.Term, t.Properties);
+									Methods.Log(null, new LogEventArgs {
+										Type = LogType.Log,
+										Message = $"Successfully loaded external module {t.Properties.Name} ({t.Properties.Term})"
+									});
+								} else {
+									Methods.Log(null, new LogEventArgs {
+										Type = LogType.Error,
+										Message = $"Could not load module {t.Properties.Name} ({t.Properties.Term}), startup failed"
+									});
+								}
+							} catch (Exception exc) {
 								Methods.Log(null, new LogEventArgs {
 									Type = LogType.Error,
-									Message = $"Could not load module {t.Properties.Name} ({t.Properties.Term}), startup failed"
+									Message = $"Could not load module {t.Properties.Name} ({t.Properties.Term}), exception thrown\n{exc}"
 								});
 							}
-						} catch (Exception exc) {
-							Methods.Log(null, new LogEventArgs {
-								Type = LogType.Error,
-								Message = $"Could not load module {t.Properties.Name} ({t.Properties.Term}), exception thrown\n{exc}"
-							});
+						}
+						if (instance as IMessageListener != null) {
+							var t = instance as IMessageListener;
+							try {
+								if (await t.Properties.Startup()) {
+									Commands.Command.MessageListeners.Add(t.Properties);
+									Methods.Log(null, new LogEventArgs {
+										Type = LogType.Log,
+										Message = $"Successfully loaded external message listener {t.Properties.Name}"
+									});
+								} else {
+									Methods.Log(null, new LogEventArgs {
+										Type = LogType.Error,
+										Message = $"Could not load external message listener {t.Properties.Name}, startup failed"
+									});
+								}
+							} catch (Exception exc) {
+								Methods.Log(null, new LogEventArgs {
+									Type = LogType.Error,
+									Message = $"Could not load external message listener {t.Properties.Name}, exception thrown\n{exc}"
+								});
+							}
 						}
 					}
 				} catch (Exception) { } // I don't think this is really safe, can I rework this?
