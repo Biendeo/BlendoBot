@@ -1,34 +1,46 @@
 ﻿using BlendoBotLib;
 using DSharpPlus.Entities;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
 namespace MrPing.Data {
+	[JsonObject(MemberSerialization.OptIn)]
 	public class ServerStats {
 		public ServerStats() {
-			numPingsSent = new Dictionary<DiscordUser, int>();
-			numChallengesReceived = new Dictionary<DiscordUser, int>();
-			numChallengesSent = new Dictionary<DiscordUser, int>();
-			numPingsPrescribed = new Dictionary<DiscordUser, int>();
-			numPingsReceived = new Dictionary<DiscordUser, int>();
-			numChallengesCompleted = new Dictionary<DiscordUser, int>();
-			numChallengesSelfFinished = new Dictionary<DiscordUser, int>();
+			users = new Dictionary<ulong, DiscordUser>();
+			numPingsSent = new Dictionary<ulong, int>();
+			numChallengesReceived = new Dictionary<ulong, int>();
+			numChallengesSent = new Dictionary<ulong, int>();
+			numPingsPrescribed = new Dictionary<ulong, int>();
+			numPingsReceived = new Dictionary<ulong, int>();
+			numChallengesCompleted = new Dictionary<ulong, int>();
+			numChallengesSelfFinished = new Dictionary<ulong, int>();
 		}
 
-		private Dictionary<DiscordUser, int> numPingsSent;
-		private Dictionary<DiscordUser, int> numChallengesReceived;
-		private Dictionary<DiscordUser, int> numChallengesSent;
-		private Dictionary<DiscordUser, int> numPingsPrescribed;
-		private Dictionary<DiscordUser, int> numPingsReceived;
-		private Dictionary<DiscordUser, int> numChallengesCompleted;
-		private Dictionary<DiscordUser, int> numChallengesSelfFinished;
-		private Dictionary<DiscordUser, double> percentageSuccessfulPings {
+		[JsonProperty(Required = Required.Always)]
+		private Dictionary<ulong, DiscordUser> users;
+		[JsonProperty(Required = Required.Always)]
+		private Dictionary<ulong, int> numPingsSent;
+		[JsonProperty(Required = Required.Always)]
+		private Dictionary<ulong, int> numChallengesReceived;
+		[JsonProperty(Required = Required.Always)]
+		private Dictionary<ulong, int> numChallengesSent;
+		[JsonProperty(Required = Required.Always)]
+		private Dictionary<ulong, int> numPingsPrescribed;
+		[JsonProperty(Required = Required.Always)]
+		private Dictionary<ulong, int> numPingsReceived;
+		[JsonProperty(Required = Required.Always)]
+		private Dictionary<ulong, int> numChallengesCompleted;
+		[JsonProperty(Required = Required.Always)]
+		private Dictionary<ulong, int> numChallengesSelfFinished;
+		private Dictionary<ulong, double> percentageSuccessfulPings {
 			get {
-				var d = new Dictionary<DiscordUser, double>();
+				var d = new Dictionary<ulong, double>();
 				foreach (var user in numPingsReceived.Keys) {
-					d.Add(user, numPingsReceived[user] * 1.0 / numPingsPrescribed[user]);
+					d.Add(user, numPingsReceived[user] * 1.0 / (numPingsPrescribed[user] > 0 ? numPingsPrescribed[user] : 1));
 				}
 				return d;
 			}
@@ -39,76 +51,69 @@ namespace MrPing.Data {
 			sb.AppendLine("Mr Ping Challenge Stats:");
 			if (numPingsSent.Count > 0) {
 				var mostActiveUser = numPingsSent.First(u => u.Value == numPingsSent.Values.Max());
-				sb.AppendLine($"{"Most active fella".Bold()} - {mostActiveUser.Key.Username} #{mostActiveUser.Key.Discriminator} ({$"{mostActiveUser.Value} pings sent".Italics()})");
+				sb.AppendLine($"{"Most active fella".Bold()} - {users[mostActiveUser.Key].Username} #{users[mostActiveUser.Key].Discriminator} ({$"{mostActiveUser.Value} pings sent".Italics()})");
 			}
 			if (numPingsReceived.Count > 0) {
 				var mostPopularUser = numPingsReceived.First(u => u.Value == numPingsReceived.Values.Max());
-				sb.AppendLine($"{"Most popular prize".Bold()} - {mostPopularUser.Key.Username} #{mostPopularUser.Key.Discriminator} ({$"{mostPopularUser.Value} pings received".Italics()})");
+				sb.AppendLine($"{"Most popular prize".Bold()} - {users[mostPopularUser.Key].Username} #{users[mostPopularUser.Key].Discriminator} ({$"{mostPopularUser.Value} pings received".Italics()})");
 			}
 			if (numChallengesReceived.Count > 0) {
 				var unluckiestUser = numChallengesReceived.FirstOrDefault(u => u.Value == numChallengesReceived.Values.Max());
-				sb.AppendLine($"{"Unluckiest person".Bold()} - {unluckiestUser.Key.Username} #{unluckiestUser.Key.Discriminator} ({$"{unluckiestUser.Value} challenges received".Italics()})");
+				sb.AppendLine($"{"Unluckiest person".Bold()} - {users[unluckiestUser.Key].Username} #{users[unluckiestUser.Key].Discriminator} ({$"{unluckiestUser.Value} challenges received".Italics()})");
 			}
 			if (numChallengesSent.Count > 0) {
 				var cruelistUser = numChallengesSent.First(u => u.Value == numChallengesSent.Values.Max());
-				sb.AppendLine($"{"Cruelist crew member".Bold()} - {cruelistUser.Key.Username} #{cruelistUser.Key.Discriminator} ({$"{cruelistUser.Value} challenges issued".Italics()})");
+				sb.AppendLine($"{"Cruelist crew member".Bold()} - {users[cruelistUser.Key].Username} #{users[cruelistUser.Key].Discriminator} ({$"{cruelistUser.Value} challenges issued".Italics()})");
 			}
 			if (numChallengesCompleted.Count > 0) {
 				var successfulUser = numChallengesCompleted.First(u => u.Value == numChallengesCompleted.Values.Max());
-				sb.AppendLine($"{"Most successful dude".Bold()} - {successfulUser.Key.Username} #{successfulUser.Key.Discriminator} ({$"{successfulUser.Value} successful challenges".Italics()})");
+				sb.AppendLine($"{"Most successful dude".Bold()} - {users[successfulUser.Key].Username} #{users[successfulUser.Key].Discriminator} ({$"{successfulUser.Value} successful challenges".Italics()})");
 			}
 			if (numChallengesSelfFinished.Count > 0) {
 				var stealerUser = numChallengesSelfFinished.First(u => u.Value == numChallengesSelfFinished.Values.Max());
-				sb.AppendLine($"{"Ping stealer".Bold()} - {stealerUser.Key.Username} #{stealerUser.Key.Discriminator} ({$"{stealerUser.Value} challenges personally finished".Italics()})");
+				sb.AppendLine($"{"Ping stealer".Bold()} - {users[stealerUser.Key].Username} #{users[stealerUser.Key].Discriminator} ({$"{stealerUser.Value} challenges personally finished".Italics()})");
 			}
 			if (percentageSuccessfulPings.Count > 0) {
 				var reliableTarget = percentageSuccessfulPings.First(u => u.Value == percentageSuccessfulPings.Values.Max());
-				sb.AppendLine($"{"Easy target".Bold()} - {reliableTarget.Key.Username} #{reliableTarget.Key.Discriminator} ({$"{(reliableTarget.Value * 100.0).ToString("0.0000")}% ping success rate".Italics()})");
+				sb.AppendLine($"{"Easy target".Bold()} - {users[reliableTarget.Key].Username} #{users[reliableTarget.Key].Discriminator} ({$"{(reliableTarget.Value * 100.0).ToString("0.0000")}% ping success rate".Italics()})");
 			}
 			return sb.ToString();
 		}
 
 		public void NewChallenge(DiscordUser target, DiscordUser author, int pingCount) {
-			if (!numChallengesReceived.ContainsKey(target)) {
-				numChallengesReceived.Add(target, 1);
-			} else {
-				++numChallengesReceived[target];
-			}
-			if (!numChallengesSent.ContainsKey(author)) {
-				numChallengesSent.Add(author, 1);
-			} else {
-				++numChallengesSent[author];
-			}
-			if (!numPingsPrescribed.ContainsKey(target)) {
-				numPingsPrescribed.Add(target, pingCount);
-			} else {
-				numPingsPrescribed[target] += pingCount;
-			}
+			ConfirmUserIsInTable(target);
+			ConfirmUserIsInTable(author);
+			++numChallengesReceived[target.Id];
+			++numChallengesSent[author.Id];
+			numPingsPrescribed[target.Id] += pingCount;
 		}
 
 		public void AddPing(DiscordUser target, DiscordUser author) {
-			if (!numPingsSent.ContainsKey(author)) {
-				numPingsSent.Add(author, 1);
-			} else {
-				++numPingsSent[author];
-			}
-			if (!numPingsReceived.ContainsKey(target)) {
-				numPingsReceived.Add(target, 1);
-			} else {
-				++numPingsReceived[target];
-			}
+			ConfirmUserIsInTable(target);
+			ConfirmUserIsInTable(author);
+			++numPingsSent[author.Id];
+			++numPingsReceived[target.Id];
 		}
 
 		public void FinishChallenge(DiscordUser target, DiscordUser author) {
-			if (!numChallengesSelfFinished.ContainsKey(author)) {
-				numChallengesSelfFinished.Add(author, 1);
+			ConfirmUserIsInTable(target);
+			ConfirmUserIsInTable(author);
+			++numChallengesSelfFinished[author.Id];
+			++numChallengesCompleted[target.Id];
+		}
+
+		private void ConfirmUserIsInTable(DiscordUser user) {
+			if (!users.ContainsKey(user.Id)) {
+				users.Add(user.Id, user);
+				numPingsSent.Add(user.Id, 0);
+				numChallengesReceived.Add(user.Id, 0);
+				numChallengesSent.Add(user.Id, 0);
+				numPingsPrescribed.Add(user.Id, 0);
+				numPingsReceived.Add(user.Id, 0);
+				numChallengesCompleted.Add(user.Id, 0);
+				numChallengesSelfFinished.Add(user.Id, 0);
 			} else {
-				++numChallengesSelfFinished[author];
-			}
-			if (!numChallengesCompleted.ContainsKey(target)) {
-				numChallengesCompleted.Add(target, 1);
-			} else {
-				++numChallengesCompleted[target];
+				users[user.Id] = user;
 			}
 		}
 	}

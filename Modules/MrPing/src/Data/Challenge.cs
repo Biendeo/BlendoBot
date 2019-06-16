@@ -1,10 +1,12 @@
 ﻿using DSharpPlus.Entities;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
 namespace MrPing.Data {
+	[JsonObject(MemberSerialization.OptIn)]
 	class Challenge {
 		public Challenge(DateTime startTime, DiscordChannel channel, DiscordUser author, DiscordUser target, int targetPings) {
 			StartTime = startTime;
@@ -15,6 +17,7 @@ namespace MrPing.Data {
 			seenPings = new Dictionary<DiscordUser, int>();
 		}
 
+		[JsonProperty(Required = Required.Always)]
 		public DateTime StartTime { get; }
 		public DateTime EndTime {
 			get {
@@ -28,11 +31,16 @@ namespace MrPing.Data {
 		}
 
 
+		[JsonProperty(Required = Required.Always)]
 		public DiscordChannel Channel { get; }
 
+		[JsonProperty(Required = Required.Always)]
 		public DiscordUser Author { get; }
+		[JsonProperty(Required = Required.Always)]
 		public DiscordUser Target { get; }
+		[JsonProperty(Required = Required.Always)]
 		public int TargetPings { get; }
+		[JsonProperty(Required = Required.Always)]
 		private Dictionary<DiscordUser, int> seenPings;
 		public int TotalPings {
 			get {

@@ -1,13 +1,17 @@
 ﻿using BlendoBotLib;
 using DSharpPlus.Entities;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace MrPing.Data {
+	[JsonObject(MemberSerialization.OptIn)]
 	class Server {
+		[JsonProperty(Required = Required.Always)]
 		private List<Challenge> activeChallenges;
+		[JsonProperty(Required = Required.Always)]
 		private ServerStats stats;
 
 		public Server() {
