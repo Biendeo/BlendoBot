@@ -14,7 +14,8 @@ namespace MrPing.Data {
 			Author = author;
 			Target = target;
 			TargetPings = targetPings;
-			seenPings = new Dictionary<DiscordUser, int>();
+			seenPings = new Dictionary<ulong, int>();
+			seenUsers = new Dictionary<ulong, DiscordUser>();
 		}
 
 		[JsonProperty(Required = Required.Always)]
@@ -41,7 +42,9 @@ namespace MrPing.Data {
 		[JsonProperty(Required = Required.Always)]
 		public int TargetPings { get; }
 		[JsonProperty(Required = Required.Always)]
-		private Dictionary<DiscordUser, int> seenPings;
+		private Dictionary<ulong, int> seenPings;
+		[JsonProperty(Required = Required.Always)]
+		private Dictionary<ulong, DiscordUser> seenUsers;
 		public int TotalPings {
 			get {
 				return seenPings.Values.Sum();
@@ -51,7 +54,7 @@ namespace MrPing.Data {
 			get {
 				var l = new List<Tuple<DiscordUser, int>>();
 				foreach (var x in seenPings) {
-					l.Add(new Tuple<DiscordUser, int>(x.Key, x.Value));
+					l.Add(new Tuple<DiscordUser, int>(seenUsers[x.Key], x.Value));
 				}
 				l.Sort((a, b) => a.Item2.CompareTo(a.Item1));
 				return l;
@@ -65,11 +68,13 @@ namespace MrPing.Data {
 		}
 
 		public void AddPing(DiscordUser pingUser) {
-			if (seenPings.ContainsKey(pingUser)) {
-				++seenPings[pingUser];
+			if (!seenUsers.ContainsKey(pingUser.Id)) {
+				seenUsers.Add(pingUser.Id, pingUser);
+				seenPings.Add(pingUser.Id, 0);
 			} else {
-				seenPings.Add(pingUser, 1);
+				seenUsers[pingUser.Id] = pingUser;
 			}
+			++seenPings[pingUser.Id];
 		}
 	}
 }

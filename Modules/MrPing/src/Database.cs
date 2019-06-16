@@ -24,6 +24,7 @@ namespace MrPing {
 
 		public async Task PingUser(DiscordUser target, DiscordUser author, DiscordGuild server, DiscordChannel channel) {
 			if (servers.ContainsKey(server.Id)) {
+				servers[server.Id].PurgeFinishedChallenges();
 				await servers[server.Id].PingUser(target, author, channel);
 				File.WriteAllText(Path.Combine("mrping", $"{server.Id}.json"), JsonConvert.SerializeObject(servers[server.Id]));
 			}
@@ -32,6 +33,8 @@ namespace MrPing {
 		public void NewChallenge(DiscordUser target, DiscordUser author, int pingCount, DiscordGuild server, DiscordChannel channel) {
 			if (!servers.ContainsKey(server.Id)) {
 				servers.Add(server.Id, new Server());
+			} else {
+				servers[server.Id].PurgeFinishedChallenges();
 			}
 			servers[server.Id].NewChallenge(target, author, pingCount, channel);
 			File.WriteAllText(Path.Combine("mrping", $"{server.Id}.json"), JsonConvert.SerializeObject(servers[server.Id]));

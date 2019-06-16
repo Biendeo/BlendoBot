@@ -54,12 +54,23 @@ namespace MrPing.Data {
 		}
 
 		public string GetActiveChallenges() {
-			var sb = new StringBuilder();
-			sb.AppendLine("Current Mr Ping challenges:");
-			foreach (var challenge in activeChallenges) {
-				sb.AppendLine($"[{challenge.TimeRemaining.ToString(@"hh\:mm\:ss")}] {challenge.Target.Username} #{challenge.Target.Discriminator} ({challenge.TotalPings}/{challenge.TargetPings})");
+			PurgeFinishedChallenges();
+			if (activeChallenges.Count > 0) {
+				var sb = new StringBuilder();
+				sb.AppendLine("Current Mr Ping challenges:");
+				foreach (var challenge in activeChallenges) {
+					sb.AppendLine($"[{challenge.TimeRemaining.ToString(@"hh\:mm\:ss")}] {challenge.Target.Username} #{challenge.Target.Discriminator} ({challenge.TotalPings}/{challenge.TargetPings})");
+				}
+				return sb.ToString();
+			} else {
+				return $"No active Mr Ping challenges! You should type {"?mrping".Code()}!";
 			}
-			return sb.ToString();
+		}
+
+		public void PurgeFinishedChallenges() {
+			while (activeChallenges.Count > 0 && (activeChallenges[0].Completed || activeChallenges[0].EndTime < DateTime.Now)) {
+				activeChallenges.RemoveAt(0);
+			}
 		}
 	}
 }
