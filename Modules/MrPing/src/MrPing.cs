@@ -7,7 +7,10 @@ using MrPing.Properties;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.IO;
+using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -79,32 +82,41 @@ namespace MrPing {
 			//TODO: Figure out how to use a Resource on this, on ubuntu, the resource is interpreted
 			// as the RESX string rather than a byte array, which doesn't work. Any fixes?
 			using (var image = Image.FromFile(@"Modules/MrPing/res/mr.png")) {
-				//? It seems that memory goes up after multiple usages of this. Am I leaking something?
-				using (var graphics = Graphics.FromImage(image)) {
-					using (var intendedNameFont = new Font("Arial", 20)) {
-						using (var nameFont = ResizeFont(graphics, $"@{chosenMember.Username} #{chosenMember.Discriminator}", new RectangleF(0, 255, 175, 70), intendedNameFont)) {
-							using (var numberFont = new Font("Arial", 30)) {
-								using (var format = new StringFormat()) {
-									format.Alignment = StringAlignment.Center;
-									format.LineAlignment = StringAlignment.Center;
-									graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-									graphics.DrawString($"@{chosenMember.Username} #{chosenMember.Discriminator}", nameFont, Brushes.DarkBlue, new RectangleF(0, 255, 175, 70), format);
-									graphics.DrawString($"{numberOfPings}", numberFont, Brushes.DarkRed, new RectangleF(-45, 317, 175, 70), format);
-									graphics.Flush();
+				using (var wc = new WebClient()) {
+					byte[] avatarBytes = wc.DownloadData(chosenMember.AvatarUrl);
+					using (var avatarStream = new MemoryStream(avatarBytes)) {
+						using (var userAvatar = Image.FromStream(avatarStream)) {
+							using (var userAvatarScaled = ResizeImage(userAvatar, 80, 80)) {
+								using (var graphics = Graphics.FromImage(image)) {
+									using (var intendedNameFont = new Font("Arial", 60)) {
+										using (var nameFont = ResizeFont(graphics, $"@{chosenMember.Username} #{chosenMember.Discriminator}", new RectangleF(130, 285, 260, 35), intendedNameFont)) {
+											using (var numberFont = new Font("Arial", 30)) {
+												using (var format = new StringFormat()) {
+													format.Alignment = StringAlignment.Center;
+													format.LineAlignment = StringAlignment.Center;
+													graphics.SmoothingMode = SmoothingMode.AntiAlias;
+													graphics.DrawImage(userAvatarScaled, new Point(30, 252));
+													graphics.DrawString($"@{chosenMember.Username} #{chosenMember.Discriminator}", nameFont, Brushes.DarkBlue, new RectangleF(130, 285, 260, 35), format);
+													graphics.DrawString($"{numberOfPings}", numberFont, Brushes.DarkRed, new RectangleF(-45, 317, 175, 70), format);
+													graphics.Flush();
 
-									string filePath = $"mrping-{Guid.NewGuid()}.png";
-									image.Save(filePath);
+													string filePath = $"mrping-{Guid.NewGuid()}.png";
+													image.Save(filePath);
 
-									await Methods.SendFile(null, new SendFileEventArgs {
-										Channel = e.Channel,
-										FilePath = filePath,
-										LogMessage = "MrPingFileSuccess"
-									});
+													await Methods.SendFile(null, new SendFileEventArgs {
+														Channel = e.Channel,
+														FilePath = filePath,
+														LogMessage = "MrPingFileSuccess"
+													});
 
-									Database.NewChallenge(chosenMember, e.Author, numberOfPings, e.Guild, e.Channel);
+													Database.NewChallenge(chosenMember, e.Author, numberOfPings, e.Guild, e.Channel);
 
-									if (File.Exists(filePath)) {
-										File.Delete(filePath);
+													if (File.Exists(filePath)) {
+														File.Delete(filePath);
+													}
+												}
+											}
+										}
 									}
 								}
 							}
@@ -125,6 +137,35 @@ namespace MrPing {
 			float scaleSize = font.Size * scaleRatio;
 
 			return new Font(font.FontFamily, scaleSize);
+		}
+
+		/// <summary>
+		/// Resize the image to the specified width and height.
+		/// </summary>
+		/// <param name="image">The image to resize.</param>
+		/// <param name="width">The width to resize to.</param>
+		/// <param name="height">The height to resize to.</param>
+		/// <returns>The resized image.</returns>
+		public static Bitmap ResizeImage(Image image, int width, int height) {
+			var destRect = new Rectangle(0, 0, width, height);
+			var destImage = new Bitmap(width, height);
+
+			destImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
+
+			using (var graphics = Graphics.FromImage(destImage)) {
+				graphics.CompositingMode = CompositingMode.SourceCopy;
+				graphics.CompositingQuality = CompositingQuality.HighQuality;
+				graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+				graphics.SmoothingMode = SmoothingMode.HighQuality;
+				graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+				using (var wrapMode = new ImageAttributes()) {
+					wrapMode.SetWrapMode(WrapMode.TileFlipXY);
+					graphics.DrawImage(image, destRect, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, wrapMode);
+				}
+			}
+
+			return destImage;
 		}
 
 		//? This is really slow and probably scales poorly.
