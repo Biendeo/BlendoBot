@@ -16,6 +16,18 @@ namespace MrPing.Data {
 		}
 
 		public DateTime StartTime { get; }
+		public DateTime EndTime {
+			get {
+				return StartTime.AddDays(1);
+			}
+		}
+		public TimeSpan TimeRemaining {
+			get {
+				return EndTime - DateTime.Now;
+			}
+		}
+
+
 		public DiscordChannel Channel { get; }
 
 		public DiscordUser Author { get; }

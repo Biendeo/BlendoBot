@@ -25,5 +25,13 @@ namespace MrPing {
 			}
 			servers[server.Id].NewChallenge(target, author, pingCount, channel);
 		}
+
+		public string GetStatsMessage(DiscordGuild server) {
+			return servers.ContainsKey(server.Id) ? servers[server.Id].GetStatsMessage() : "No challenges have been made on this server!";
+		}
+
+		public string GetActiveChallenges(DiscordGuild server) {
+			return servers.ContainsKey(server.Id) ? servers[server.Id].GetActiveChallenges() : "No challenges have been made on this server!";
+		}
 	}
 }

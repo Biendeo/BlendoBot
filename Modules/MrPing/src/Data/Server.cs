@@ -41,5 +41,18 @@ namespace MrPing.Data {
 		public void NewChallenge(DiscordUser target, DiscordUser author, int pingCount, DiscordChannel channel) {
 			activeChallenges.Add(new Challenge(DateTime.Now, channel, author, target, pingCount));
 		}
+
+		public string GetStatsMessage() {
+			return "Stats are not yet implemented.";
+		}
+
+		public string GetActiveChallenges() {
+			var sb = new StringBuilder();
+			sb.AppendLine("Current Mr Ping challenges:");
+			foreach (var challenge in activeChallenges) {
+				sb.AppendLine($"[{challenge.TimeRemaining.ToString(@"hh\:mm\:ss")}] {challenge.Target.Username} #{challenge.Target.Discriminator} ({challenge.TotalPings}/{challenge.TargetPings})");
+			}
+			return sb.ToString();
+		}
 	}
 }
