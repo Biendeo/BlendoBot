@@ -19,8 +19,10 @@ namespace MrPing.Data {
 			Challenge challenge = activeChallenges.Find(c => c.Target == target);
 			if (challenge != null && !challenge.Completed && challenge.Channel == channel) {
 				challenge.AddPing(author);
+				stats.AddPing(target, author);
 				if (challenge.Completed) {
 					activeChallenges.Remove(challenge);
+					stats.FinishChallenge(target, author);
 					var sb = new StringBuilder();
 					sb.AppendLine("Mr Ping challenge completed!");
 					sb.AppendLine("```");
@@ -40,10 +42,11 @@ namespace MrPing.Data {
 
 		public void NewChallenge(DiscordUser target, DiscordUser author, int pingCount, DiscordChannel channel) {
 			activeChallenges.Add(new Challenge(DateTime.Now, channel, author, target, pingCount));
+			stats.NewChallenge(target, author, pingCount);
 		}
 
 		public string GetStatsMessage() {
-			return "Stats are not yet implemented.";
+			return stats.GetStatsMessage();
 		}
 
 		public string GetActiveChallenges() {

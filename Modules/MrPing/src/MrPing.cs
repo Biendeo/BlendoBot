@@ -40,7 +40,7 @@ namespace MrPing {
 			return true;
 		}
 
-		public const int MaxPings = 100;
+		public const int MaxPings = 10;
 
 		public static async Task MrPingCommand(MessageCreateEventArgs e) {
 			string[] splitString = e.Message.Content.Split(' ');
