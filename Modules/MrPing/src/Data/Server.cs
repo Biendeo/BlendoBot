@@ -28,11 +28,16 @@ namespace MrPing.Data {
 					activeChallenges.Remove(challenge);
 					stats.FinishChallenge(target, author);
 					var sb = new StringBuilder();
-					sb.AppendLine("Mr Ping challenge completed!");
+					sb.AppendLine($"Mr Ping challenge completed! {target.Username} has been successfully pinged {challenge.TargetPings} times.");
+					sb.AppendLine($"{author.Username} got the last ping!");
 					sb.AppendLine("```");
 					sb.AppendLine("Biggest contributors:");
 					foreach (var contributor in challenge.SeenPings) {
-						sb.AppendLine($"{$"{contributor.Item1.Username}".PadLeft(20, ' ')} - {contributor.Item2} pings");
+						// Safety check to not print too much.
+						if (sb.Length > 1950) {
+							break;
+						}
+						sb.AppendLine($"{$"{contributor.Item1.Username}"} - {contributor.Item2} pings");
 					}
 					sb.AppendLine("```");
 					await Methods.SendMessage(null, new SendMessageEventArgs {
@@ -58,8 +63,17 @@ namespace MrPing.Data {
 			if (activeChallenges.Count > 0) {
 				var sb = new StringBuilder();
 				sb.AppendLine("Current Mr Ping challenges:");
+				int countedChallenges = 0;
 				foreach (var challenge in activeChallenges) {
-					sb.AppendLine($"[{challenge.TimeRemaining.ToString(@"hh\:mm\:ss")}] {challenge.Target.Username} #{challenge.Target.Discriminator} ({challenge.TotalPings}/{challenge.TargetPings})");
+						// Safety check to not print too much.
+					if (sb.Length > 1900) {
+						break;
+					}
+					sb.AppendLine($"[{challenge.TimeRemaining.ToString(@"mm\:ss")}] {challenge.Target.Username} #{challenge.Target.Discriminator} ({challenge.TotalPings}/{challenge.TargetPings})");
+					++countedChallenges;
+				}
+				if (countedChallenges != activeChallenges.Count) {
+					sb.AppendLine($"And {activeChallenges.Count - countedChallenges} more...");
 				}
 				return sb.ToString();
 			} else {

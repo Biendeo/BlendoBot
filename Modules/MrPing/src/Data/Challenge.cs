@@ -22,7 +22,7 @@ namespace MrPing.Data {
 		public DateTime StartTime { get; }
 		public DateTime EndTime {
 			get {
-				return StartTime.AddDays(1);
+				return StartTime.AddMinutes(10);
 			}
 		}
 		public TimeSpan TimeRemaining {
