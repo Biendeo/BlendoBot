@@ -128,7 +128,7 @@ namespace MrPing {
 				}
 			} else if (splitString.Length == 2 && splitString[1] == "list") {
 				await Methods.SendMessage(null, new SendMessageEventArgs {
-					Message = Database.GetActiveChallenges(e.Guild),
+					Message = Database.GetActiveChallenges(e.Guild, e.Channel),
 					Channel = e.Channel,
 					LogMessage = "MrPingList"
 				});

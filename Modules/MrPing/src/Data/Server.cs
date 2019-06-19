@@ -58,13 +58,14 @@ namespace MrPing.Data {
 			return stats.GetStatsMessage();
 		}
 
-		public string GetActiveChallenges() {
+		public string GetActiveChallenges(DiscordChannel channel) {
 			PurgeFinishedChallenges();
-			if (activeChallenges.Count > 0) {
+			var releventChallenges = activeChallenges.FindAll(c => c.Channel == channel);
+			if (releventChallenges.Count > 0) {
 				var sb = new StringBuilder();
 				sb.AppendLine("Current Mr Ping challenges:");
 				int countedChallenges = 0;
-				foreach (var challenge in activeChallenges) {
+				foreach (var challenge in releventChallenges) {
 						// Safety check to not print too much.
 					if (sb.Length > 1900) {
 						break;
@@ -72,8 +73,8 @@ namespace MrPing.Data {
 					sb.AppendLine($"[{challenge.TimeRemaining.ToString(@"mm\:ss")}] {challenge.Target.Username} #{challenge.Target.Discriminator} ({challenge.TotalPings}/{challenge.TargetPings})");
 					++countedChallenges;
 				}
-				if (countedChallenges != activeChallenges.Count) {
-					sb.AppendLine($"And {activeChallenges.Count - countedChallenges} more...");
+				if (countedChallenges != releventChallenges.Count) {
+					sb.AppendLine($"And {releventChallenges.Count - countedChallenges} more...");
 				}
 				return sb.ToString();
 			} else {

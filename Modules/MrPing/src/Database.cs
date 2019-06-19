@@ -44,8 +44,8 @@ namespace MrPing {
 			return servers.ContainsKey(server.Id) ? servers[server.Id].GetStatsMessage() : "No challenges have been made on this server!";
 		}
 
-		public string GetActiveChallenges(DiscordGuild server) {
-			return servers.ContainsKey(server.Id) ? servers[server.Id].GetActiveChallenges() : "No challenges have been made on this server!";
+		public string GetActiveChallenges(DiscordGuild server, DiscordChannel channel) {
+			return servers.ContainsKey(server.Id) ? servers[server.Id].GetActiveChallenges(channel) : "No challenges have been made on this server!";
 		}
 	}
 }
