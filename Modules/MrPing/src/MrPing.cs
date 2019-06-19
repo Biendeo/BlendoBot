@@ -59,7 +59,7 @@ namespace MrPing {
 					// Apparently your presence is null if you're offline, so that needs to be a check.
 					//! A previous version had an additional check to see if a user could read this channel.
 					//! Later reading of the e.Channel.Users property indicates that's already sorted out.
-					if (!member.IsBot && member.Presence != null && (member.Presence.Status == UserStatus.Online || member.Presence.Status == UserStatus.Idle)) {
+					if (!member.IsBot && member.Presence != null && (member.Presence.Status == UserStatus.Online || member.Presence.Status == UserStatus.Idle) && member.PermissionsIn(e.Channel).HasPermission(Permissions.SendMessages)) {
 						filteredMembers.Add(member);
 					}
 				}
