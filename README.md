@@ -35,36 +35,28 @@ This should allow you to know whether any modules are currently in your program.
 
 ### Config
 
-In order to run BlendoBot, you will need to include a `config.json` file in your root folder (i.e. with `BlendoBot.sln`). The file should be structured as such:
+In order to run BlendoBot, you will need to include a `config.cfg` file in your root folder (i.e. with `BlendoBot.sln`). If you do not have one, running the bot initially will create the below template and exit for you. The file should contain the following section:
 
-```json
-
-{
-	"Public": {
-		"Name": "BlendoBot",
-		"Version": "0.0.1.0",
-		"Description": "Smelling",
-		"Author": "Biendeo",
-		"ActivityType": "Watching",
-		"ActivityName": "clouds"
-	},
-	"Private": {
-		"Token": "sometoken",
-	}
-}
+```cfg
+[BlendoBot]
+Name=BlendoBot
+Version=0.0.1.0
+Description=Smelling the roses
+Author=Biendeo
+ActivityType=Watching
+ActivityName=clouds
+Token=sometoken
 ```
 
 The fields are as follows:
 
-- `Public` - A category of things that will appear publicly with your bot.
-  - `Name` - Determines the name of the bot. This is not the name used on Discord, just the internal program name that displays in `?about`.
-  - `Version` - A version number that can be specified, to help identify what version the bot is using. This appears in `?about`.
-  - `Description` - A brief description to help describe the version. This appears in `?about`.
-  - `Author` - An author for the bot itself. This appears in `?about`.
-  - `ActivityType` - The activity that the bot will supposedly be doing. These are the few terms that can be used by a client to indicate that they are doing something on the side. Use whichever one is the most appropriate for your case. Valid terms are: `Playing`, `Streaming`, `ListeningTo`, and `Watching`.
-  - `ActivityName` - The name of the activity that is used write after the type.
-- `Private` - A category of things that should never be discussed with anyone but your bot.
-  - `Token` - Your Discord bot token. This should never be disclosed or anyone can use anything to log in to Discord with your bot!
+ - `Name` - Determines the name of the bot. This is not the name used on Discord, just the internal program name that displays in `?about`.
+ - `Version` - A version number that can be specified, to help identify what version the bot is using. This appears in `?about`.
+ - `Description` - A brief description to help describe the version. This appears in `?about`.
+ - `Author` - An author for the bot itself. This appears in `?about`.
+ - `ActivityType` - The activity that the bot will supposedly be doing. These are the few terms that can be used by a client to indicate that they are doing something on the side. Use whichever one is the most appropriate for your case. Valid terms are: `Playing`, `Streaming`, `ListeningTo`, and `Watching`.
+ - `ActivityName` - The name of the activity that is used write after the type.
+ - `Token` - Your Discord bot token. This should never be disclosed or anyone can use anything to log in to Discord with your bot!
 
 ### Internal uses
 
