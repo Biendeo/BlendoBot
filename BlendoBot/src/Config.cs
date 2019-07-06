@@ -1,60 +1,76 @@
 ﻿using DSharpPlus.Entities;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Salaros.Configuration;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-// Since this is serialized, you'll get undefined warnings otherwise.
-#pragma warning disable 0649
-
 namespace BlendoBot {
-	/// <summary>
-	/// Contains the private properties of the config.
-	/// </summary>
-	[JsonObject(MemberSerialization.OptIn)]
-	internal class ConfigPrivate {
-		[JsonProperty(Required = Required.Always)]
-		public string Token;
-	}
 
-	/// <summary>
-	/// Contains the public properties of the config.
-	/// </summary>
-	[JsonObject(MemberSerialization.OptOut)]
-	internal class ConfigPublic {
-		[JsonProperty(Required = Required.Always)]
-		public string Name;
-		[JsonProperty(Required = Required.Always)]
-		public string Version;
-		[JsonProperty(Required = Required.Always)]
-		public string Description;
-		[JsonProperty(Required = Required.Always)]
-		public string Author;
-		[JsonProperty(Required = Required.Always)]
-		public string ActivityName;
-		[JsonProperty(Required = Required.Always), JsonConverter(typeof(StringEnumConverter))]
-		public ActivityType ActivityType;
-	}
-
-	/// <summary>
-	/// The main config object. This exposes several properties that exist within the <see cref="ConfigPublic"/>, and
-	/// can be deserialized from JSON.
-	/// </summary>
-	[JsonObject(MemberSerialization.OptIn)]
 	public class Config {
-		[JsonProperty(Required = Required.Always)]
-		internal ConfigPrivate Private;
-		[JsonProperty(Required = Required.Always)]
-		internal ConfigPublic Public;
+		private Config() {
+			Values = new Dictionary<string, Dictionary<string, string>>();
+			ConfigPath = "///NO PATH SET!///";
+		}
 
-		public string Name { get { return Public.Name; } }
-		public string Version { get { return Public.Version; } }
-		public string Description { get { return Public.Description; } }
-		public string Author { get { return Public.Author; } }
-		public string ActivityName { get { return Public.ActivityName; } }
-		public ActivityType ActivityType { get { return Public.ActivityType; } }
+		public Dictionary<string, Dictionary<string, string>> Values;
+		public string ConfigPath { get; private set; }
+
+		public string ReadString(object o, string configHeader, string configKey) {
+			//TODO: Let the exception throw I guess?
+			return Values[configHeader][configKey];
+		}
+
+		public void WriteString(object o, string configHeader, string configKey, string configValue) {
+			if (!Values.ContainsKey(configHeader)) {
+				Values.Add(configHeader, new Dictionary<string, string>());
+			}
+			if (!Values[configHeader].ContainsKey(configKey)) {
+				Values[configHeader].Add(configKey, configValue);
+			} else {
+				Values[configHeader][configKey] = configValue;
+			}
+			// For efficiency, this should be a separate call on a background task. For now, it simplifies the
+			// implementation a bit.
+			SaveToFile();
+		}
+
+		private void SaveToFile() {
+			var parser = new ConfigParser();
+			foreach (var section in Values) {
+				foreach (var key in section.Value) {
+					parser.SetValue(section.Key, key.Key, key.Value);
+				}
+			}
+			parser.Save(ConfigPath);
+		}
+
+		public string Name { get { return ReadString(this, "BlendoBot", "Name"); } }
+		public string Version { get { return ReadString(this, "BlendoBot", "Version"); } }
+		public string Description { get { return ReadString(this, "BlendoBot", "Description"); } }
+		public string Author { get { return ReadString(this, "BlendoBot", "Author"); } }
+		public string ActivityName {
+			get {
+				try {
+					return ReadString(this, "BlendoBot", "ActivityName");
+				} catch (KeyNotFoundException) {
+					return null;
+				}
+			}
+		}
+		public ActivityType? ActivityType {
+			get {
+				try {
+					return (ActivityType)Enum.Parse(typeof(ActivityType), ReadString(this, "BlendoBot", "ActivityType"));
+				} catch (ArgumentException) {
+					return null;
+				} catch (KeyNotFoundException) {
+					return null;
+				}
+			}
+		}
 
 		/// <summary>
 		/// Creates a JSON object from a file path. Returns null if the file doesn't exist or
@@ -62,21 +78,26 @@ namespace BlendoBot {
 		/// </summary>
 		/// <param name="filePath"></param>
 		/// <returns></returns>
-		public static Config FromJson(string filePath) {
+		public static bool FromFile(string filePath, out Config config) {
+			config = new Config();
+			config.ConfigPath = filePath;
 			if (!File.Exists(filePath)) {
-				Console.Error.WriteLine($"Config.FromJson() can't find {filePath}! Aborting program...");
-				return null;
+				return false;
 			}
-			try {
-				Config c = JsonConvert.DeserializeObject<Config>(File.ReadAllText(filePath));
-				return c;
-			} catch (JsonSerializationException exc) {
-				Console.Error.WriteLine("Config.FromJson() read in an incomplete json. You need to add in all the fields!");
-				Console.Error.WriteLine(exc);
-				return null;
+			var parser = new ConfigParser(filePath);
+			foreach (var section in parser.Sections) {
+				if (!config.Values.ContainsKey(section.SectionName)) {
+					config.Values.Add(section.SectionName, new Dictionary<string, string>());
+				}
+				foreach (var pair in section.Keys) {
+					if (!config.Values[section.SectionName].ContainsKey(pair.Name)) {
+						config.Values[section.SectionName].Add(pair.Name, pair.Content);
+					} else {
+						config.Values[section.SectionName][pair.Name] = pair.Content;
+					}
+				}
 			}
+			return true;
 		}
 	}
 }
-
-#pragma warning restore 0649
