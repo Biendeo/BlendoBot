@@ -13,6 +13,16 @@ namespace CurrencyConverter {
 	public class CurrencyConverter : ICommand {
 		CommandProps ICommand.Properties => properties;
 
+		private const string APIKeyMissingMessage = "PLEASE ADD API KEY";
+		private static bool IsApiKeyMissing(string apiKey) => apiKey == null || apiKey == APIKeyMissingMessage;
+
+		private static string ApiKey {
+			get {
+				string key = Methods.ReadConfig(null, properties.Name, "ApiKey");
+				return key ?? null;
+			}
+		}
+
 		private static readonly CommandProps properties = new CommandProps {
 			Term = "?currency",
 			Name = "Currency Converter",
@@ -30,10 +40,8 @@ namespace CurrencyConverter {
 		}
 
 		private static bool LoadConfig() {
-			if (!Methods.DoesKeyExist(null, properties.Name, "ApiKey") || Methods.ReadConfig(null, properties.Name, "ApiKey") == "PLEASE ADD YOUR API KEY") {
-				if (!Methods.DoesKeyExist(null, properties.Name, "ApiKey")) {
-					Methods.WriteConfig(null, properties.Name, "ApiKey", "PLEASE ADD YOUR API KEY");
-				}
+			if (IsApiKeyMissing(ApiKey)) {
+				Methods.WriteConfig(null, properties.Name, "ApiKey", APIKeyMissingMessage);
 				Methods.Log(null, new LogEventArgs {
 					Type = LogType.Error,
 					Message = $"BlendoBot Currency Converter has not been supplied a valid API key! Please acquire a key from https://www.alphavantage.co/ and add it in the config under the [{properties.Name}] section."
