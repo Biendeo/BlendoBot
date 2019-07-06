@@ -44,7 +44,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UserTimeZone", "Modules\Use
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoCorrect", "Modules\AutoCorrect\AutoCorrect.csproj", "{03E964B7-1589-4459-9002-2D40D52CC703}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DecimalSpiral", "Modules\DecimalSpiral\DecimalSpiral.csproj", "{1D7D2F92-FC9D-4E0F-9868-1379515756BF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DecimalSpiral", "Modules\DecimalSpiral\DecimalSpiral.csproj", "{1D7D2F92-FC9D-4E0F-9868-1379515756BF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

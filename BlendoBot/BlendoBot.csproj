@@ -13,6 +13,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Salaros.ConfigParser" Version="0.3.3" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\BlendoBotLib\BlendoBotLib.csproj" />
     <ProjectReference Include="..\Modules\AutoCorrect\AutoCorrect.csproj" />
     <ProjectReference Include="..\Modules\CurrencyConverter\CurrencyConverter.csproj" />

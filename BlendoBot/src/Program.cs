@@ -13,7 +13,8 @@ using System.Threading.Tasks;
 namespace BlendoBot {
 	public static class Program {
 		public static DiscordClient Discord;
-		public static readonly Config Props = Config.FromJson("config.json");
+		public static readonly string ConfigPath = "config.cfg";
+		public static Config Config { get; private set; }
 		public static readonly Data Data = Data.Load();
 		public static string LogFile;
 		public static DateTime StartTime;
@@ -23,11 +24,23 @@ namespace BlendoBot {
 		}
 
 		private static async Task MainAsync(string[] args) {
-			if (Props == null) {
+			if (!Config.FromFile(ConfigPath, out Config readInConfig)) {
+				Config = readInConfig;
+				Console.Error.WriteLine($"Could not find {ConfigPath}! A default one will be created. Please modify the appropriate fields!");
+				CreateDefaultConfig();
 				Environment.Exit(1);
+			} else {
+				Config = readInConfig;
+				Console.WriteLine($"Successfully read config file: bot name is {Config.Name}");
+
+				if (Config.ActivityType.HasValue ^ Config.ActivityName != null) {
+					Console.WriteLine("The config's ActivityType and ActivityName must both be present to work. Defaulting to no current activity.");
+				}
 			}
+			//! This is very unsafe because other modules can attempt to read the bot API token, and worse, try and
+			//! change it.
 			Discord = new DiscordClient(new DiscordConfiguration {
-				Token = Props.Private.Token,
+				Token = Config.ReadString(null, "BlendoBot", "Token"),
 				TokenType = TokenType.Bot
 			});
 
@@ -40,6 +53,10 @@ namespace BlendoBot {
 			Methods.SendException = Methods_ExceptionSent;
 			Methods.Log = Methods_MessageLogged;
 
+			Methods.ReadConfig = Config.ReadString;
+			Methods.WriteConfig = Config.WriteString;
+			Methods.DoesKeyExist = Config.DoesKeyExist;
+
 			StartTime = DateTime.Now;
 			LogFile = Path.Join("log", $"{StartTime.ToString("yyyyMMddHHmmss")}.log");
 
@@ -48,6 +65,16 @@ namespace BlendoBot {
 			await ReloadModulesAsync();
 
 			await Task.Delay(-1);
+		}
+
+		private static void CreateDefaultConfig() {
+			Config.WriteString(null, "BlendoBot", "Name", "YOUR BLENDOBOT NAME HERE");
+			Config.WriteString(null, "BlendoBot", "Version", "YOUR BLENDOBOT VERSION HERE");
+			Config.WriteString(null, "BlendoBot", "Description", "YOUR BLENDOBOT DESCRIPTION HERE");
+			Config.WriteString(null, "BlendoBot", "Author", "YOUR BLENDOBOT AUTHOR HERE");
+			Config.WriteString(null, "BlendoBot", "ActivityName", "YOUR BLENDOBOT ACTIVITY NAME HERE");
+			Config.WriteString(null, "BlendoBot", "ActivityType", "Please replace this with Playing, ListeningTo, Streaming, or Watching.");
+			Config.WriteString(null, "BlendoBot", "Token", "YOUR BLENDOBOT TOKEN HERE");
 		}
 
 		private static async Task<DiscordMessage> Methods_MessageSent(object sender, SendMessageEventArgs e) {
@@ -102,11 +129,13 @@ namespace BlendoBot {
 		}
 
 		private static async Task Ready(ReadyEventArgs e) {
-			await Discord.UpdateStatusAsync(new DiscordActivity(Props.ActivityName, Props.ActivityType), UserStatus.Online, DateTime.Now);
+			if (Config.ActivityType.HasValue) {
+				await Discord.UpdateStatusAsync(new DiscordActivity(Config.ActivityName, Config.ActivityType.Value), UserStatus.Online, DateTime.Now);
+			}
 			Data.VerifyData();
 			Methods.Log(null, new LogEventArgs {
 				Type = LogType.Log,
-				Message = $"{Props.Name} ({Props.Version}) is connected to Discord!"
+				Message = $"{Config.Name} ({Config.Version}) is connected to Discord!"
 			});
 		}
 
