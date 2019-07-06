@@ -19,8 +19,15 @@ namespace BlendoBot {
 		public string ConfigPath { get; private set; }
 
 		public string ReadString(object o, string configHeader, string configKey) {
-			//TODO: Let the exception throw I guess?
-			return Values[configHeader][configKey];
+			if (Values.ContainsKey(configHeader) && Values[configHeader].ContainsKey(configKey)) {
+				return Values[configHeader][configKey];
+			} else {
+				return null;
+			}
+		}
+
+		public bool DoesKeyExist(object o, string configHeader, string configKey) {
+			return Values.ContainsKey(configHeader) && Values[configHeader].ContainsKey(configKey);
 		}
 
 		public void WriteString(object o, string configHeader, string configKey, string configValue) {
@@ -56,6 +63,7 @@ namespace BlendoBot {
 				try {
 					return ReadString(this, "BlendoBot", "ActivityName");
 				} catch (KeyNotFoundException) {
+					//TODO: Double check whether this is necessary.
 					return null;
 				}
 			}
@@ -67,6 +75,7 @@ namespace BlendoBot {
 				} catch (ArgumentException) {
 					return null;
 				} catch (KeyNotFoundException) {
+					//TODO: Double check whether this is necessary.
 					return null;
 				}
 			}

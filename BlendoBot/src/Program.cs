@@ -55,6 +55,7 @@ namespace BlendoBot {
 
 			Methods.ReadConfig = Config.ReadString;
 			Methods.WriteConfig = Config.WriteString;
+			Methods.DoesKeyExist = Config.DoesKeyExist;
 
 			StartTime = DateTime.Now;
 			LogFile = Path.Join("log", $"{StartTime.ToString("yyyyMMddHHmmss")}.log");

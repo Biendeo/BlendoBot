@@ -10,7 +10,13 @@ namespace AutoCorrect
 {
     public class AutoCorrectCommand : ICommand, IDisposable
     {
-        private const string ConfigPath = "blendobot-autocorrect-config.json";
+
+        private string ApiKey {
+            get {
+                string key = Methods.ReadConfig(this, Properties.Name, "ApiKey");
+                return key ?? string.Empty;
+            }
+        }
 
         public CommandProps Properties => new CommandProps
             {
@@ -32,14 +38,7 @@ namespace AutoCorrect
         private async Task<bool> Startup()
         {
             // api key is optional, increases daily call limit from 100 to 250
-            var apiKey = string.Empty;
-            if (File.Exists(ConfigPath))
-            {
-                dynamic config = JsonConvert.DeserializeObject(File.ReadAllText(ConfigPath));
-                apiKey = config.GrammarBotApiKey;
-            }
-
-            this.AutoCorrectProvider = new GrammarBotAutoCorrectProvider(apiKey);
+            this.AutoCorrectProvider = new GrammarBotAutoCorrectProvider(ApiKey);
             return await Task.FromResult(true).ConfigureAwait(false);
         }
 
