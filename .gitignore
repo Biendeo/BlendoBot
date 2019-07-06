@@ -268,3 +268,8 @@ BlendoBot/Properties/launchSettings.json
 blendobot-weather-config.json
 blendobot-currency-config.json
 blendobot-usertimezone.json
+config.cfg
+mrping/
+
+# VS Code
+.vscode/*

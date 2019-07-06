@@ -13,9 +13,21 @@ namespace Weather {
 	public class Weather : ICommand {
 		CommandProps ICommand.Properties => properties;
 
-		private static readonly string ConfigPath = "blendobot-weather-config.json";
-		private static string WeatherAPIKey = "";
-		private static string TimezoneAPIKey = "";
+		private const string APIKeyMissingMessage = "PLEASE ADD API KEY";
+		private static bool IsApiKeyMissing(string apiKey) => apiKey == null || apiKey == APIKeyMissingMessage;
+
+		private static string WeatherAPIKey {
+			get {
+				string key = Methods.ReadConfig(null, properties.Name, "WeatherApiKey");
+				return key ?? null;
+			}
+		}
+		private static string TimezoneAPIKey {
+			get {
+				string key = Methods.ReadConfig(null, properties.Name, "TimezoneApiKey");
+				return key ?? null;
+			}
+		}
 
 		private static readonly CommandProps properties = new CommandProps {
 			Term = "?weather",
@@ -24,33 +36,33 @@ namespace Weather {
 			Usage = $"Usage: {"?weather [location]".Code()}",
 			Author = "Biendeo",
 			Version = "0.1.0",
-			Startup = async () => { await Task.Delay(0); return true; },
+			Startup = Startup,
 			OnMessage = WeatherCommand,
 		};
 
-		private static bool Startup() {
+		private static async Task<bool> Startup() {
+			await Task.Delay(0);
 			return LoadConfig();
 		}
 
 		private static bool LoadConfig() {
-			if (!File.Exists(ConfigPath)) {
+			if (IsApiKeyMissing(WeatherAPIKey) || IsApiKeyMissing(TimezoneAPIKey)) {
+				if (IsApiKeyMissing(WeatherAPIKey)) {
+					Methods.WriteConfig(null, properties.Name, "WeatherApiKey", APIKeyMissingMessage);
+				}
+				if (IsApiKeyMissing(TimezoneAPIKey)) {
+					Methods.WriteConfig(null, properties.Name, "TimezoneApiKey", APIKeyMissingMessage);
+				}
 				Methods.Log(null, new LogEventArgs {
 					Type = LogType.Error,
-					Message = $"BlendoBot Weather cannot find the config at {ConfigPath}"
+					Message = $"BlendoBot Weather has not been supplied all the necessary API keys! Please acquire a weather API key from https://openweathermap.org/api, and a timezone API key from https://timezonedb.com/. Then, add both to the config under the [{properties.Name}] section."
 				});
 				return false;
 			}
-			dynamic json = JsonConvert.DeserializeObject(File.ReadAllText(ConfigPath));
-			WeatherAPIKey = json.WeatherAPIKey;
-			TimezoneAPIKey = json.TimezoneDBAPIKey;
 			return true;
 		}
 
 		public static async Task WeatherCommand(MessageCreateEventArgs e) {
-			if (WeatherAPIKey == "" || TimezoneAPIKey == "") {
-				LoadConfig();
-			}
-
 			if (e.Message.Content.Length < 9) {
 				await Methods.SendMessage(null, new SendMessageEventArgs {
 					Message = "Too few arguments specified to `?weather`",

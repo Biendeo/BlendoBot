@@ -42,16 +42,23 @@ namespace OverwatchLeague.Data {
 		}
 
 		private async void FullUpdateTimer_Elapsed(object sender, ElapsedEventArgs e) {
-			Methods.Log(this, new LogEventArgs {
-				Type = LogType.Log,
-				Message = $"OverwatchLeague is performing a full update."
-			});
-			await ReloadDatabase();
+			try {
+				Methods.Log(this, new LogEventArgs {
+					Type = LogType.Log,
+					Message = $"OverwatchLeague is performing a full update."
+				});
+				await ReloadDatabase();
+				Methods.Log(this, new LogEventArgs {
+					Type = LogType.Log,
+					Message = $"OverwatchLeague will fully update again at {NextFullUpdate().ToString("yyyy-MM-dd HH:mm:ss")}"
+				});
+			} catch (WebException exc) {
+				Methods.Log(this, new LogEventArgs {
+					Type = LogType.Error,
+					Message = $"OverwatchLeague failed to update, trying again at {NextFullUpdate().ToString("yyyy-MM-dd HH:mm:ss")}\n{exc}"
+				});
+			}
 			fullUpdateTimer.Interval = (NextFullUpdate() - DateTime.UtcNow).TotalMilliseconds;
-			Methods.Log(this, new LogEventArgs {
-				Type = LogType.Log,
-				Message = $"OverwatchLeague will fully update again at {NextFullUpdate().ToString("yyyy-MM-dd HH:mm:ss")}"
-			});
 		}
 
 		public void Clear() {
@@ -225,6 +232,12 @@ namespace OverwatchLeague.Data {
 					int id = stage.id;
 					string name = stage.name;
 
+					// The all-star weekend is not really important in the long term and tries to read teams and matches
+					// that don't exist in the matches API. It's easier to ignore it.
+					if (name == "All-Stars") {
+						continue;
+					}
+
 					Stage s = new Stage(id, name);
 
 					stages.Add(s);
@@ -243,8 +256,15 @@ namespace OverwatchLeague.Data {
 						foreach (var match in week.matches) {
 							int matchId = match.id;
 							Match m = matches.Find(x => x.Id == matchId);
-							m.SetWeek(w);
-							w.AddMatch(m);
+							if (m == null) {
+								Methods.Log(this, new LogEventArgs {
+									Type = LogType.Warning,
+									Message = $"OverwatchLeague found match ID {matchId} in the schedule, but not the matches JSON. Watch this!"
+								});
+							} else {
+								m.SetWeek(w);
+								w.AddMatch(m);
+							}
 						}
 					}
 

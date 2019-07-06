@@ -31,7 +31,7 @@ namespace BlendoBot.Commands {
 			if (e.Message.Content.Length == properties.Term.Length) {
 				// This block runs if the ?about is run with no arguments (fortunately Discord trims whitespace). Simply
 				// print out a message.
-				sb.AppendLine($"{Program.Props.Name} {Program.Props.Version} ({Program.Props.Description}) by {Program.Props.Author}\nBeen running for {(DateTime.Now - Program.StartTime).Days} days, {(DateTime.Now - Program.StartTime).Hours} hours, {(DateTime.Now - Program.StartTime).Minutes} minutes, and {(DateTime.Now - Program.StartTime).Seconds} seconds.");
+				sb.AppendLine($"{Program.Config.Name} {Program.Config.Version} ({Program.Config.Description}) by {Program.Config.Author}\nBeen running for {(DateTime.Now - Program.StartTime).Days} days, {(DateTime.Now - Program.StartTime).Hours} hours, {(DateTime.Now - Program.StartTime).Minutes} minutes, and {(DateTime.Now - Program.StartTime).Seconds} seconds.");
 				await Methods.SendMessage(null, new SendMessageEventArgs {
 					Message = sb.ToString(),
 					Channel = e.Channel,

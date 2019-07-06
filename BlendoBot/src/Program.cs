@@ -13,7 +13,8 @@ using System.Threading.Tasks;
 namespace BlendoBot {
 	public static class Program {
 		public static DiscordClient Discord;
-		public static readonly Config Props = Config.FromJson("config.json");
+		public static readonly string ConfigPath = "config.cfg";
+		public static Config Config { get; private set; }
 		public static readonly Data Data = Data.Load();
 		public static string LogFile;
 		public static DateTime StartTime;
@@ -23,11 +24,23 @@ namespace BlendoBot {
 		}
 
 		private static async Task MainAsync(string[] args) {
-			if (Props == null) {
+			if (!Config.FromFile(ConfigPath, out Config readInConfig)) {
+				Config = readInConfig;
+				Console.Error.WriteLine($"Could not find {ConfigPath}! A default one will be created. Please modify the appropriate fields!");
+				CreateDefaultConfig();
 				Environment.Exit(1);
+			} else {
+				Config = readInConfig;
+				Console.WriteLine($"Successfully read config file: bot name is {Config.Name}");
+
+				if (Config.ActivityType.HasValue ^ Config.ActivityName != null) {
+					Console.WriteLine("The config's ActivityType and ActivityName must both be present to work. Defaulting to no current activity.");
+				}
 			}
+			//! This is very unsafe because other modules can attempt to read the bot API token, and worse, try and
+			//! change it.
 			Discord = new DiscordClient(new DiscordConfiguration {
-				Token = Props.Private.Token,
+				Token = Config.ReadString(null, "BlendoBot", "Token"),
 				TokenType = TokenType.Bot
 			});
 
@@ -40,6 +53,10 @@ namespace BlendoBot {
 			Methods.SendException = Methods_ExceptionSent;
 			Methods.Log = Methods_MessageLogged;
 
+			Methods.ReadConfig = Config.ReadString;
+			Methods.WriteConfig = Config.WriteString;
+			Methods.DoesKeyExist = Config.DoesKeyExist;
+
 			StartTime = DateTime.Now;
 			LogFile = Path.Join("log", $"{StartTime.ToString("yyyyMMddHHmmss")}.log");
 
@@ -48,6 +65,16 @@ namespace BlendoBot {
 			await ReloadModulesAsync();
 
 			await Task.Delay(-1);
+		}
+
+		private static void CreateDefaultConfig() {
+			Config.WriteString(null, "BlendoBot", "Name", "YOUR BLENDOBOT NAME HERE");
+			Config.WriteString(null, "BlendoBot", "Version", "YOUR BLENDOBOT VERSION HERE");
+			Config.WriteString(null, "BlendoBot", "Description", "YOUR BLENDOBOT DESCRIPTION HERE");
+			Config.WriteString(null, "BlendoBot", "Author", "YOUR BLENDOBOT AUTHOR HERE");
+			Config.WriteString(null, "BlendoBot", "ActivityName", "YOUR BLENDOBOT ACTIVITY NAME HERE");
+			Config.WriteString(null, "BlendoBot", "ActivityType", "Please replace this with Playing, ListeningTo, Streaming, or Watching.");
+			Config.WriteString(null, "BlendoBot", "Token", "YOUR BLENDOBOT TOKEN HERE");
 		}
 
 		private static async Task<DiscordMessage> Methods_MessageSent(object sender, SendMessageEventArgs e) {
@@ -102,19 +129,26 @@ namespace BlendoBot {
 		}
 
 		private static async Task Ready(ReadyEventArgs e) {
-			await Discord.UpdateStatusAsync(new DiscordActivity(Props.ActivityName, Props.ActivityType), UserStatus.Online, DateTime.Now);
+			if (Config.ActivityType.HasValue) {
+				await Discord.UpdateStatusAsync(new DiscordActivity(Config.ActivityName, Config.ActivityType.Value), UserStatus.Online, DateTime.Now);
+			}
 			Data.VerifyData();
 			Methods.Log(null, new LogEventArgs {
 				Type = LogType.Log,
-				Message = $"{Props.Name} ({Props.Version}) is up and ready!"
+				Message = $"{Config.Name} ({Config.Version}) is connected to Discord!"
 			});
 		}
 
 		private static async Task MessageCreated(MessageCreateEventArgs e) {
 			// The rule is: don't react to my own messages, and commands need to be triggered with
 			// a ? character.
-			if (!e.Author.IsCurrent && e.Message.Content.Length > 1 && e.Message.Content.StartsWith("?") && e.Message.Content[1].IsAlphabetical()) {
-				await Commands.Command.ParseAndExecute(e);
+			if (!e.Author.IsCurrent && e.Message.Content.Length > 1 && !e.Author.IsBot) {
+				if (e.Message.Content.StartsWith("?") && e.Message.Content[1].IsAlphabetical()) {
+					await Commands.Command.ParseAndExecute(e);
+				}
+				foreach (var listener in Commands.Command.MessageListeners) {
+					await listener.OnMessage(e);
+				}
 			}
 		}
 
@@ -155,22 +189,55 @@ namespace BlendoBot {
 					var assembly = Assembly.LoadFrom(dll);
 					var types = assembly.ExportedTypes;
 					var validTypes = assembly.ExportedTypes.ToList().FindAll(t => t.GetInterfaces().ToList().Contains(typeof(ICommand)));
+					validTypes.AddRange(assembly.ExportedTypes.ToList().FindAll(t => t.GetInterfaces().ToList().Contains(typeof(IMessageListener))));
 					foreach (var validType in validTypes) {
-						var t = Activator.CreateInstance(validType) as ICommand;
-						if (await t.Properties.Startup()) {
-							Commands.Command.AvailableCommands.Add(t.Properties.Term, t.Properties);
-							Methods.Log(null, new LogEventArgs {
-								Type = LogType.Log,
-								Message = $"Successfully loaded external module {t.Properties.Name} ({t.Properties.Term})"
-							});
-						} else {
-							Methods.Log(null, new LogEventArgs {
-								Type = LogType.Error,
-								Message = $"Could not load module {t.Properties.Name} ({t.Properties.Term})"
-							});
+						object instance = Activator.CreateInstance(validType);
+						if (instance as ICommand != null) {
+							var t = instance as ICommand;
+							try {
+								if (await t.Properties.Startup()) {
+									Commands.Command.AvailableCommands.Add(t.Properties.Term, t.Properties);
+									Methods.Log(null, new LogEventArgs {
+										Type = LogType.Log,
+										Message = $"Successfully loaded external module {t.Properties.Name} ({t.Properties.Term})"
+									});
+								} else {
+									Methods.Log(null, new LogEventArgs {
+										Type = LogType.Error,
+										Message = $"Could not load module {t.Properties.Name} ({t.Properties.Term}), startup failed"
+									});
+								}
+							} catch (Exception exc) {
+								Methods.Log(null, new LogEventArgs {
+									Type = LogType.Error,
+									Message = $"Could not load module {t.Properties.Name} ({t.Properties.Term}), exception thrown\n{exc}"
+								});
+							}
+						}
+						if (instance as IMessageListener != null) {
+							var t = instance as IMessageListener;
+							try {
+								if (await t.Properties.Startup()) {
+									Commands.Command.MessageListeners.Add(t.Properties);
+									Methods.Log(null, new LogEventArgs {
+										Type = LogType.Log,
+										Message = $"Successfully loaded external message listener {t.Properties.Name}"
+									});
+								} else {
+									Methods.Log(null, new LogEventArgs {
+										Type = LogType.Error,
+										Message = $"Could not load external message listener {t.Properties.Name}, startup failed"
+									});
+								}
+							} catch (Exception exc) {
+								Methods.Log(null, new LogEventArgs {
+									Type = LogType.Error,
+									Message = $"Could not load external message listener {t.Properties.Name}, exception thrown\n{exc}"
+								});
+							}
 						}
 					}
-				} catch (Exception) { }
+				} catch (Exception) { } // I don't think this is really safe, can I rework this?
 			}
 		}
 

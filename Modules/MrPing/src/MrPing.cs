@@ -4,14 +4,14 @@ using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using MrPing.Properties;
-using SixLabors.Fonts;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
-using SixLabors.Primitives;
+using MrPing.Utility;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.IO;
+using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -23,76 +23,90 @@ namespace MrPing {
 			Term = "?mrping",
 			Name = "Mr. Ping Challenge",
 			Description = "Subjects someone to the Mr. Ping Challenge!",
-			Usage = $"Usage: {"?mrping".Code()}\nNote: Any non-ASCII characters in a username will be replaced with {"¿".Code()}.",
+			Usage = $"{"?mrping".Code()} ({"Creates a new Mr Ping challenge for a random victim".Italics()})\n{"?mrping list".Code()} ({"Prints a list of all outstanding challenges".Italics()})\n{"?mrping stats".Code()} ({"Posts some neat stats about the challenge".Italics()})",
 			Author = "Biendeo",
-			Version = "0.4.2",
-			Startup = async () => { await Task.Delay(0); return true; },
+			Version = "1.0.0",
+			Startup = Startup,
 			OnMessage = MrPingCommand
 		};
 
+		internal static Database Database;
+
+		private static async Task<bool> Startup() {
+			if (Database == null) {
+				Database = new Database();
+			}
+
+			await Task.Delay(0);
+			return true;
+		}
+
 		public const int MaxPings = 100;
-		
+
 		public static async Task MrPingCommand(MessageCreateEventArgs e) {
-			// Edit the Mr Ping image to randomly pick a user on the server, and a random number
-			// of pings (up to 100).
+			string[] splitString = e.Message.Content.Split(' ');
+			if (splitString.Length == 1) {
+				// Edit the Mr Ping image to randomly pick a user on the server, and a random number
+				// of pings (up to 100).
 
-			DiscordMessage waitingMessage = await Methods.SendMessage(null, new SendMessageEventArgs {
-				Message = "Randomly choosing a victim...",
-				Channel = e.Channel,
-				LogMessage = "MrPingWaiting"
-			});
+				//! New change, BlendoBot will appear as if it's typing in the channel while it's waiting.
+				await e.Channel.TriggerTypingAsync();
 
-			// First, choose a user from the server.
-			var random = new Random();
-			// Purge the list of anyone not valid:
-			var filteredMembers = new List<DiscordMember>();
-			foreach (var member in e.Channel.Users) {
-				// Apparently your presence is null if you're offline, so that needs to be a check.
-				//! A previous version had an additional check to see if a user could read this channel.
-				//! Later reading of the e.Channel.Users property indicates that's already sorted out.
-				if (!member.IsBot && member.Presence != null && (member.Presence.Status == UserStatus.Online || member.Presence.Status == UserStatus.Idle)) {
-					filteredMembers.Add(member);
+				// First, choose a user from the server.
+				var random = new Random();
+				// Purge the list of anyone not valid:
+				var filteredMembers = new List<DiscordMember>();
+				foreach (var member in e.Channel.Users) {
+					// Apparently your presence is null if you're offline, so that needs to be a check.
+					//! A previous version had an additional check to see if a user could read this channel.
+					//! Later reading of the e.Channel.Users property indicates that's already sorted out.
+					if (!member.IsBot && member.Presence != null && (member.Presence.Status == UserStatus.Online || member.Presence.Status == UserStatus.Idle) && member.PermissionsIn(e.Channel).HasPermission(Permissions.SendMessages)) {
+						filteredMembers.Add(member);
+					}
 				}
-			}
 
-			if (filteredMembers.Count == 0) {
-				await Methods.SendMessage(null, new SendMessageEventArgs {
-					Message = "No one is available for the Mr. Ping Challenge. 👀",
-					Channel = e.Channel,
-					LogMessage = "MrPingErrorNoUsers"
-				});
-				await waitingMessage.DeleteAsync();
-				return;
-			}
+				if (filteredMembers.Count == 0) {
+					await Methods.SendMessage(null, new SendMessageEventArgs {
+						Message = "No one is available for the Mr. Ping Challenge. 👀",
+						Channel = e.Channel,
+						LogMessage = "MrPingErrorNoUsers"
+					});
+					//await waitingMessage.DeleteAsync();
+					return;
+				}
 
-			// Let's randomly pick someone from those filtered members.
-			var chosenMember = filteredMembers[(int)(random.NextDouble() * filteredMembers.Count)];
+				// Let's randomly pick someone from those filtered members.
+				var chosenMember = filteredMembers[(int)(random.NextDouble() * filteredMembers.Count)];
 
-			// A random number from 1 to 100 will be chosen.
-			int numberOfPings = (int)(random.NextDouble() * MaxPings + 1);
+				// A random number from 1 to 100 will be chosen.
+				int numberOfPings = (int)(random.NextDouble() * MaxPings + 1);
 
-			// Now to do the image modification.
-			//TODO: Figure out how to use a Resource on this, on ubuntu, the resource is interpreted
-			// as the RESX string rather than a byte array, which doesn't work. Any fixes?
-			using (var image = Image.Load(@"Modules/MrPing/res/mr.png")) {
-				//? It seems that memory goes up after multiple usages of this. Am I leaking something?
-				Font memberNameFont = SystemFonts.CreateFont("Arial", 25);
-				Font numberFont = SystemFonts.CreateFont("Arial", 35);
-				using (var workingImage = image.Clone()) {
-					var textGraphicsOptions = new TextGraphicsOptions(true) {
-						ApplyKerning = true,
-						HorizontalAlignment = HorizontalAlignment.Center,
-						VerticalAlignment = VerticalAlignment.Center,
-						WrapTextWidth = 175.0f
-					};
-					string cleanUsername = Regex.Replace(chosenMember.Username, @"[^\u0000-\u007F]+", "¿");
-					workingImage.Mutate(ctx => ctx.DrawText(textGraphicsOptions, $"@{cleanUsername} #{chosenMember.Discriminator}", memberNameFont, Rgba32.DarkBlue, new PointF(0, 290)).DrawText(textGraphicsOptions, $"{numberOfPings}", numberFont, Rgba32.DarkRed, new PointF(-45, 357)));
+				// Now to do the image modification.
+				//TODO: Figure out how to use a Resource on this, on ubuntu, the resource is interpreted
+				// as the RESX string rather than a byte array, which doesn't work. Any fixes?
+				using (var disposables = new DisposableList()) {
+					var image = disposables.AddAndReturn(Image.FromFile(@"Modules/MrPing/res/mr.png"));
+					var wc = disposables.AddAndReturn(new WebClient());
+					byte[] avatarBytes = wc.DownloadData(chosenMember.AvatarUrl);
+					var avatarStream = disposables.AddAndReturn(new MemoryStream(avatarBytes));
+					var userAvatar = disposables.AddAndReturn(Image.FromStream(avatarStream));
+					var userAvatarScaled = disposables.AddAndReturn(ResizeImage(userAvatar, 80, 80));
+					var graphics = disposables.AddAndReturn(Graphics.FromImage(image));
+					var intendedNameFont = disposables.AddAndReturn(new Font("Arial", 60));
+					var nameFont = disposables.AddAndReturn(ResizeFont(graphics, $"@{chosenMember.Username} #{chosenMember.Discriminator}", new RectangleF(130, 285, 260, 35), intendedNameFont));
+					var numberFont = disposables.AddAndReturn(new Font("Arial", 30));
+					var format = disposables.AddAndReturn(new StringFormat());
 
-					string filePath = $"mrping-{chosenMember.Username}.png";
-					workingImage.Save(filePath);
+					format.Alignment = StringAlignment.Center;
+					format.LineAlignment = StringAlignment.Center;
+					graphics.SmoothingMode = SmoothingMode.AntiAlias;
+					graphics.DrawImage(userAvatarScaled, new Point(30, 252));
+					graphics.DrawString($"@{chosenMember.Username} #{chosenMember.Discriminator}", nameFont, Brushes.DarkBlue, new RectangleF(130, 285, 260, 35), format);
+					graphics.DrawString($"{numberOfPings}", numberFont, Brushes.DarkRed, new RectangleF(-45, 317, 175, 70), format);
+					graphics.Flush();
 
-					//? Is this necessary because I'm using using?
-					workingImage.Dispose();
+					string filePath = $"mrping-{Guid.NewGuid()}.png";
+					image.Save(filePath);
 
 					await Methods.SendFile(null, new SendFileEventArgs {
 						Channel = e.Channel,
@@ -100,17 +114,76 @@ namespace MrPing {
 						LogMessage = "MrPingFileSuccess"
 					});
 
-					await waitingMessage.DeleteAsync();
+					Database.NewChallenge(chosenMember, e.Author, numberOfPings, e.Guild, e.Channel);
 
 					if (File.Exists(filePath)) {
 						File.Delete(filePath);
 					}
 				}
+			} else if (splitString.Length == 2 && splitString[1] == "list") {
+				await Methods.SendMessage(null, new SendMessageEventArgs {
+					Message = Database.GetActiveChallenges(e.Guild, e.Channel),
+					Channel = e.Channel,
+					LogMessage = "MrPingList"
+				});
+			} else if (splitString.Length == 2 && splitString[1] == "stats") {
+				await Methods.SendMessage(null, new SendMessageEventArgs {
+					Message = Database.GetStatsMessage(e.Guild),
+					Channel = e.Channel,
+					LogMessage = "MrPingStats"
+				});
+			} else {
+				await Methods.SendMessage(null, new SendMessageEventArgs {
+					Message = $"Incorrect usage of mr ping. Simply type {"?mrping".Code()} to challenge someone, or type {"?help mrping".Code()} for more commands.",
+					Channel = e.Channel,
+					LogMessage = "MrPingErrorBadArguments"
+				});
 			}
-			await Task.Delay(0);
+		}
+
+		private static Font ResizeFont(Graphics g, string s, RectangleF r, Font font) {
+			SizeF realSize = g.MeasureString(s, font);
+			float heightRatio = r.Height / realSize.Height;
+			float widthRatio = r.Width / realSize.Width;
+
+			float scaleRatio = (heightRatio < widthRatio) ? heightRatio : widthRatio;
+
+			float scaleSize = font.Size * scaleRatio;
+
+			return new Font(font.FontFamily, scaleSize);
+		}
+
+		/// <summary>
+		/// Resize the image to the specified width and height.
+		/// </summary>
+		/// <param name="image">The image to resize.</param>
+		/// <param name="width">The width to resize to.</param>
+		/// <param name="height">The height to resize to.</param>
+		/// <returns>The resized image.</returns>
+		private static Bitmap ResizeImage(Image image, int width, int height) {
+			var destRect = new Rectangle(0, 0, width, height);
+			var destImage = new Bitmap(width, height);
+
+			destImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
+
+			using (var graphics = Graphics.FromImage(destImage)) {
+				graphics.CompositingMode = CompositingMode.SourceCopy;
+				graphics.CompositingQuality = CompositingQuality.HighQuality;
+				graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+				graphics.SmoothingMode = SmoothingMode.HighQuality;
+				graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+				using (var wrapMode = new ImageAttributes()) {
+					wrapMode.SetWrapMode(WrapMode.TileFlipXY);
+					graphics.DrawImage(image, destRect, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, wrapMode);
+				}
+			}
+
+			return destImage;
 		}
 
 		//? This is really slow and probably scales poorly.
+		[Obsolete("This function only served its purpose to find users that were online/afk and had write permissions in the channel. It has been superceded by just checking presence.", true)]
 		private static async Task<bool> DoesUserHaveChannelPermissions(DiscordMember member, DiscordChannel channel, Permissions permissions) {
 			var memberRoles = new List<DiscordRole>(member.Roles);
 			foreach (var permOverwrite in channel.PermissionOverwrites) {
