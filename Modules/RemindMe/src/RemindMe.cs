@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using UserTimeZone;
 
 namespace RemindMe {
 	public class RemindMe : ICommand {
@@ -17,14 +18,15 @@ namespace RemindMe {
 			Term = "?remind",
 			Name = "Remind Me",
 			Description = "Reminds you about something later on! Please note that I currently do not remember messages if I am restarted.",
-			Usage = $"Usage:\n{$"?remind at [date/time] to [message]".Code()} {"(this reminds you at a certain point in time)".Italics()}\n{$"?remind in [timespan] to [message]".Code()} {"(this reminds you after a certain interval)".Italics()}\nValid date/time formats are described here: https://docs.microsoft.com/en-us/dotnet/api/system.datetime.parse?view=netcore-2.1#StringToParse\nValid timespan formats are described here: https://docs.microsoft.com/en-us/dotnet/api/system.timespan.parse?view=netcore-2.1\nPlease note that all date/time strings are interpreted as UTC time unless explicitly stated (i.e. adding {"+11:00".Code()} or such to the format).\nThe output is always formatted as {"d/MM/yyyy h:mm:ss tt K".Code()}",
+			Usage = $"Usage:\n{$"?remind at [date/time] to [message]".Code()} {"(this reminds you at a certain point in time)".Italics()}\n{$"?remind in [timespan] to [message]".Code()} {"(this reminds you after a certain interval)".Italics()}\nValid date/time formats are described here: https://docs.microsoft.com/en-us/dotnet/api/system.datetime.parse?view=netcore-2.1#StringToParse\nValid timespan formats are described here: https://docs.microsoft.com/en-us/dotnet/api/system.timespan.parse?view=netcore-2.1\nPlease note that all date/time strings are interpreted as UTC time unless explicitly stated (i.e. adding {"+11:00".Code()} or such to the format).\nThe output is always formatted as {TimeFormatString.Code()}",
 			Author = "Biendeo",
-			Version = "0.1.2",
+			Version = "0.1.3",
 			Startup = Startup,
 			OnMessage = RemindCommand
 		};
 
 		private static readonly string DatabasePath = "blendobot-remindme-database.json";
+		private static readonly string TimeFormatString = "d/MM/yyyy h:mm:ss tt zzz";
 
 		private static List<Reminder> OutstandingReminders;
 
@@ -65,6 +67,7 @@ namespace RemindMe {
 		public static async Task RemindCommand(MessageCreateEventArgs e) {
 			// Try and decipher the output.
 			var splitMessage = e.Message.Content.Split(' ');
+			TimeZoneInfo userTimeZone = UserTimeZone.UserTimeZone.GetUserTimeZone(e.Author);
 
 			// Try and look for the "to" index.
 			int toIndex = 0;
@@ -103,7 +106,7 @@ namespace RemindMe {
 				}
 				if (foundTime < DateTime.Now) {
 					await Methods.SendMessage(null, new SendMessageEventArgs {
-						Message = $"The time you input was parsed as {foundTime.ToString("d/MM/yyyy h:mm:ss tt K")}, which is in the past! Make your time a little more specific!",
+						Message = $"The time you input was parsed as {TimeZoneInfo.ConvertTime(foundTime, userTimeZone).ToString(TimeFormatString)}, which is in the past! Make your time a little more specific!",
 						Channel = e.Channel,
 						LogMessage = "ReminderErrorPastTime"
 					});
@@ -140,7 +143,7 @@ namespace RemindMe {
 			//SaveReminders();
 
 			await Methods.SendMessage(null, new SendMessageEventArgs {
-				Message = $"Okay, I'll tell you this message at {foundTime.ToString("d/MM/yyyy h:mm:ss tt K")}",
+				Message = $"Okay, I'll tell you this message at {TimeZoneInfo.ConvertTime(foundTime, userTimeZone).ToString(TimeFormatString)}",
 				Channel = e.Channel,
 				LogMessage = "ReminderConfirm"
 			});

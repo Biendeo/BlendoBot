@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\BlendoBotLib\BlendoBotLib.csproj" />
+    <ProjectReference Include="..\UserTimeZone\UserTimeZone.csproj" />
   </ItemGroup>
 
 </Project>
