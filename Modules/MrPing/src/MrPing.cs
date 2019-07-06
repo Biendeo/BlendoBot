@@ -4,6 +4,7 @@ using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using MrPing.Properties;
+using MrPing.Utility;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -83,47 +84,40 @@ namespace MrPing {
 				// Now to do the image modification.
 				//TODO: Figure out how to use a Resource on this, on ubuntu, the resource is interpreted
 				// as the RESX string rather than a byte array, which doesn't work. Any fixes?
-				using (var image = Image.FromFile(@"Modules/MrPing/res/mr.png")) {
-					using (var wc = new WebClient()) {
-						byte[] avatarBytes = wc.DownloadData(chosenMember.AvatarUrl);
-						using (var avatarStream = new MemoryStream(avatarBytes)) {
-							using (var userAvatar = Image.FromStream(avatarStream)) {
-								using (var userAvatarScaled = ResizeImage(userAvatar, 80, 80)) {
-									using (var graphics = Graphics.FromImage(image)) {
-										using (var intendedNameFont = new Font("Arial", 60)) {
-											using (var nameFont = ResizeFont(graphics, $"@{chosenMember.Username} #{chosenMember.Discriminator}", new RectangleF(130, 285, 260, 35), intendedNameFont)) {
-												using (var numberFont = new Font("Arial", 30)) {
-													using (var format = new StringFormat()) {
-														format.Alignment = StringAlignment.Center;
-														format.LineAlignment = StringAlignment.Center;
-														graphics.SmoothingMode = SmoothingMode.AntiAlias;
-														graphics.DrawImage(userAvatarScaled, new Point(30, 252));
-														graphics.DrawString($"@{chosenMember.Username} #{chosenMember.Discriminator}", nameFont, Brushes.DarkBlue, new RectangleF(130, 285, 260, 35), format);
-														graphics.DrawString($"{numberOfPings}", numberFont, Brushes.DarkRed, new RectangleF(-45, 317, 175, 70), format);
-														graphics.Flush();
+				using (var disposables = new DisposableList()) {
+					var image = disposables.AddAndReturn(Image.FromFile(@"Modules/MrPing/res/mr.png"));
+					var wc = disposables.AddAndReturn(new WebClient());
+					byte[] avatarBytes = wc.DownloadData(chosenMember.AvatarUrl);
+					var avatarStream = disposables.AddAndReturn(new MemoryStream(avatarBytes));
+					var userAvatar = disposables.AddAndReturn(Image.FromStream(avatarStream));
+					var userAvatarScaled = disposables.AddAndReturn(ResizeImage(userAvatar, 80, 80));
+					var graphics = disposables.AddAndReturn(Graphics.FromImage(image));
+					var intendedNameFont = disposables.AddAndReturn(new Font("Arial", 60));
+					var nameFont = disposables.AddAndReturn(ResizeFont(graphics, $"@{chosenMember.Username} #{chosenMember.Discriminator}", new RectangleF(130, 285, 260, 35), intendedNameFont));
+					var numberFont = disposables.AddAndReturn(new Font("Arial", 30));
+					var format = disposables.AddAndReturn(new StringFormat());
 
-														string filePath = $"mrping-{Guid.NewGuid()}.png";
-														image.Save(filePath);
+					format.Alignment = StringAlignment.Center;
+					format.LineAlignment = StringAlignment.Center;
+					graphics.SmoothingMode = SmoothingMode.AntiAlias;
+					graphics.DrawImage(userAvatarScaled, new Point(30, 252));
+					graphics.DrawString($"@{chosenMember.Username} #{chosenMember.Discriminator}", nameFont, Brushes.DarkBlue, new RectangleF(130, 285, 260, 35), format);
+					graphics.DrawString($"{numberOfPings}", numberFont, Brushes.DarkRed, new RectangleF(-45, 317, 175, 70), format);
+					graphics.Flush();
 
-														await Methods.SendFile(null, new SendFileEventArgs {
-															Channel = e.Channel,
-															FilePath = filePath,
-															LogMessage = "MrPingFileSuccess"
-														});
+					string filePath = $"mrping-{Guid.NewGuid()}.png";
+					image.Save(filePath);
 
-														Database.NewChallenge(chosenMember, e.Author, numberOfPings, e.Guild, e.Channel);
+					await Methods.SendFile(null, new SendFileEventArgs {
+						Channel = e.Channel,
+						FilePath = filePath,
+						LogMessage = "MrPingFileSuccess"
+					});
 
-														if (File.Exists(filePath)) {
-															File.Delete(filePath);
-														}
-													}
-												}
-											}
-										}
-									}
-								}
-							}
-						}
+					Database.NewChallenge(chosenMember, e.Author, numberOfPings, e.Guild, e.Channel);
+
+					if (File.Exists(filePath)) {
+						File.Delete(filePath);
 					}
 				}
 			} else if (splitString.Length == 2 && splitString[1] == "list") {
