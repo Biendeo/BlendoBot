@@ -125,5 +125,18 @@ namespace UserTimeZone {
 				return setting.TimeZone;
 			}
 		}
+
+		public static string ToShortString(TimeZoneInfo timeZone) {
+			var sb = new StringBuilder();
+			if (timeZone.BaseUtcOffset.Hours >= 0) {
+				sb.Append("+");
+			} else {
+				sb.Append("-");
+			}
+
+			sb.Append($"{Math.Abs(timeZone.BaseUtcOffset.Hours).ToString().PadLeft(2, '0')}:{Math.Abs(timeZone.BaseUtcOffset.Minutes).ToString().PadLeft(2, '0')}");
+
+			return sb.ToString();
+		}
 	}
 }

@@ -6,7 +6,7 @@ using System.Text;
 using System.Timers;
 
 namespace RemindMe {
-	public class Reminder : IComparable<Reminder> {  
+	public class Reminder : IComparable<Reminder> {
 		public DateTime Time { get; set; }
 		public string Message { get; set; }
 		public DiscordChannel Channel { get; set; }

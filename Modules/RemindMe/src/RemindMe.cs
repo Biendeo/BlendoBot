@@ -26,7 +26,7 @@ namespace RemindMe {
 		};
 
 		private static readonly string DatabasePath = "blendobot-remindme-database.json";
-		private static readonly string TimeFormatString = "d/MM/yyyy h:mm:ss tt zzz";
+		private static readonly string TimeFormatString = "d/MM/yyyy h:mm:ss tt";
 
 		private static List<Reminder> OutstandingReminders;
 
@@ -106,7 +106,7 @@ namespace RemindMe {
 				}
 				if (foundTime < DateTime.Now) {
 					await Methods.SendMessage(null, new SendMessageEventArgs {
-						Message = $"The time you input was parsed as {TimeZoneInfo.ConvertTime(foundTime, userTimeZone).ToString(TimeFormatString)}, which is in the past! Make your time a little more specific!",
+						Message = $"The time you input was parsed as {TimeZoneInfo.ConvertTime(foundTime, userTimeZone).ToString(TimeFormatString)} {UserTimeZone.UserTimeZone.ToShortString(userTimeZone)}, which is in the past! Make your time a little more specific!",
 						Channel = e.Channel,
 						LogMessage = "ReminderErrorPastTime"
 					});
@@ -143,7 +143,7 @@ namespace RemindMe {
 			//SaveReminders();
 
 			await Methods.SendMessage(null, new SendMessageEventArgs {
-				Message = $"Okay, I'll tell you this message at {TimeZoneInfo.ConvertTime(foundTime, userTimeZone).ToString(TimeFormatString)}",
+				Message = $"Okay, I'll tell you this message at {TimeZoneInfo.ConvertTime(foundTime, userTimeZone).ToString(TimeFormatString)} {UserTimeZone.UserTimeZone.ToShortString(userTimeZone)}",
 				Channel = e.Channel,
 				LogMessage = "ReminderConfirm"
 			});
