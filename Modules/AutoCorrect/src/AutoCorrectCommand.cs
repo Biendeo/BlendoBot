@@ -1,55 +1,47 @@
 using System;
-using System.IO;
 using System.Threading.Tasks;
 using BlendoBotLib;
-using BlendoBotLib.Commands;
 using DSharpPlus.EventArgs;
-using Newtonsoft.Json;
 
-namespace AutoCorrect
-{
-    public class AutoCorrectCommand : ICommand, IDisposable
+namespace AutoCorrect {
+    public class AutoCorrectCommand : CommandBase, IDisposable
     {
+        public AutoCorrectCommand(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
+
+        public override string Term => "?ac";
+        public override string Name => "AutoCorrect";
+        public override string Description => "Performs autocorrect on a message";
+        public override string Usage => $"Usage: {"?ac <message>".Code()}";
+        public override string Author => "mozzarella";
+        public override string Version => "0.0.1";
 
         private string ApiKey {
             get {
-                string key = Methods.ReadConfig(this, Properties.Name, "ApiKey");
+                string key = BotMethods.ReadConfig(this, Name, "ApiKey");
                 return key ?? string.Empty;
             }
         }
-
-        public CommandProps Properties => new CommandProps
-            {
-                Term = "?ac",
-                Name = "AutoCorrect",
-                Description = "Performs autocorrect on a message",
-                Usage = $"Usage: {"?ac <message>".Code()}",
-                Author = "mozzarella",
-                Version = "0.0.1",
-                Startup = this.Startup,
-                OnMessage = this.Execute
-            };
 
         public void Dispose()
         {
             this.AutoCorrectProvider?.Dispose();
         }
 
-        private async Task<bool> Startup()
+        public override async Task<bool> Startup()
         {
             // api key is optional, increases daily call limit from 100 to 250
-            this.AutoCorrectProvider = new GrammarBotAutoCorrectProvider(ApiKey);
+            this.AutoCorrectProvider = new GrammarBotAutoCorrectProvider(BotMethods, ApiKey);
             return await Task.FromResult(true).ConfigureAwait(false);
         }
 
-        private async Task Execute(MessageCreateEventArgs e)
+        public override async Task OnMessage(MessageCreateEventArgs e)
         {
             await e.Channel.TriggerTypingAsync().ConfigureAwait(false);
 
             var splitInput = e.Message.Content.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
             if (splitInput.Length < 2)
             {
-                await Methods.SendMessage(null, new SendMessageEventArgs
+                await BotMethods.SendMessage(this, new SendMessageEventArgs
                     {
                         Message = $"Too few arguments specified to {"?ac".Code()}",
                         Channel = e.Channel,
@@ -64,7 +56,7 @@ namespace AutoCorrect
             if (string.IsNullOrEmpty(correctedMessage))
             {
                 // uh oh
-                await Methods.SendMessage(null, new SendMessageEventArgs
+                await BotMethods.SendMessage(this, new SendMessageEventArgs
                     {
                         Message = $"Failed to autocorrect '{inputMessage}'",
                         Channel = e.Channel,
@@ -74,7 +66,7 @@ namespace AutoCorrect
             }
 
             var commandOutput = $"'{inputMessage}' autocorrected to '{correctedMessage}'";
-            await Methods.SendMessage(null, new SendMessageEventArgs
+            await BotMethods.SendMessage(this, new SendMessageEventArgs
                 {
                     Message = commandOutput,
                     Channel = e.Channel,

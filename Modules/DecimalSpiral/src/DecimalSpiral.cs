@@ -1,29 +1,18 @@
 ﻿using BlendoBotLib;
-using BlendoBotLib.Commands;
 using DSharpPlus.EventArgs;
-using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace DecimalSpiral {
-	public class DecimalSpiral : ICommand {
-		CommandProps ICommand.Properties => properties;
+	public class DecimalSpiral : CommandBase {
+		public DecimalSpiral(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
 
-		private static readonly CommandProps properties = new CommandProps {
-			Term = "?ds",
-			Name = "Decimal Spiral",
-			Description = "Makes a pretty spiral.",
-			Usage = $"Usage: {"?ds [size]".Code()} {"".Italics()}\nThe size must be an odd number between 5 and 43!",
-			Author = "Biendeo",
-			Version = "0.1.0",
-			Startup = async () => { await Task.Delay(0); return true; },
-			OnMessage = DecimalSpiralCommand,
-		};
+		public override string Term => "?ds";
+		public override string Name => "Decimal Spiral";
+		public override string Description => "Makes a pretty spiral.";
+		public override string Usage => $"Usage: {"?ds [size]".Code()} {"".Italics()}\nThe size must be an odd number between 5 and 43!";
+		public override string Author => "Biendeo";
+		public override string Version => "0.1.0";
 
 		private enum Direction {
 			Up,
@@ -32,7 +21,7 @@ namespace DecimalSpiral {
 			Left
 		};
 
-		private static string CreateSpiral(int size) {
+		private string CreateSpiral(int size) {
 			char[] spiral = Enumerable.Repeat(' ', size * (size + 1)).ToArray();
 			for (int row = 0; row < size; ++row) {
 				spiral[(size + 1) * row + size] = '\n';
@@ -89,11 +78,16 @@ namespace DecimalSpiral {
 			return new string(spiral);
 		}
 
-		public static async Task DecimalSpiralCommand(MessageCreateEventArgs e) {
+		public override async Task<bool> Startup() {
+			await Task.Delay(0);
+			return true;
+		}
+
+		public override async Task OnMessage(MessageCreateEventArgs e) {
 			string[] splitInput = e.Message.Content.Split(' ');
 
 			if (splitInput.Length != 2) {
-				await Methods.SendMessage(null, new SendMessageEventArgs {
+				await BotMethods.SendMessage(this, new SendMessageEventArgs {
 					Message = $"You must specify two arguments to {"?ds".Code()}",
 					Channel = e.Channel,
 					LogMessage = "DecimalSpiralErrorIncorrectNumArgs"
@@ -102,7 +96,7 @@ namespace DecimalSpiral {
 			}
 
 			if (!int.TryParse(splitInput[1], out int size)) {
-				await Methods.SendMessage(null, new SendMessageEventArgs {
+				await BotMethods.SendMessage(this, new SendMessageEventArgs {
 					Message = $"The argument is not a number!",
 					Channel = e.Channel,
 					LogMessage = "DecimalSpiralErrorNonNumericValue"
@@ -111,7 +105,7 @@ namespace DecimalSpiral {
 			}
 
 			if (size < 5 || size > 43 || size % 2 == 0) {
-				await Methods.SendMessage(null, new SendMessageEventArgs {
+				await BotMethods.SendMessage(this, new SendMessageEventArgs {
 					Message = $"The argument must be between 5 and 43 inclusive and be odd!",
 					Channel = e.Channel,
 					LogMessage = "DecimalSpiralErrorIncorrectValue"
@@ -119,7 +113,7 @@ namespace DecimalSpiral {
 				return;
 			}
 
-			await Methods.SendMessage(null, new SendMessageEventArgs {
+			await BotMethods.SendMessage(this, new SendMessageEventArgs {
 				Message = $"\n{CreateSpiral(size)}".CodeBlock(),
 				Channel = e.Channel,
 				LogMessage = "DecimalSpiralSuccess"

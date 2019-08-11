@@ -1,5 +1,4 @@
 ﻿using BlendoBotLib;
-using BlendoBotLib.Commands;
 using DSharpPlus.EventArgs;
 using System;
 using System.Collections.Generic;
@@ -7,19 +6,15 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace BlendoBot.Commands {
-	public class Regional : ICommand {
-		CommandProps ICommand.Properties => properties;
+	public class Regional : CommandBase {
+		public Regional(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
 
-		public static readonly CommandProps properties = new CommandProps {
-			Term = "?regional",
-			Name = "Regional Indicator",
-			Description = "Converts a message into lovely regional indicator text.",
-			Usage = $"Usage: {"?regional [message]".Code()}",
-			Author = "Biendeo",
-			Version = "0.1.0",
-			Startup = async () => { await Task.Delay(0); return true; },
-			OnMessage = RegionalCommand
-		};
+		public override string Term => "?regional";
+		public override string Name => "Regional Indicator";
+		public override string Description => "Converts a message into lovely regional indicator text.";
+		public override string Usage => $"Usage: {"?regional [message]".Code()}";
+		public override string Author => "Biendeo";
+		public override string Version => "0.1.0";
 
 		private static readonly Dictionary<char, string> characterMappings = new Dictionary<char, string> {
 			{ 'a', ":regional_indicator_a:" },
@@ -67,10 +62,15 @@ namespace BlendoBot.Commands {
 			{ '-', ":heavy_minus_sign:" }
 		};
 
-		public static async Task RegionalCommand(MessageCreateEventArgs e) {
+		public override async Task<bool> Startup() {
+			await Task.Delay(0);
+			return true;
+		}
+
+		public override async Task OnMessage(MessageCreateEventArgs e) {
 			// First covert the original message to lower-case, and remove the original command.
 			if (e.Message.Content.Length <= 10) {
-				await Methods.SendMessage(null, new SendMessageEventArgs {
+				await BotMethods.SendMessage(this, new SendMessageEventArgs {
 					Message = $"You must add something after the `?regional`!",
 					Channel = e.Channel,
 					LogMessage = "RegionalErrorNoMessage"
@@ -88,13 +88,13 @@ namespace BlendoBot.Commands {
 				}
 			}
 			if (newString.Length <= 2000) {
-				await Methods.SendMessage(null, new SendMessageEventArgs {
+				await BotMethods.SendMessage(this, new SendMessageEventArgs {
 					Message = newString.ToString(),
 					Channel = e.Channel,
 					LogMessage = "RegionalSuccess"
 				});
 			} else {
-				await Methods.SendMessage(null, new SendMessageEventArgs {
+				await BotMethods.SendMessage(this, new SendMessageEventArgs {
 					Message = $"Regionalified message exceeds maximum character count by {newString.Length - 2000}. Shorten your message!",
 					Channel = e.Channel,
 					LogMessage = "RegionalErrorTooLong"

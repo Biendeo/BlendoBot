@@ -1,9 +1,7 @@
 ﻿using BlendoBotLib;
-using BlendoBotLib.Commands;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
-using MrPing.Properties;
 using MrPing.Utility;
 using System;
 using System.Collections.Generic;
@@ -12,30 +10,27 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Net;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace MrPing {
-	public class MrPing : ICommand {
-		CommandProps ICommand.Properties => properties;
+	public class MrPing : CommandBase {
+		public MrPing(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
 
-		private static readonly CommandProps properties = new CommandProps {
-			Term = "?mrping",
-			Name = "Mr. Ping Challenge",
-			Description = "Subjects someone to the Mr. Ping Challenge!",
-			Usage = $"{"?mrping".Code()} ({"Creates a new Mr Ping challenge for a random victim".Italics()})\n{"?mrping list".Code()} ({"Prints a list of all outstanding challenges".Italics()})\n{"?mrping stats".Code()} ({"Posts some neat stats about the challenge".Italics()})",
-			Author = "Biendeo",
-			Version = "1.0.0",
-			Startup = Startup,
-			OnMessage = MrPingCommand
-		};
+		public override string Term => "?mrping";
+		public override string Name => "Mr. Ping Challenge";
+		public override string Description => "Subjects someone to the Mr. Ping Challenge!";
+		public override string Usage => $"{"?mrping".Code()} ({"Creates a new Mr Ping challenge for a random victim".Italics()})\n{"?mrping list".Code()} ({"Prints a list of all outstanding challenges".Italics()})\n{"?mrping stats".Code()} ({"Posts some neat stats about the challenge".Italics()})";
+		public override string Author => "Biendeo";
+		public override string Version => "1.0.0";
 
-		internal static Database Database;
+		internal Database Database;
 
-		private static async Task<bool> Startup() {
+		public override async Task<bool> Startup() {
 			if (Database == null) {
-				Database = new Database();
+				Database = new Database(this, BotMethods);
 			}
+
+			BotMethods.AddMessageListener(this, GuildId, new MrPingListener(this));
 
 			await Task.Delay(0);
 			return true;
@@ -43,7 +38,7 @@ namespace MrPing {
 
 		public const int MaxPings = 100;
 
-		public static async Task MrPingCommand(MessageCreateEventArgs e) {
+		public override async Task OnMessage(MessageCreateEventArgs e) {
 			string[] splitString = e.Message.Content.Split(' ');
 			if (splitString.Length == 1) {
 				// Edit the Mr Ping image to randomly pick a user on the server, and a random number
@@ -66,7 +61,7 @@ namespace MrPing {
 				}
 
 				if (filteredMembers.Count == 0) {
-					await Methods.SendMessage(null, new SendMessageEventArgs {
+					await BotMethods.SendMessage(this, new SendMessageEventArgs {
 						Message = "No one is available for the Mr. Ping Challenge. 👀",
 						Channel = e.Channel,
 						LogMessage = "MrPingErrorNoUsers"
@@ -108,32 +103,32 @@ namespace MrPing {
 					string filePath = $"mrping-{Guid.NewGuid()}.png";
 					image.Save(filePath);
 
-					await Methods.SendFile(null, new SendFileEventArgs {
+					await BotMethods.SendFile(this, new SendFileEventArgs {
 						Channel = e.Channel,
 						FilePath = filePath,
 						LogMessage = "MrPingFileSuccess"
 					});
 
-					Database.NewChallenge(chosenMember, e.Author, numberOfPings, e.Guild, e.Channel);
+					Database.NewChallenge(chosenMember, e.Author, numberOfPings, e.Channel);
 
 					if (File.Exists(filePath)) {
 						File.Delete(filePath);
 					}
 				}
 			} else if (splitString.Length == 2 && splitString[1] == "list") {
-				await Methods.SendMessage(null, new SendMessageEventArgs {
-					Message = Database.GetActiveChallenges(e.Guild, e.Channel),
+				await BotMethods.SendMessage(this, new SendMessageEventArgs {
+					Message = Database.GetActiveChallenges(e.Channel),
 					Channel = e.Channel,
 					LogMessage = "MrPingList"
 				});
 			} else if (splitString.Length == 2 && splitString[1] == "stats") {
-				await Methods.SendMessage(null, new SendMessageEventArgs {
-					Message = Database.GetStatsMessage(e.Guild),
+				await BotMethods.SendMessage(this, new SendMessageEventArgs {
+					Message = Database.GetStatsMessage(),
 					Channel = e.Channel,
 					LogMessage = "MrPingStats"
 				});
 			} else {
-				await Methods.SendMessage(null, new SendMessageEventArgs {
+				await BotMethods.SendMessage(this, new SendMessageEventArgs {
 					Message = $"Incorrect usage of mr ping. Simply type {"?mrping".Code()} to challenge someone, or type {"?help mrping".Code()} for more commands.",
 					Channel = e.Channel,
 					LogMessage = "MrPingErrorBadArguments"

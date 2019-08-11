@@ -28,8 +28,9 @@ namespace OverwatchLeague.Data {
 		public Stage Stage { get { return Week.Stage; } }
 		private Timer updateTimer;
 
+		private IBotMethods botMethods;
 
-		public Match(int id, Team homeTeam, Team awayTeam, int homeScore, int awayScore, string status, DateTime startTime, DateTime endTime, DateTime? actualStartTime, DateTime? actualEndTime) {
+		public Match(IBotMethods botMethods, int id, Team homeTeam, Team awayTeam, int homeScore, int awayScore, string status, DateTime startTime, DateTime endTime, DateTime? actualStartTime, DateTime? actualEndTime) {
 			Id = id;
 			HomeTeam = homeTeam;
 			AwayTeam = awayTeam;
@@ -42,6 +43,8 @@ namespace OverwatchLeague.Data {
 			ActualEndTime = actualEndTime;
 
 			games = new List<MatchGame>();
+
+			this.botMethods = botMethods;
 
 			updateTimer = new Timer();
 			updateTimer.Elapsed += UpdateTimer_Elapsed;
@@ -64,13 +67,13 @@ namespace OverwatchLeague.Data {
 
 		private async void UpdateTimer_Elapsed(object sender, ElapsedEventArgs e) {
 			try {
-				Methods.Log(this, new LogEventArgs {
+				botMethods.Log(this, new LogEventArgs {
 					Type = LogType.Log,
 					Message = $"OverwatchLeague is performing a match-based update for match id {Id}"
 				});
 				if (DateTime.UtcNow < StartTime) {
 					updateTimer.Interval = (StartTime - DateTime.UtcNow).TotalMilliseconds;
-					Methods.Log(this, new LogEventArgs {
+					botMethods.Log(this, new LogEventArgs {
 						Type = LogType.Log,
 						Message = $"OverwatchLeague updated match {Id}, but will wait until it starts at {StartTime.ToString("yyyy-MM-dd HH:mm:ss")} before updating again"
 					});
@@ -156,20 +159,20 @@ namespace OverwatchLeague.Data {
 						}
 
 						if (Status == MatchStatus.Concluded) {
-							Methods.Log(this, new LogEventArgs {
+							botMethods.Log(this, new LogEventArgs {
 								Type = LogType.Log,
 								Message = $"OverwatchLeague has finished updating match id {Id}"
 							});
 							updateTimer.Enabled = false;
 						}
 					}
-					Methods.Log(this, new LogEventArgs {
+					botMethods.Log(this, new LogEventArgs {
 						Type = LogType.Log,
 						Message = $"OverwatchLeague updated match id {Id} and will update again in 15 seconds"
 					});
 				}
 			} catch (WebException exc) {
-				Methods.Log(this, new LogEventArgs {
+				botMethods.Log(this, new LogEventArgs {
 					Type = LogType.Error,
 					Message = $"OverwatchLeague tried updating match id {Id} but failed due to a WebException\n{exc}"
 				});

@@ -27,13 +27,17 @@ namespace OverwatchLeague.Data {
 		public ReadOnlyCollection<Stage> Stages { get { return stages.AsReadOnly(); } }
 		private Timer fullUpdateTimer;
 
-		public Database() {
+		private IBotMethods botMethods;
+
+		public Database(IBotMethods botMethods) {
 			teams = new List<Team>();
 			divisions = new List<Division>();
 			maps = new List<Map>();
 			gameModes = new List<GameMode>();
 			matches = new List<Match>();
 			stages = new List<Stage>();
+
+			this.botMethods = botMethods;
 
 			// The next time to update should always
 			fullUpdateTimer = new Timer((NextFullUpdate() - DateTime.UtcNow).TotalMilliseconds);
@@ -43,17 +47,17 @@ namespace OverwatchLeague.Data {
 
 		private async void FullUpdateTimer_Elapsed(object sender, ElapsedEventArgs e) {
 			try {
-				Methods.Log(this, new LogEventArgs {
+				botMethods.Log(this, new LogEventArgs {
 					Type = LogType.Log,
 					Message = $"OverwatchLeague is performing a full update."
 				});
 				await ReloadDatabase();
-				Methods.Log(this, new LogEventArgs {
+				botMethods.Log(this, new LogEventArgs {
 					Type = LogType.Log,
 					Message = $"OverwatchLeague will fully update again at {NextFullUpdate().ToString("yyyy-MM-dd HH:mm:ss")}"
 				});
 			} catch (WebException exc) {
-				Methods.Log(this, new LogEventArgs {
+				botMethods.Log(this, new LogEventArgs {
 					Type = LogType.Error,
 					Message = $"OverwatchLeague failed to update, trying again at {NextFullUpdate().ToString("yyyy-MM-dd HH:mm:ss")}\n{exc}"
 				});
@@ -79,7 +83,7 @@ namespace OverwatchLeague.Data {
 		}
 
 		private async Task LoadTeamsAndDivisions() {
-			Methods.Log(this, new LogEventArgs {
+			botMethods.Log(this, new LogEventArgs {
 				Type = LogType.Log,
 				Message = $"OverwatchLeague is requesting teams..."
 			});
@@ -120,7 +124,7 @@ namespace OverwatchLeague.Data {
 		}
 
 		private async Task LoadMapsAndModes() {
-			Methods.Log(this, new LogEventArgs {
+			botMethods.Log(this, new LogEventArgs {
 				Type = LogType.Log,
 				Message = $"OverwatchLeague is requesting maps..."
 			});
@@ -156,7 +160,7 @@ namespace OverwatchLeague.Data {
 		}
 
 		private async Task LoadMatches() {
-			Methods.Log(this, new LogEventArgs {
+			botMethods.Log(this, new LogEventArgs {
 				Type = LogType.Log,
 				Message = $"OverwatchLeague is requesting matches..."
 			});
@@ -182,7 +186,7 @@ namespace OverwatchLeague.Data {
 						actualEndTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.actualEndTime);
 					}
 
-					Match m = new Match(id, homeTeam, awayTeam, homeScore, awayScore, status, startTime, endTime, actualStartTime, actualEndTime);
+					Match m = new Match(botMethods, id, homeTeam, awayTeam, homeScore, awayScore, status, startTime, endTime, actualStartTime, actualEndTime);
 					matches.Add(m);
 					if (homeTeam != null) {
 						homeTeam.AddMatch(m);
@@ -220,7 +224,7 @@ namespace OverwatchLeague.Data {
 		}
 
 		private async Task LoadSchedule() {
-			Methods.Log(this, new LogEventArgs {
+			botMethods.Log(this, new LogEventArgs {
 				Type = LogType.Log,
 				Message = $"OverwatchLeague is requesting the schedule..."
 			});
@@ -257,7 +261,7 @@ namespace OverwatchLeague.Data {
 							int matchId = match.id;
 							Match m = matches.Find(x => x.Id == matchId);
 							if (m == null) {
-								Methods.Log(this, new LogEventArgs {
+								botMethods.Log(this, new LogEventArgs {
 									Type = LogType.Warning,
 									Message = $"OverwatchLeague found match ID {matchId} in the schedule, but not the matches JSON. Watch this!"
 								});
@@ -289,7 +293,7 @@ namespace OverwatchLeague.Data {
 							DateTime? actualStartTime = null; // These are always null in schedule.
 							DateTime? actualEndTime = null;
 
-							m = new Match(matchId, homeTeam, awayTeam, homeScore, awayScore, status, startTime, endTime, actualStartTime, actualEndTime);
+							m = new Match(botMethods, matchId, homeTeam, awayTeam, homeScore, awayScore, status, startTime, endTime, actualStartTime, actualEndTime);
 							matches.Add(m);
 						}
 						if (m.Week == null) {
