@@ -65,5 +65,11 @@ namespace BlendoBotLib {
 		/// instance a unique path, and the path should exist after this call.
 		/// </summary>
 		string GetCommandDataPath(object o, CommandBase command);
+
+		/// <summary>
+		/// Returns whether a user for a given guild is an admin. This is true if either the user is a guild admin in
+		/// Discord, or if they've been manually granted admin.
+		/// </summary>
+		Task<bool> IsUserAdmin(object o, DiscordGuild guild, DiscordChannel channel, DiscordUser user);
 	}
 }

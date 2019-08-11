@@ -1,4 +1,5 @@
-﻿using BlendoBotLib;
+﻿using BlendoBot.Commands.Admin;
+using BlendoBotLib;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
@@ -206,6 +207,10 @@ namespace BlendoBot {
 			return Path.Combine(Path.Combine("data", command.GuildId.ToString()), command.Name);
 		}
 
+		public async Task<bool> IsUserAdmin(object o, DiscordGuild guild, DiscordChannel channel, DiscordUser user) {
+			return GetCommand<Admin>(this, guild.Id).IsUserAdmin(user) || (await guild.GetMemberAsync(user.Id)).PermissionsIn(channel).HasFlag(Permissions.Administrator);
+		}
+
 		#endregion
 
 		#region Discord Client Methods
@@ -271,6 +276,43 @@ namespace BlendoBot {
 
 		#endregion
 
+		public async Task<bool> AddCommand(object o, ulong guildId, string commandClassName) {
+			var commandType = LoadedCommands[commandClassName];
+			try {
+				var commandInstance = Activator.CreateInstance(commandType, new object[] { guildId, this }) as CommandBase;
+				if (await commandInstance.Startup()) {
+					GuildCommands[guildId].Add(commandInstance.Term, commandInstance);
+					Log(this, new LogEventArgs {
+						Type = LogType.Log,
+						Message = $"Successfully loaded external module {commandInstance.Name} ({commandInstance.Term}) for guild {guildId}"
+					});
+					return true;
+				} else {
+					Log(this, new LogEventArgs {
+						Type = LogType.Error,
+						Message = $"Could not load module {commandInstance.Name} ({commandInstance.Term}), startup failed"
+					});
+				}
+			} catch (Exception exc) {
+				Log(this, new LogEventArgs {
+					Type = LogType.Error,
+					Message = $"Could not load module {commandType.FullName}, instantiation failed and exception thrown\n{exc}"
+				});
+			}
+			return false;
+		}
+
+		public async Task RemoveCommand(object o, ulong guildId, string classTerm) {
+			var command = GuildCommands[guildId][classTerm];
+			GuildCommands[guildId].Remove(classTerm);
+			int messageListenerCount = GuildMessageListeners[guildId].RemoveAll(ml => ml.Command == command);
+			Log(this, new LogEventArgs {
+				Type = LogType.Error,
+				Message = $"Successfully unloaded module {command.GetType().FullName} and {messageListenerCount} message listener{(messageListenerCount == 1 ? "" : "s")}"
+			});
+			await Task.Delay(0);
+		}
+
 		private void LoadCommands() {
 			foreach (var type in Assembly.GetCallingAssembly().GetTypes().Where(t => t.IsSubclassOf(typeof(CommandBase)))) {
 				SystemCommands.Add(type.FullName, type);
@@ -306,34 +348,48 @@ namespace BlendoBot {
 			foreach (var commandType in SystemCommands.Values) {
 				var commandInstance = Activator.CreateInstance(commandType, new object[] { guildId, this }) as CommandBase;
 				GuildCommands[guildId].Add(commandInstance.Term, commandInstance);
+				await commandInstance.Startup();
 				Log(this, new LogEventArgs {
 					Type = LogType.Log,
 					Message = $"Successfully loaded internal module {commandInstance.Name} ({commandInstance.Term}) for guild {guildId}"
 				});
 			}
 
+			var adminCommand = GetCommand<Admin>(this, guildId);
 			foreach (var commandType in LoadedCommands.Values) {
-				try {
-					var commandInstance = Activator.CreateInstance(commandType, new object[] { guildId, this }) as CommandBase;
-					if (await commandInstance.Startup()) {
-						GuildCommands[guildId].Add(commandInstance.Term, commandInstance);
-						Log(this, new LogEventArgs {
-							Type = LogType.Log,
-							Message = $"Successfully loaded external module {commandInstance.Name} ({commandInstance.Term}) for guild {guildId}"
-						});
-					} else {
+				if (!adminCommand.IsCommandNameDisabled(commandType.FullName)) {
+					try {
+						var commandInstance = Activator.CreateInstance(commandType, new object[] { guildId, this }) as CommandBase;
+						if (await commandInstance.Startup()) {
+							GuildCommands[guildId].Add(commandInstance.Term, commandInstance);
+							Log(this, new LogEventArgs {
+								Type = LogType.Log,
+								Message = $"Successfully loaded external module {commandInstance.Name} ({commandInstance.Term}) for guild {guildId}"
+							});
+						} else {
+							Log(this, new LogEventArgs {
+								Type = LogType.Error,
+								Message = $"Could not load module {commandInstance.Name} ({commandInstance.Term}), startup failed"
+							});
+						}
+					} catch (Exception exc) {
 						Log(this, new LogEventArgs {
 							Type = LogType.Error,
-							Message = $"Could not load module {commandInstance.Name} ({commandInstance.Term}), startup failed"
+							Message = $"Could not load module {commandType.FullName}, instantiation failed and exception thrown\n{exc}"
 						});
 					}
-				} catch (Exception exc) {
+				} else {
 					Log(this, new LogEventArgs {
-						Type = LogType.Error,
-						Message = $"Could not load module {commandType.FullName}, instantiation failed and exception thrown\n{exc}"
+						Type = LogType.Log,
+						Message = $"Module {commandType.FullName} is disabled and will not be instatiated"
 					});
 				}
 			}
+
+			Log(this, new LogEventArgs {
+				Type = LogType.Log,
+				Message = $"All modules have finished loading for guild {guildId.ToString()}"
+			});
 		}
 		private static bool IsAlphabetical(char c) {
 			return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');

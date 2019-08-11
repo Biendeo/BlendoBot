@@ -7,5 +7,7 @@ namespace BlendoBotLib {
 	/// </summary>
 	public interface IMessageListener {
 		Task OnMessage(MessageCreateEventArgs e);
+
+		CommandBase Command { get; }
 	}
 }
