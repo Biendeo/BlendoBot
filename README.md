@@ -72,7 +72,7 @@ The help command tells you how a command can be used. Using it without any argum
 
 #### `?admin`
 
-*TODO: I think I'm cleaning this command, come back to it later.*
+The admin command lets you as a guild administrator add other users to become BlendoBot admins, which also have access to this admin command, and any other command which requires an admin to operate. Currently, the admin command lets you control which commands are available on your guild.
 
 ### Developing your own modules
 
@@ -82,7 +82,7 @@ First, make a new C# project targetting *.NET Core 2.1* and output as a *Class L
 
 BlendoBot requires two aspects in your module in order to add it into the program.
 - Your compiled module's library (i.e. the DLL file) should be located in the same folder as the BlendoBot executable. In this solution I have added every module as a dependency to BlendoBot so that they automatically copy the DLLs to the same folder. You can alternatively use a post-build script or command to automate this.
-- Your compiled module must have at least one class that implements the `ICommand` interface defined in BlendoBotLib. This interface defines things such as what the user types to trigger that command, and other properties. You can have multiple of these in your library, but you won't be able to access anything if you do not have any.
+- Your compiled module must have at least one class that implements the `CommandBase` abstract class defined in BlendoBotLib. This abstract class defines things such as what the user types to trigger that command, and other properties. You can have multiple of these in your library, but you won't be able to access anything if you do not have any.
 
 ### Contributing to the current source code
 
