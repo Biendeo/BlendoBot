@@ -11,10 +11,11 @@ namespace AutoCorrect
     {
         private const string endpoint = @"http://api.grammarbot.io/v2/check";
 
-        public GrammarBotAutoCorrectProvider(string apiKey = null)
+        public GrammarBotAutoCorrectProvider(IBotMethods botMethods, string apiKey = null)
         {
             this.httpClient = new HttpClient();
             this.apiKey = apiKey;
+            this.botMethods = botMethods;
         }
 
         public async Task<string> CorrectAsync(string input)
@@ -56,7 +57,7 @@ namespace AutoCorrect
             }
             catch (Exception ex)
             {
-                Methods.Log(null, new LogEventArgs
+                botMethods.Log(this, new LogEventArgs
                     {
                         Type = LogType.Error,
                         Message = $"Exception occurred in GrammarBotAutoCorrectProvider.CorrectAsync: {ex}"
@@ -73,5 +74,7 @@ namespace AutoCorrect
         private HttpClient httpClient { get; }
 
         private string apiKey { get; }
+
+        private IBotMethods botMethods { get; }
     }
 }
