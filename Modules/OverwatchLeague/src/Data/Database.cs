@@ -358,7 +358,7 @@ namespace OverwatchLeague.Data {
 			int lastPosition = 1;
 			for (int i = 1; i <= teams.Count; ++i) {
 				Standing newStanding = standings[i - 1];
-				if (i == 1 || ((standings[i - 2].MapWins - standings[i - 2].MapLosses) == (standings[i - 1].MapWins - standings[i - 1].MapLosses) && standings[i - 2].MapDiff == standings[i - 1].MapDiff)) {
+				if (i == 1 || ((standings[i - 2].MatchWins - standings[i - 2].MatchLosses) == (standings[i - 1].MatchWins - standings[i - 1].MatchLosses) && standings[i - 2].MapDiff == standings[i - 1].MapDiff)) {
 					newStanding.Position = lastPosition;
 					standings[i - 1] = newStanding;
 				} else {
