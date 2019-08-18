@@ -153,14 +153,22 @@ namespace BlendoBot.Commands.Admin {
 
 					var disabledCommand = program.GetCommand(this, GuildId, commandTerm);
 					if (disabledCommand != null) {
-						await program.RemoveCommand(this, GuildId, commandTerm);
-						disabledCommands.Add(new DisabledCommand(disabledCommand.Term, disabledCommand.GetType().FullName));
-						SaveData();
-						await BotMethods.SendMessage(this, new SendMessageEventArgs {
-							Message = $"Command {commandTerm.Code()} has been disabled!",
-							Channel = e.Channel,
-							LogMessage = "AdminCommandDisableSuccess"
-						});
+						if (disabledCommand is Admin || disabledCommand is Help || disabledCommand is About) {
+							await BotMethods.SendMessage(this, new SendMessageEventArgs {
+								Message = $"Nice try but you can't disable {disabledCommand.Term.Code()}",
+								Channel = e.Channel,
+								LogMessage = "AdminCommandDisableProhibited"
+							});
+						} else {
+							await program.RemoveCommand(this, GuildId, commandTerm);
+							disabledCommands.Add(new DisabledCommand(disabledCommand.Term, disabledCommand.GetType().FullName));
+							SaveData();
+							await BotMethods.SendMessage(this, new SendMessageEventArgs {
+								Message = $"Command {commandTerm.Code()} has been disabled!",
+								Channel = e.Channel,
+								LogMessage = "AdminCommandDisableSuccess"
+							});
+						}
 					} else {
 						await BotMethods.SendMessage(this, new SendMessageEventArgs {
 							Message = $"Command {commandTerm.Code()} not found, or is already disabled!",
