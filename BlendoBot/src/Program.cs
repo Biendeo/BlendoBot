@@ -169,7 +169,7 @@ namespace BlendoBot {
 		}
 
 		public void WriteConfig(object o, string configHeader, string configKey, string configValue) {
-			WriteConfig(o, configHeader, configKey, configValue);
+			Config.WriteString(o, configHeader, configKey, configValue);
 		}
 
 		public void AddMessageListener(object sender, ulong guildId, IMessageListener messageListener) {
