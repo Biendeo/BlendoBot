@@ -48,6 +48,10 @@ namespace BlendoBotTCG {
 					await OnMessageCardDelete(e);
 				} else if (splitString[2] == "list") {
 					await OnMessageCardList(e);
+				} else if (splitString[2] == "view") {
+					await OnMessageCardView(e);
+				} else {
+					await InvalidCommand(e.Channel);
 				}
 			} else {
 				await InvalidCommand(e.Channel);
@@ -173,6 +177,37 @@ namespace BlendoBotTCG {
 				Channel = e.Channel,
 				LogMessage = "BBTCGCardList"
 			});
+		}
+
+		private async Task OnMessageCardView(MessageCreateEventArgs e) {
+			string[] splitString = e.Message.Content.Split(' ');
+			if (splitString.Length >= 4) {
+				var card = database.Cards.FirstOrDefault(c => c.ID.ToLower() == splitString[3].ToLower());
+				if (card == default) {
+					await BotMethods.SendMessage(this, new SendMessageEventArgs {
+						Message = $"Card of ID {splitString[3].Code()} could not be found, make sure the card ID exists in {"?bbtcg card list".Code()}",
+						Channel = e.Channel,
+						LogMessage = "BBTCGCardViewInvalidID"
+					});
+				} else {
+					await BotMethods.SendMessage(this, new SendMessageEventArgs {
+						Message = $"Card {$"[{card.ID}]".Code()} - {card.Name}",
+						Channel = e.Channel,
+						LogMessage = "BBTCGCardViewSuccessMessage"
+					});
+					await BotMethods.SendFile(this, new SendFileEventArgs {
+						FilePath = card.ImagePath,
+						Channel = e.Channel,
+						LogMessage = "BBTCGCardViewSuccessImage"
+					});
+				}
+			} else {
+				await BotMethods.SendMessage(this, new SendMessageEventArgs {
+					Message = $"Please supply a card ID to view with {"?bbtcg card view [ID]".Code()}",
+					Channel = e.Channel,
+					LogMessage = "BBTCGCardViewNoID"
+				});
+			}
 		}
 
 		private async Task InvalidCommand(DiscordChannel channel) {
