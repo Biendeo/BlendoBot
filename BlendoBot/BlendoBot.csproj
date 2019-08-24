@@ -6,6 +6,7 @@
     <StartupObject>BlendoBot.Program</StartupObject>
     <ApplicationIcon />
     <Win32Resource />
+    <Version>1.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,6 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\BlendoBotLib\BlendoBotLib.csproj" />
     <ProjectReference Include="..\Modules\AutoCorrect\AutoCorrect.csproj" />
+    <ProjectReference Include="..\Modules\BlendoBotTCG\BlendoBotTCG.csproj" />
     <ProjectReference Include="..\Modules\CurrencyConverter\CurrencyConverter.csproj" />
     <ProjectReference Include="..\Modules\DecimalSpiral\DecimalSpiral.csproj" />
     <ProjectReference Include="..\Modules\MrPing\MrPing.csproj" />

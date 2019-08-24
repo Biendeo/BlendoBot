@@ -270,7 +270,7 @@ blendobot-currency-config.json
 blendobot-usertimezone.json
 config.cfg
 mrping/
-data/
+/data/
 
 # VS Code
 .vscode/*
