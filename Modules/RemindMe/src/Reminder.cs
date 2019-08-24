@@ -6,7 +6,7 @@ using System.Text;
 using System.Timers;
 
 namespace RemindMe {
-	public class Reminder : IComparable<Reminder> {  
+	public class Reminder : IComparable<Reminder> {
 		public DateTime Time { get; set; }
 		public string Message { get; set; }
 		public DiscordChannel Channel { get; set; }
@@ -14,7 +14,10 @@ namespace RemindMe {
 		public Timer CallbackTimer { get; set; }
 		public Action<Reminder> ParentContainerCallback { get; set; }
 
-		public Reminder(DateTime time, string message, DiscordChannel channel, DiscordUser user, Action<Reminder> parentContainerCallback) {
+		private IBotMethods BotMethods { get; }
+
+		public Reminder(IBotMethods botMethods, DateTime time, string message, DiscordChannel channel, DiscordUser user, Action<Reminder> parentContainerCallback) {
+			BotMethods = botMethods;
 			Time = time;
 			Message = message;
 			Channel = channel;
@@ -34,7 +37,7 @@ namespace RemindMe {
 		}
 
 		private async void TimerElapsed(object sender, ElapsedEventArgs e) {
-			await Methods.SendMessage(null, new SendMessageEventArgs {
+			await BotMethods.SendMessage(this, new SendMessageEventArgs {
 				Message = $"<@{User.Id}> wanted to know this message now!\n{Message}",
 				Channel = Channel,
 				LogMessage = "ReminderAlert"

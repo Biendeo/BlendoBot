@@ -1,58 +1,63 @@
 ﻿using BlendoBotLib;
-using BlendoBotLib.Commands;
 using DSharpPlus.EventArgs;
 using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Weather {
-	public class Weather : ICommand {
-		CommandProps ICommand.Properties => properties;
+	public class Weather : CommandBase {
+		public Weather(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
 
-		private static readonly string ConfigPath = "blendobot-weather-config.json";
-		private static string WeatherAPIKey = "";
-		private static string TimezoneAPIKey = "";
+		public override string Term => "?weather";
+		public override string Name => "Weather";
+		public override string Description => "Returns the weather for a given address.\nUsage: ?weather [location]";
+		public override string Usage => $"Usage: {"?weather [location]".Code()}";
+		public override string Author => "Biendeo";
+		public override string Version => "0.1.0";
 
-		private static readonly CommandProps properties = new CommandProps {
-			Term = "?weather",
-			Name = "Weather",
-			Description = "Returns the weather for a given address.\nUsage: ?weather [location]",
-			Usage = $"Usage: {"?weather [location]".Code()}",
-			Author = "Biendeo",
-			Version = "0.1.0",
-			Startup = async () => { await Task.Delay(0); return true; },
-			OnMessage = WeatherCommand,
-		};
+		private const string APIKeyMissingMessage = "PLEASE ADD API KEY";
+		private bool IsApiKeyMissing(string apiKey) => apiKey == null || apiKey == APIKeyMissingMessage;
 
-		private static bool Startup() {
+		private string WeatherAPIKey {
+			get {
+				string key = BotMethods.ReadConfig(this, Name, "WeatherApiKey");
+				return key ?? null;
+			}
+		}
+		private string TimezoneAPIKey {
+			get {
+				string key = BotMethods.ReadConfig(this, Name, "TimezoneApiKey");
+				return key ?? null;
+			}
+		}
+
+		public override async Task<bool> Startup() {
+			await Task.Delay(0);
 			return LoadConfig();
 		}
 
-		private static bool LoadConfig() {
-			if (!File.Exists(ConfigPath)) {
-				Methods.Log(null, new LogEventArgs {
+		private bool LoadConfig() {
+			if (IsApiKeyMissing(WeatherAPIKey) || IsApiKeyMissing(TimezoneAPIKey)) {
+				if (IsApiKeyMissing(WeatherAPIKey)) {
+					BotMethods.WriteConfig(this, Name, "WeatherApiKey", APIKeyMissingMessage);
+				}
+				if (IsApiKeyMissing(TimezoneAPIKey)) {
+					BotMethods.WriteConfig(this, Name, "TimezoneApiKey", APIKeyMissingMessage);
+				}
+				BotMethods.Log(this, new LogEventArgs {
 					Type = LogType.Error,
-					Message = $"BlendoBot Weather cannot find the config at {ConfigPath}"
+					Message = $"BlendoBot Weather has not been supplied all the necessary API keys! Please acquire a weather API key from https://openweathermap.org/api, and a timezone API key from https://timezonedb.com/. Then, add both to the config under the [{Name}] section."
 				});
 				return false;
 			}
-			dynamic json = JsonConvert.DeserializeObject(File.ReadAllText(ConfigPath));
-			WeatherAPIKey = json.WeatherAPIKey;
-			TimezoneAPIKey = json.TimezoneDBAPIKey;
 			return true;
 		}
 
-		public static async Task WeatherCommand(MessageCreateEventArgs e) {
-			if (WeatherAPIKey == "" || TimezoneAPIKey == "") {
-				LoadConfig();
-			}
-
+		public override async Task OnMessage(MessageCreateEventArgs e) {
 			if (e.Message.Content.Length < 9) {
-				await Methods.SendMessage(null, new SendMessageEventArgs {
+				await BotMethods.SendMessage(this, new SendMessageEventArgs {
 					Message = "Too few arguments specified to `?weather`",
 					Channel = e.Channel,
 					LogMessage = "WeatherErrorTooFewArgs"
@@ -60,7 +65,7 @@ namespace Weather {
 				return;
 			}
 
-			string locationInput = e.Message.Content.Substring($"{properties.Term} ".Length);
+			string locationInput = e.Message.Content.Substring($"{Term} ".Length);
 
 			var weatherResult = await GetWeather(locationInput);
 
@@ -77,13 +82,13 @@ namespace Weather {
 				sb.Append($"Wind: {weatherResult.WindSpeed}kmh at {weatherResult.WindDirection}°T");
 				sb.Append("\n");
 				sb.Append($"Sunrise: {weatherResult.Sunrise.ToString("hh:mm:ss tt")}, Sunset: {weatherResult.Sunset.ToString("hh:mm:ss tt")} *({weatherResult.TimeZone})*");
-				await Methods.SendMessage(null, new SendMessageEventArgs {
+				await BotMethods.SendMessage(this, new SendMessageEventArgs {
 					Message = sb.ToString(),
 					Channel = e.Channel,
 					LogMessage = "WeatherSuccess"
 				});
 			} else {
-				await Methods.SendMessage(null, new SendMessageEventArgs {
+				await BotMethods.SendMessage(this, new SendMessageEventArgs {
 					Message = $"API returned a bad error ({weatherResult.ResultCode}): *{weatherResult.ResultMessage}*",
 					Channel = e.Channel,
 					LogMessage = "WeatherErrorAPINotOK"
@@ -93,7 +98,7 @@ namespace Weather {
 			await Task.Delay(0);
 		}
 
-		private static async Task<WeatherResult> GetWeather(string inputLocation) {
+		private async Task<WeatherResult> GetWeather(string inputLocation) {
 			string weatherJsonString = "";
 			try {
 				using (var wc = new WebClient()) {

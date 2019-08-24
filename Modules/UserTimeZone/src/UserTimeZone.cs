@@ -1,5 +1,4 @@
 ﻿using BlendoBotLib;
-using BlendoBotLib.Commands;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using Newtonsoft.Json;
@@ -10,25 +9,21 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace UserTimeZone {
-	public class UserTimeZone : ICommand {
-		CommandProps ICommand.Properties => properties;
+	public class UserTimeZone : CommandBase {
+		public UserTimeZone(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
 
-		private static readonly CommandProps properties = new CommandProps {
-			Term = "?usertimezone",
-			Name = "User Timezone",
-			Description = "Saves a timezone so that commands can represent times in your timezone.",
-			Usage = $"Usage:\n{"?usertimezone".Code()} {"(prints what time zone is set for your account)".Italics()}\n{"?usertimezone [timezone]".Code()} {"(sets your timezone to the given timezone)".Italics()}\nA timezone is represented as an offset from UTC, in the format of {"+3:00".Code()}, {"10:00".Code()}, {"-4:30".Code()} etc.\n{"UTC".Code()} is a valid timezone.",
-			Author = "Biendeo",
-			Version = "0.1.0",
-			Startup = Startup,
-			OnMessage = UserTimezoneCommand
-		};
+		public override string Term => "?usertimezone";
+		public override string Name => "User Timezone";
+		public override string Description => "Saves a timezone so that commands can represent times in your timezone.";
+		public override string Usage => $"Usage:\n{"?usertimezone".Code()} {"(prints what time zone is set for your account)".Italics()}\n{"?usertimezone [timezone]".Code()} {"(sets your timezone to the given timezone)".Italics()}\nA timezone is represented as an offset from UTC, in the format of {"+3:00".Code()}, {"10:00".Code()}, {"-4:30".Code()} etc.\n{"UTC".Code()} is a valid timezone.";
+		public override string Author => "Biendeo";
+		public override string Version => "0.1.0";
 
-		private static readonly string JsonPath = "blendobot-usertimezone.json";
+		private string JsonPath => Path.Combine(BotMethods.GetCommandDataPath(this, this), "blendobot-usertimezone.json");
 
-		internal static List<UserSetting> settings;
+		internal List<UserSetting> settings;
 
-		private static bool LoadDatabase() {
+		private bool LoadDatabase() {
 			if (File.Exists(JsonPath)) {
 				settings = JsonConvert.DeserializeObject<List<UserSetting>>(File.ReadAllText(JsonPath));
 			} else {
@@ -37,20 +32,20 @@ namespace UserTimeZone {
 			return true;
 		}
 
-		private static void SaveDatabase() {
+		private void SaveDatabase() {
 			File.WriteAllText(JsonPath, JsonConvert.SerializeObject(settings));
 		}
 
-		private static async Task<bool> Startup() {
+		public override async Task<bool> Startup() {
 			await Task.Delay(0);
 			return LoadDatabase();
 		}
 
-		public static async Task UserTimezoneCommand(MessageCreateEventArgs e) {
+		public override async Task OnMessage(MessageCreateEventArgs e) {
 			string[] splitMessage = e.Message.Content.Split(' ');
 			if (splitMessage.Length == 1) {
 				TimeZoneInfo timezone = GetUserTimeZone(e.Author);
-				await Methods.SendMessage(null, new SendMessageEventArgs {
+				await BotMethods.SendMessage(this, new SendMessageEventArgs {
 					Message = $"Your timezone is currently set to {TimeZoneOffsetToString(timezone).Code()}",
 					Channel = e.Channel,
 					LogMessage = "UserTimezoneList"
@@ -69,26 +64,26 @@ namespace UserTimeZone {
 						});
 					}
 					SaveDatabase();
-					await Methods.SendMessage(null, new SendMessageEventArgs {
+					await BotMethods.SendMessage(this, new SendMessageEventArgs {
 						Message = $"Your timezone is now {TimeZoneOffsetToString(timezone).Code()}",
 						Channel = e.Channel,
 						LogMessage = "UserTimezoneSet"
 					});
 				} catch (FormatException) {
-					await Methods.SendMessage(null, new SendMessageEventArgs {
+					await BotMethods.SendMessage(this, new SendMessageEventArgs {
 						Message = $"Could not parse your timezone offset of {splitMessage[1]}. Make sure it follows a valid format (i.e. {"+3:00".Code()}, {"10:00".Code()}, {"-4:30".Code()}, etc.).",
 						Channel = e.Channel,
 						LogMessage = "UserTimezoneSetError"
 					});
 				} catch (ArgumentOutOfRangeException) {
-					await Methods.SendMessage(null, new SendMessageEventArgs {
+					await BotMethods.SendMessage(this, new SendMessageEventArgs {
 						Message = $"Your timezone does not exist, make sure it is between {"-14:00".Code()} and {"+14:00".Code()}.",
 						Channel = e.Channel,
 						LogMessage = "UserTimezoneSetError"
 					});
 				}
 			} else {
-				await Methods.SendMessage(null, new SendMessageEventArgs {
+				await BotMethods.SendMessage(this, new SendMessageEventArgs {
 					Message = $"Too many arguments! Please refer to {"?help usertimezone".Code()} for usage information.",
 					Channel = e.Channel,
 					LogMessage = "UserTimezoneTooManyArguments"
@@ -117,13 +112,46 @@ namespace UserTimeZone {
 			return $"{(span.Hours >= 0 ? "+" : "")}{span.Hours.ToString().PadLeft(2, '0')}:{Math.Abs(span.Minutes).ToString().PadLeft(2, '0')}";
 		}
 
-		public static TimeZoneInfo GetUserTimeZone(DiscordUser user) {
+		/// <summary>
+		/// Returns the user time zone for a given user. It returns UTC if the user has not input a custom time zone.
+		/// </summary>
+		/// <param name="user"></param>
+		/// <returns></returns>
+		public TimeZoneInfo GetUserTimeZone(DiscordUser user) {
 			UserSetting setting = settings.Find(u => u.Username == user.Username && u.Discriminator == user.Discriminator);
 			if (setting == null) {
 				return TimeZoneInfo.Utc;
 			} else {
 				return setting.TimeZone;
 			}
+		}
+
+		/// <summary>
+		/// Returns the user time zone for a user given the command that requests it. This should get the appropriate
+		/// guild's instance of the UserTimeZone command and return either the input field, or UTC if not found.
+		/// </summary>
+		/// <param name="command"></param>
+		/// <returns></returns>
+		public static TimeZoneInfo GetUserTimeZone(CommandBase command, DiscordUser user) {
+			UserTimeZone userTimeZone = command.BotMethods.GetCommand<UserTimeZone>(command, command.GuildId);
+			if (userTimeZone != null) {
+				return userTimeZone.GetUserTimeZone(user);
+			} else {
+				return TimeZoneInfo.Utc;
+			}
+		}
+
+		public static string ToShortString(TimeZoneInfo timeZone) {
+			var sb = new StringBuilder();
+			if (timeZone.BaseUtcOffset.Hours >= 0) {
+				sb.Append("+");
+			} else {
+				sb.Append("-");
+			}
+
+			sb.Append($"{Math.Abs(timeZone.BaseUtcOffset.Hours).ToString().PadLeft(2, '0')}:{Math.Abs(timeZone.BaseUtcOffset.Minutes).ToString().PadLeft(2, '0')}");
+
+			return sb.ToString();
 		}
 	}
 }
