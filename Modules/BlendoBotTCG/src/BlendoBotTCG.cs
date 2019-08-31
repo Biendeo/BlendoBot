@@ -31,6 +31,8 @@ namespace BlendoBotTCG {
 			if (splitString.Length >= 2) {
 				if (splitString[1] == "card") {
 					await OnMessageCard(e);
+				} else if (splitString[1] == "pack") {
+					await OnMessagePack(e);
 				} else {
 					await InvalidCommand(e.Channel);
 				}
@@ -80,7 +82,7 @@ namespace BlendoBotTCG {
 									writer.Write(wc.DownloadData(e.Message.Attachments[0].Url));
 								}
 							}
-							if (database.AddCard(string.Join(' ', splitString.Skip(3)), fileOutputPath, cardId)) {
+							if (database.AddCard(string.Join(' ', splitString.Skip(3)), fileOutputPath, cardId) == Database.AddCardResult.Success) {
 								await BotMethods.SendMessage(this, new SendMessageEventArgs {
 									Message = $"Successfully added a new card {cardId.Code()}",
 									Channel = e.Channel,
@@ -142,7 +144,7 @@ namespace BlendoBotTCG {
 								LogMessage = "BBTCGCardDeleteConfirmation"
 							});
 						} else {
-							if (database.DeleteCard(selectedCard)) {
+							if (database.DeleteCard(selectedCard) == Database.DeleteCardResult.Success) {
 								await BotMethods.SendMessage(this, new SendMessageEventArgs {
 									Message = $"Successfully deleted card {selectedCard.Name.Italics()}",
 									Channel = e.Channel,
@@ -169,8 +171,13 @@ namespace BlendoBotTCG {
 
 		private async Task OnMessageCardList(MessageCreateEventArgs e) {
 			var sb = new StringBuilder();
-			foreach (var card in database.Cards) {
-				sb.AppendLine($"{$"[{card.ID}]".Code()} {card.Name}");
+			if (database.Cards.Any()) {
+				sb.AppendLine("Available cards:");
+				foreach (var card in database.Cards) {
+					sb.AppendLine($"{$"[{card.ID}]".Code()} {card.Name}");
+				}
+			} else {
+				sb.AppendLine("No cards have been added yet");
 			}
 			await BotMethods.SendMessage(this, new SendMessageEventArgs {
 				Message = sb.ToString(),
@@ -206,6 +213,265 @@ namespace BlendoBotTCG {
 					Message = $"Please supply a card ID to view with {"?bbtcg card view [ID]".Code()}",
 					Channel = e.Channel,
 					LogMessage = "BBTCGCardViewNoID"
+				});
+			}
+		}
+
+		private async Task OnMessagePack(MessageCreateEventArgs e) {
+			string[] splitString = e.Message.Content.Split(' ');
+			if (splitString.Length >= 3) {
+				if (splitString[2] == "add") {
+					await OnMessagePackAdd(e);
+				} else if (splitString[2] == "delete") {
+					await OnMessagePackDelete(e);
+				} else if (splitString[2] == "card") {
+					await OnMessagePackCard(e);
+				} else if (splitString[2] == "list") {
+					await OnMessagePackList(e);
+				} else if (splitString[2] == "open") {
+					await OnMessagePackOpen(e);
+				} else {
+					await InvalidCommand(e.Channel);
+				}
+			} else {
+				await InvalidCommand(e.Channel);
+			}
+		}
+
+		private async Task OnMessagePackAdd(MessageCreateEventArgs e) {
+			string[] splitString = e.Message.Content.Split(' ');
+			if (await BotMethods.IsUserAdmin(this, e.Guild, e.Channel, e.Author)) {
+				if (splitString.Length >= 4) {
+					string packName = string.Join(' ', splitString.Skip(3));
+					var result = database.AddPack(packName);
+					if (result == Database.AddPackResult.Success) {
+						await BotMethods.SendMessage(this, new SendMessageEventArgs {
+							Message = $"New pack with ID {database.Packs.Count} added",
+							Channel = e.Channel,
+							LogMessage = "BBTCGPackAddSuccess"
+						});
+					} else if (result == Database.AddPackResult.PackNameAlreadyExists) {
+						await BotMethods.SendMessage(this, new SendMessageEventArgs {
+							Message = $"A pack with that name already exists!",
+							Channel = e.Channel,
+							LogMessage = "BBTCGPackAddExistingName"
+						});
+					}
+				} else {
+					await BotMethods.SendMessage(this, new SendMessageEventArgs {
+						Message = $"Please supply a name for this pack with {"?bbtcg pack add [pack name]".Code()}",
+						Channel = e.Channel,
+						LogMessage = "BBTCGPackAddNoName"
+					});
+				}
+			} else {
+				await BotMethods.SendMessage(this, new SendMessageEventArgs {
+					Message = $"This command can only be used by administrators of this guild",
+					Channel = e.Channel,
+					LogMessage = "BBTCGPackAddNotAdmin"
+				});
+			}
+		}
+
+		private async Task OnMessagePackDelete(MessageCreateEventArgs e) {
+			string[] splitString = e.Message.Content.Split(' ');
+			if (await BotMethods.IsUserAdmin(this, e.Guild, e.Channel, e.Author)) {
+				if (splitString.Length >= 4) {
+						if (int.TryParse(splitString[3], out int packId)) {
+						var result = database.RemovePack(packId);
+						if (result == Database.RemovePackResult.Success) {
+							await BotMethods.SendMessage(this, new SendMessageEventArgs {
+								Message = $"Successfully deleted pack {packId}",
+								Channel = e.Channel,
+								LogMessage = "BBTCGPackDeleteSuccess"
+							});
+						} else if (result == Database.RemovePackResult.PackDoesNotExist) {
+							await BotMethods.SendMessage(this, new SendMessageEventArgs {
+								Message = $"There is no pack with ID {packId}",
+								Channel = e.Channel,
+								LogMessage = "BBTCGPackDeleteBadID"
+							});
+						}
+					} else {
+						await BotMethods.SendMessage(this, new SendMessageEventArgs {
+							Message = $"Could not parse {splitString[3].Code()} as a valid ID",
+							Channel = e.Channel,
+							LogMessage = "BBTCGPackDeleteInvalidIDParse"
+						});
+					}
+				} else {
+					await BotMethods.SendMessage(this, new SendMessageEventArgs {
+						Message = $"Please supply a pack ID you wish to delete with {"?bbtcg pack delete [PackID]".Code()}",
+						Channel = e.Channel,
+						LogMessage = "BBTCGPackDeleteNoID"
+					});
+				}
+			} else {
+				await BotMethods.SendMessage(this, new SendMessageEventArgs {
+					Message = $"This command can only be used by administrators of this guild",
+					Channel = e.Channel,
+					LogMessage = "BBTCGPackDeleteNotAdmin"
+				});
+			}
+		}
+
+		private async Task OnMessagePackCard(MessageCreateEventArgs e) {
+			string[] splitString = e.Message.Content.Split(' ');
+			if (await BotMethods.IsUserAdmin(this, e.Guild, e.Channel, e.Author)) {
+				if (splitString.Length >= 6) {
+					if (int.TryParse(splitString[3], out int packId)) {
+						string cardId = splitString[4];
+						if (int.TryParse(splitString[5], out int rarity)) {
+							var result = database.AddPackCard(cardId, packId, rarity);
+							if (result == Database.AddPackCardResult.Success) {
+								await BotMethods.SendMessage(this, new SendMessageEventArgs {
+									Message = $"Successfully added card to pack",
+									Channel = e.Channel,
+									LogMessage = "BBTCGPackCardSuccess"
+								});
+							} else if (result == Database.AddPackCardResult.CardAlreadyInPack) {
+								await BotMethods.SendMessage(this, new SendMessageEventArgs {
+									Message = $"Successfully updated card's rarity",
+									Channel = e.Channel,
+									LogMessage = "BBTCGPackCardSuccessCardInPack"
+								});
+							} else if (result == Database.AddPackCardResult.CardDoesNotExist) {
+								await BotMethods.SendMessage(this, new SendMessageEventArgs {
+									Message = $"Card {splitString[4]} does not exist",
+									Channel = e.Channel,
+									LogMessage = "BBTCGPackCardCardDoesNotExist"
+								});
+							} else if (result == Database.AddPackCardResult.PackDoesNotExist) {
+								await BotMethods.SendMessage(this, new SendMessageEventArgs {
+									Message = $"Pack {splitString[3]} does not exist",
+									Channel = e.Channel,
+									LogMessage = "BBTCGPackCardPackDoesNotExist"
+								});
+							}
+						} else {
+							await BotMethods.SendMessage(this, new SendMessageEventArgs {
+								Message = $"Could not parse {splitString[5].Code()} as a valid integer",
+								Channel = e.Channel,
+								LogMessage = "BBTCGPackCardInvalidRarityParse"
+							});
+						}
+					} else {
+						await BotMethods.SendMessage(this, new SendMessageEventArgs {
+							Message = $"Could not parse {splitString[3].Code()} as a valid ID",
+							Channel = e.Channel,
+							LogMessage = "BBTCGPackCardInvalidPackIDParse"
+						});
+					}
+				} else {
+					await BotMethods.SendMessage(this, new SendMessageEventArgs {
+						Message = $"Please supply a pack Id, card ID and a rarity value with {"?bbtcg pack card [PackID] [CardID] [RarityValue]".Code()}",
+						Channel = e.Channel,
+						LogMessage = "BBTCGPackCardMissingArguments"
+					});
+				}
+			} else {
+				await BotMethods.SendMessage(this, new SendMessageEventArgs {
+					Message = $"This command can only be used by administrators of this guild",
+					Channel = e.Channel,
+					LogMessage = "BBTCGPackCardNotAdmin"
+				});
+			}
+		}
+
+		private async Task OnMessagePackList(MessageCreateEventArgs e) {
+			string[] splitString = e.Message.Content.Split(' ');
+			if (splitString.Length >= 4) {
+				if (int.TryParse(splitString[3], out int packId)) {
+					if (packId <= 0 || packId > database.Packs.Count) {
+						await BotMethods.SendMessage(this, new SendMessageEventArgs {
+							Message = $"{splitString[3]} is an invalid pack ID",
+							Channel = e.Channel,
+							LogMessage = "BBTCGPackListInvalidPackIDOutOfRange"
+						});
+					}
+					var pack = database.Packs[packId - 1];
+					var sb = new StringBuilder();
+					if (pack.Drops.Any()) {
+						sb.AppendLine($"Cards in pack {pack.Name.Italics()}:");
+						foreach (var drop in pack.Drops) {
+							sb.AppendLine($"{$"[{drop.Card.ID}]".Code()} {drop.Card.Name} ({drop.Rarity.ToString().Italics()})");
+						}
+					} else {
+						sb.AppendLine("No cards have been added to this pack yet");
+					}
+
+					await BotMethods.SendMessage(this, new SendMessageEventArgs {
+						Message = sb.ToString(),
+						Channel = e.Channel,
+						LogMessage = "BBTCGPackListSpecific"
+					});
+				} else {
+					await BotMethods.SendMessage(this, new SendMessageEventArgs {
+						Message = $"Could not parse {splitString[3].Code()} as a valid ID",
+						Channel = e.Channel,
+						LogMessage = "BBTCGPackListInvalidPackIDParse"
+					});
+				}
+			} else {
+				var sb = new StringBuilder();
+				if (database.Packs.Any()) {
+					sb.AppendLine($"Packs available:");
+					foreach (var pack in database.Packs.Select((pack, index) => new { pack, index })) {
+						sb.AppendLine($"{$"[{(pack.index + 1).ToString().PadLeft(2)}]".Code()} {pack.pack.Name} ({$"{pack.pack.Drops.Count} cards".Italics()})");
+					}
+				} else {
+					sb.AppendLine("No packs have been added yet");
+				}
+
+				await BotMethods.SendMessage(this, new SendMessageEventArgs {
+					Message = sb.ToString(),
+					Channel = e.Channel,
+					LogMessage = "BBTCGPackList"
+				});
+			}
+		}
+
+		private async Task OnMessagePackOpen(MessageCreateEventArgs e) {
+			string[] splitString = e.Message.Content.Split(' ');
+			if (splitString.Length >= 4) {
+				if (int.TryParse(splitString[3], out int packId)) {
+					var result = database.OpenPack(e.Author, packId, out Card card);
+					if (result == Database.OpenPackResult.Success) {
+						await BotMethods.SendMessage(this, new SendMessageEventArgs {
+							Message = $"Successfully opened {card.Name.Italics()}",
+							Channel = e.Channel,
+							LogMessage = "BBTCGPackOpenSuccess"
+						});
+						await BotMethods.SendFile(this, new SendFileEventArgs {
+							FilePath = card.ImagePath,
+							Channel = e.Channel,
+							LogMessage = "BBTCGPackOpenSuccessImage"
+						});
+					} else if (result == Database.OpenPackResult.CooldownStillActive) {
+						await BotMethods.SendMessage(this, new SendMessageEventArgs {
+							Message = $"You still have {"blah".Code()} time remaining before you can open this pack again!",
+							Channel = e.Channel,
+							LogMessage = "BBTCGPackOpenCooldownActive"
+						});
+					} else if (result == Database.OpenPackResult.PackDoesNotExist) {
+						await BotMethods.SendMessage(this, new SendMessageEventArgs {
+							Message = $"Pack {splitString[3]} does not exist",
+							Channel = e.Channel,
+							LogMessage = "BBTCGPackOpenPackDoesNotExist"
+						});
+					}
+				} else {
+					await BotMethods.SendMessage(this, new SendMessageEventArgs {
+						Message = $"Could not parse {splitString[3].Code()} as a valid ID",
+						Channel = e.Channel,
+						LogMessage = "BBTCGPackOpenInvalidPackIDParse"
+					});
+				}
+			} else {
+				await BotMethods.SendMessage(this, new SendMessageEventArgs {
+					Message = $"Please supply a pack ID {"?bbtcg pack open [PackID]".Code()}",
+					Channel = e.Channel,
+					LogMessage = "BBTCGPackOpenMissingArguments"
 				});
 			}
 		}
