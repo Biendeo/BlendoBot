@@ -229,25 +229,27 @@ namespace BlendoBot {
 			await Task.Delay(0);
 			// The rule is: don't react to my own messages, and commands need to be triggered with a
 			// ? character.
-			if (!e.Author.IsCurrent && !e.Author.IsBot && e.Message.Content.Length > 1 && e.Message.Content[0] == '?' && IsAlphabetical(e.Message.Content[1])) {
-				string commandTerm = e.Message.Content.Split(' ')[0].ToLower();
-				if (GuildCommands[e.Guild.Id].ContainsKey(commandTerm)) {
-					try {
-						await GuildCommands[e.Guild.Id][commandTerm].OnMessage(e);
-					} catch (Exception exc) {
-						// This should hopefully make it such that the bot never crashes (although it hasn't stopped it).
-						await SendException(this, new SendExceptionEventArgs {
-							Exception = exc,
+			if (!e.Author.IsCurrent && !e.Author.IsBot) {
+				if (e.Message.Content.Length > 1 && e.Message.Content[0] == '?' && IsAlphabetical(e.Message.Content[1])) {
+					string commandTerm = e.Message.Content.Split(' ')[0].ToLower();
+					if (GuildCommands[e.Guild.Id].ContainsKey(commandTerm)) {
+						try {
+							await GuildCommands[e.Guild.Id][commandTerm].OnMessage(e);
+						} catch (Exception exc) {
+							// This should hopefully make it such that the bot never crashes (although it hasn't stopped it).
+							await SendException(this, new SendExceptionEventArgs {
+								Exception = exc,
+								Channel = e.Channel,
+								LogExceptionType = "GenericExceptionNotCaught"
+							});
+						}
+					} else {
+						await SendMessage(this, new SendMessageEventArgs {
+							Message = $"I didn't know what you meant by that, {e.Author.Username}. Use {"?help".Code()} to see what I can do!",
 							Channel = e.Channel,
-							LogExceptionType = "GenericExceptionNotCaught"
+							LogMessage = "UnknownMessage"
 						});
 					}
-				} else {
-					await SendMessage(this, new SendMessageEventArgs {
-						Message = $"I didn't know what you meant by that, {e.Author.Username}. Use {"?help".Code()} to see what I can do!",
-						Channel = e.Channel,
-						LogMessage = "UnknownMessage"
-					});
 				}
 				foreach (var listener in GuildMessageListeners[e.Guild.Id]) {
 					await listener.OnMessage(e);
