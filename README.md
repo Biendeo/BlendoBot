@@ -1,11 +1,11 @@
 ## BlendoBot
-### A Discord bot + modular framework written in C# for .NET Core 2.1
+### A Discord bot + modular framework written in C# for .NET Core 3.0
 
 BlendoBot is a Discord bot intended for fun uses. It has a modular design such that it can dynamically load in any DLL that uses a common framework. The project is split into two major outputs; the BlendoBotLib DLL, which exposes interfaces for modules, and the BlendoBot executable that connects to Discord and operates with the modules.
 
 ### Download and run BlendoBot
 
-You will require the ability to compile and run .NET Core 2.1 programs. Please follow [the instructions for your operating system](https://dotnet.microsoft.com/download/dotnet-core/2.2) on how to setup .NET Core (current version is 2.2) for your commandline. Alternatively, Windows and Mac OS users may choose to open the `BlendoBot.sln` file in Visual Studio 2017 or greater and simply run the program from there.
+You will require the ability to compile and run .NET Core 3.0 programs. Please follow [the instructions for your operating system](https://dotnet.microsoft.com/download/dotnet-core/3.0) on how to setup .NET Core for your commandline. Alternatively, Windows and Mac OS users may choose to open the `BlendoBot.sln` file in Visual Studio 2019 and simply run the program from there.
 
 If you can run `dotnet` from the commandline, simply:
 - Clone the repository using:
