@@ -18,7 +18,7 @@ namespace RemindMe {
 		public override string Author => "Biendeo";
 		public override string Version => "0.1.3";
 
-		private string DatabasePath => Path.Combine(BotMethods.GetCommandDataPath(this, this), "blendobot-remindme-database.json");
+		private string DatabasePath => Path.Combine(BotMethods.GetCommandInstanceDataPath(this, this), "blendobot-remindme-database.json");
 		private const string TimeFormatString = "d/MM/yyyy h:mm:ss tt";
 
 		private List<Reminder> OutstandingReminders;

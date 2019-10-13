@@ -99,17 +99,17 @@ namespace MrPing {
 		}
 
 		private void LoadDatabase() {
-			if (File.Exists(Path.Combine(mrPing.BotMethods.GetCommandDataPath(this, mrPing), "challenges.json"))) {
-				activeChallenges = JsonConvert.DeserializeObject<List<Challenge>>(File.ReadAllText(Path.Combine(mrPing.BotMethods.GetCommandDataPath(this, mrPing), "challenges.json")));
+			if (File.Exists(Path.Combine(mrPing.BotMethods.GetCommandInstanceDataPath(this, mrPing), "challenges.json"))) {
+				activeChallenges = JsonConvert.DeserializeObject<List<Challenge>>(File.ReadAllText(Path.Combine(mrPing.BotMethods.GetCommandInstanceDataPath(this, mrPing), "challenges.json")));
 			}
-			if (File.Exists(Path.Combine(mrPing.BotMethods.GetCommandDataPath(this, mrPing), "stats.json"))) {
-				stats = JsonConvert.DeserializeObject<ServerStats>(File.ReadAllText(Path.Combine(mrPing.BotMethods.GetCommandDataPath(this, mrPing), "stats.json")));
+			if (File.Exists(Path.Combine(mrPing.BotMethods.GetCommandInstanceDataPath(this, mrPing), "stats.json"))) {
+				stats = JsonConvert.DeserializeObject<ServerStats>(File.ReadAllText(Path.Combine(mrPing.BotMethods.GetCommandInstanceDataPath(this, mrPing), "stats.json")));
 			}
 		}
 
 		private void WriteDatabase() {
-			File.WriteAllText(Path.Combine(mrPing.BotMethods.GetCommandDataPath(this, mrPing), "challenges.json"), JsonConvert.SerializeObject(activeChallenges));
-			File.WriteAllText(Path.Combine(mrPing.BotMethods.GetCommandDataPath(this, mrPing), "stats.json"), JsonConvert.SerializeObject(stats));
+			File.WriteAllText(Path.Combine(mrPing.BotMethods.GetCommandInstanceDataPath(this, mrPing), "challenges.json"), JsonConvert.SerializeObject(activeChallenges));
+			File.WriteAllText(Path.Combine(mrPing.BotMethods.GetCommandInstanceDataPath(this, mrPing), "stats.json"), JsonConvert.SerializeObject(stats));
 		}
 	}
 }

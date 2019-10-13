@@ -19,7 +19,7 @@ namespace UserTimeZone {
 		public override string Author => "Biendeo";
 		public override string Version => "0.1.0";
 
-		private string JsonPath => Path.Combine(BotMethods.GetCommandDataPath(this, this), "blendobot-usertimezone.json");
+		private string JsonPath => Path.Combine(BotMethods.GetCommandInstanceDataPath(this, this), "blendobot-usertimezone.json");
 
 		internal List<UserSetting> settings;
 
