@@ -4,6 +4,7 @@ using DSharpPlus.EventArgs;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -16,7 +17,7 @@ namespace WheelOfFortune {
 		public override string Term => "?wof";
 		public override string Name => "Wheel Of Fortune";
 		public override string Description => "Play a round of the Second Guess puzzle.";
-		public override string Usage => $"Usage: {"?wof".Code()}\nAfter triggering this, a puzzle will be presented. The puzzle will have a category and a phrase, with the letters of the phrase hidden initially. Your goal is to correctly type the phrase once you believe you know what it is. You only get one try, so make sure it is correct. Every two seconds, a new letter in the phrase will be revealed. If you get the answer wrong, I will react with a :x: to tell you the answer was wrong. Your future answers will not be counted. If you get the answer correct, the game is over and you win!";
+		public override string Usage => $"Usage: {"?wof".Code()}\nAfter triggering this, a puzzle will be presented. The puzzle will have a category and a phrase, with the letters of the phrase hidden initially. Your goal is to correctly type the phrase once you believe you know what it is. You only get one try, so make sure it is correct. The puzzle will reveal itself gradually one letter at a time for 30 seconds. If you get the answer wrong, I will react with a :x: to tell you the answer was wrong. Your future answers will not be counted. If you get the answer correct, the game is over and you win!";
 		public override string Author => "Biendeo";
 		public override string Version => "1.0.0";
 
@@ -27,9 +28,12 @@ namespace WheelOfFortune {
 		private Puzzle currentPuzzle;
 		private DiscordMessage lastWinningMessage;
 
+		private SemaphoreSlim semaphore;
+
 		public override async Task<bool> Startup() {
 			currentChannel = null;
 			eliminatedUsers = new List<DiscordUser>();
+			semaphore = new SemaphoreSlim(1);
 
 			if (puzzles == null) {
 				puzzles = new List<Puzzle>();
@@ -85,15 +89,18 @@ namespace WheelOfFortune {
 		}
 
 		public override async Task OnMessage(MessageCreateEventArgs e) {
+			await semaphore.WaitAsync();
 			if (currentChannel != null) {
 				await BotMethods.SendMessage(this, new SendMessageEventArgs {
-					Message = $"A game is already in session in {e.Channel.Mention}, please wait until it has finished!",
+					Message = $"A game is already in session in {currentChannel.Mention}, please wait until it has finished!",
 					Channel = e.Channel,
 					LogMessage = "WheelOfFortuneGameInProgress"
 				});
 			} else {
+				currentChannel = e.Channel;
 				await Task.Factory.StartNew(() => StartGame(e.Channel));
 			}
+			semaphore.Release();
 		}
 
 		private async Task StartGame(DiscordChannel channel) {
@@ -123,8 +130,10 @@ namespace WheelOfFortune {
 
 			await message.ModifyAsync($"{currentPuzzle.Category}\n\n{revealedPuzzle}".CodeBlock());
 
+			int timeToWait = 30000 / revealedPuzzle.Count(c => c == '_');
+
 			while (currentChannel != null && revealedPuzzle != currentPuzzle.Phrase.ToUpper()) {
-				await Task.Delay(2000);
+				await Task.Delay(timeToWait);
 				if (currentPuzzle != null) {
 					bool replacedUnderscore = false;
 					while (!replacedUnderscore) {
@@ -137,8 +146,6 @@ namespace WheelOfFortune {
 					await message.ModifyAsync($"{currentPuzzle.Category}\n\n{revealedPuzzle}".CodeBlock());
 				}
 			}
-
-			await Task.Delay(500);
 
 			if (currentChannel != null) {
 				await BotMethods.SendMessage(this, new SendMessageEventArgs {
