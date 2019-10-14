@@ -134,7 +134,7 @@ namespace WheelOfFortune {
 
 			while (currentChannel != null && revealedPuzzle != currentPuzzle.Phrase.ToUpper()) {
 				await Task.Delay(timeToWait);
-				if (currentPuzzle != null) {
+				if (currentChannel != null) {
 					bool replacedUnderscore = false;
 					while (!replacedUnderscore) {
 						int index = random.Next(0, revealedPuzzle.Length);
