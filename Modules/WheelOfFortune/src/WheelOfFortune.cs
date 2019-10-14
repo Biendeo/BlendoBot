@@ -16,7 +16,7 @@ namespace WheelOfFortune {
 		public override string Term => "?wof";
 		public override string Name => "Wheel Of Fortune";
 		public override string Description => "Play a round of the Second Guess puzzle.";
-		public override string Usage => $"Usage: {"?wof".Code()}\nAfter triggering this, a puzzle will be presented. The puzzle will have a category a phrase, with the letters of the phrase hidden initially. Your goal is to correctly type the answer once you believe you know what it is. You only get one try, so make sure it is correct. Every two seconds, a new letter in the puzzle will be revealed. If you get the answer wrong, I will react with a :x: to tell you the answer was wrong. Your future answers will not be counted. If you get the answer correct, the game is over and you win!";
+		public override string Usage => $"Usage: {"?wof".Code()}\nAfter triggering this, a puzzle will be presented. The puzzle will have a category and a phrase, with the letters of the phrase hidden initially. Your goal is to correctly type the phrase once you believe you know what it is. You only get one try, so make sure it is correct. Every two seconds, a new letter in the phrase will be revealed. If you get the answer wrong, I will react with a :x: to tell you the answer was wrong. Your future answers will not be counted. If you get the answer correct, the game is over and you win!";
 		public override string Author => "Biendeo";
 		public override string Version => "1.0.0";
 
