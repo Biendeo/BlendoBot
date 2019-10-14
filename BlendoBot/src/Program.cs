@@ -200,11 +200,18 @@ namespace BlendoBot {
 			return null;
 		}
 
-		public string GetCommandDataPath(object sender, CommandBase command) {
+		public string GetCommandInstanceDataPath(object sender, CommandBase command) {
 			if (!Directory.Exists(Path.Combine(Path.Combine("data", command.GuildId.ToString()), command.Name))) {
 				Directory.CreateDirectory(Path.Combine(Path.Combine("data", command.GuildId.ToString()), command.Name));
 			}
 			return Path.Combine(Path.Combine("data", command.GuildId.ToString()), command.Name);
+		}
+
+		public string GetCommandCommonDataPath(object sender, CommandBase command) {
+			if (!Directory.Exists(Path.Combine(Path.Combine("data", "common"), command.Name))) {
+				Directory.CreateDirectory(Path.Combine(Path.Combine("data", "common"), command.Name));
+			}
+			return Path.Combine(Path.Combine("data", "common"), command.Name);
 		}
 
 		public async Task<bool> IsUserAdmin(object o, DiscordGuild guild, DiscordChannel channel, DiscordUser user) {

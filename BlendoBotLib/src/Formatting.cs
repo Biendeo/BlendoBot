@@ -58,7 +58,7 @@ namespace BlendoBotLib {
 		/// <param name="s"></param>
 		/// <returns></returns>
 		public static string CodeBlock(this string s) {
-			return s == "" ? s : $"```{s}```";
+			return s == "" ? s : $"```\n{s}\n```";
 		}
 	}
 }
