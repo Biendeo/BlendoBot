@@ -148,6 +148,9 @@ namespace WheelOfFortune {
 			}
 
 			if (currentChannel != null) {
+				currentChannel = null;
+				eliminatedUsers.Clear();
+				currentPuzzle = null;
 				await BotMethods.SendMessage(this, new SendMessageEventArgs {
 					Message = $"No one got the puzzle! The answer was {revealedPuzzle.Code()}. Thanks for playing!",
 					Channel = channel,
