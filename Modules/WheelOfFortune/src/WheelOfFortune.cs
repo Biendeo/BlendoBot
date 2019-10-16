@@ -72,14 +72,14 @@ namespace WheelOfFortune {
 					var messageText = alphabetRegex.Replace(e.Message.Content.ToUpper(), "");
 					var expectedAnswer = alphabetRegex.Replace(currentPuzzle.Phrase.ToUpper(), "");
 					if (messageText == expectedAnswer) {
+						currentChannel = null;
+						eliminatedUsers.Clear();
+						lastWinningMessage = e.Message;
 						await BotMethods.SendMessage(this, new SendMessageEventArgs {
 							Message = $"Congratulations to {e.Author.Mention} for getting the correct answer! Thanks for playing!",
 							Channel = e.Channel,
 							LogMessage = "WheelOfFortuneGameWin"
 						});
-						currentChannel = null;
-						eliminatedUsers.Clear();
-						lastWinningMessage = e.Message;
 					} else {
 						eliminatedUsers.Add(e.Author);
 						await e.Message.CreateReactionAsync(DiscordEmoji.FromUnicode("❌"));
