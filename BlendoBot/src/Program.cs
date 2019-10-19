@@ -184,6 +184,9 @@ namespace BlendoBot {
 			if (GuildMessageListeners.ContainsKey(guildId)) {
 				GuildMessageListeners[guildId].Remove(messageListener);
 			}
+			if (messageListener is IDisposable disposable) {
+				disposable.Dispose();
+			}
 		}
 
 		/// <summary>
@@ -313,8 +316,15 @@ namespace BlendoBot {
 
 		public async Task RemoveCommand(object o, ulong guildId, string classTerm) {
 			var command = GuildCommands[guildId][classTerm];
+			int messageListenerCount = 0;
+			foreach (var messageListener in GuildMessageListeners[guildId].Where(ml => ml.Command == command)) {
+				RemoveMessageListener(o, guildId, messageListener);
+				++messageListenerCount;
+			}
 			GuildCommands[guildId].Remove(classTerm);
-			int messageListenerCount = GuildMessageListeners[guildId].RemoveAll(ml => ml.Command == command);
+			if (command is IDisposable disposable) {
+				disposable.Dispose();
+			}
 			Log(this, new LogEventArgs {
 				Type = LogType.Error,
 				Message = $"Successfully unloaded module {command.GetType().FullName} and {messageListenerCount} message listener{(messageListenerCount == 1 ? "" : "s")}"

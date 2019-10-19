@@ -11,7 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace WheelOfFortune {
-	public class WheelOfFortune : CommandBase {
+	public class WheelOfFortune : CommandBase, IDisposable {
 		public WheelOfFortune(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
 
 		public override string Term => "?wof";
@@ -66,6 +66,7 @@ namespace WheelOfFortune {
 		}
 
 		public async Task HandleMessageListener(MessageCreateEventArgs e) {
+			await semaphore.WaitAsync();
 			if (currentChannel != null && e.Channel == currentChannel) {
 				if (!eliminatedUsers.Contains(e.Author)) {
 					var alphabetRegex = new Regex("[^A-Z]");
@@ -86,6 +87,7 @@ namespace WheelOfFortune {
 					}
 				}
 			}
+			semaphore.Release();
 		}
 
 		public override async Task OnMessage(MessageCreateEventArgs e) {
@@ -110,10 +112,12 @@ namespace WheelOfFortune {
 				LogMessage = "WheelOfFortuneGameStart"
 			});
 
+			await semaphore.WaitAsync();
 			currentChannel = channel;
 			eliminatedUsers.Clear();
 			var random = new Random();
 			currentPuzzle = puzzles[random.Next(0, puzzles.Count)];
+			semaphore.Release();
 
 			for (int i = 5; i > 0; --i) {
 				await message.ModifyAsync($"Game starting in {i} second{(i != 1 ? "s" : string.Empty)}...");
@@ -147,10 +151,8 @@ namespace WheelOfFortune {
 				}
 			}
 
+			await semaphore.WaitAsync();
 			if (currentChannel != null) {
-				currentChannel = null;
-				eliminatedUsers.Clear();
-				currentPuzzle = null;
 				await BotMethods.SendMessage(this, new SendMessageEventArgs {
 					Message = $"No one got the puzzle! The answer was {revealedPuzzle.Code()}. Thanks for playing!",
 					Channel = channel,
@@ -163,8 +165,22 @@ namespace WheelOfFortune {
 			currentChannel = null;
 			eliminatedUsers.Clear();
 			currentPuzzle = null;
+			semaphore.Release();
 
 			BotMethods.RemoveMessageListener(this, GuildId, messageListener);
+		}
+
+		public void Dispose() {
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+		protected virtual void Dispose(bool disposing) {
+			if (disposing) {
+				if (semaphore != null) {
+					semaphore.Dispose();
+				}
+			}
 		}
 	}
 }
