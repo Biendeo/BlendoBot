@@ -129,12 +129,12 @@ namespace WheelOfFortune {
 
 			string revealedPuzzle = currentPuzzle.Phrase.ToUpper();
 			for (char c = 'A'; c <= 'Z'; ++c) {
-				revealedPuzzle = revealedPuzzle.Replace(c, '_');
+				revealedPuzzle = revealedPuzzle.Replace(c, '˷');
 			}
 
 			await message.ModifyAsync($"{currentPuzzle.Category}\n\n{revealedPuzzle}".CodeBlock());
 
-			int timeToWait = 30000 / revealedPuzzle.Count(c => c == '_');
+			int timeToWait = 30000 / revealedPuzzle.Count(c => c == '˷');
 
 			while (currentChannel != null && revealedPuzzle != currentPuzzle.Phrase.ToUpper()) {
 				await Task.Delay(timeToWait);
@@ -142,7 +142,7 @@ namespace WheelOfFortune {
 					bool replacedUnderscore = false;
 					while (!replacedUnderscore) {
 						int index = random.Next(0, revealedPuzzle.Length);
-						if (revealedPuzzle[index] == '_') {
+						if (revealedPuzzle[index] == '˷') {
 							revealedPuzzle = revealedPuzzle.Substring(0, index) + currentPuzzle.Phrase.ToUpper()[index] + revealedPuzzle.Substring(index + 1);
 							replacedUnderscore = true;
 						}
