@@ -1,53 +1,54 @@
-﻿using BlendoBotLib;
-using DSharpPlus.Entities;
+﻿using DSharpPlus.Entities;
+using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Timers;
 
 namespace RemindMe {
-	public class Reminder : IComparable<Reminder> {
+	[JsonObject(MemberSerialization.OptIn)]
+	public class Reminder : IComparable<Reminder>, IDisposable {
+		[JsonProperty(Required = Required.Always)]
 		public DateTime Time { get; set; }
+		[JsonProperty(Required = Required.Always)]
 		public string Message { get; set; }
-		public DiscordChannel Channel { get; set; }
-		public DiscordUser User { get; set; }
+		[JsonProperty(Required = Required.Always)]
+		public ulong ChannelId { get; set; }
+		[JsonProperty(Required = Required.Always)]
+		public ulong UserId { get; set; }
 		public Timer CallbackTimer { get; set; }
-		public Action<Reminder> ParentContainerCallback { get; set; }
 
-		private IBotMethods BotMethods { get; }
+		protected Reminder() {}
 
-		public Reminder(IBotMethods botMethods, DateTime time, string message, DiscordChannel channel, DiscordUser user, Action<Reminder> parentContainerCallback) {
-			BotMethods = botMethods;
+		public Reminder(DateTime time, string message, ulong channelId, ulong userId) {
 			Time = time;
 			Message = message;
-			Channel = channel;
-			User = user;
-			if (time > DateTime.Now) {
-				CallbackTimer = new Timer((time - DateTime.Now).TotalMilliseconds);
-			} else {
-				CallbackTimer = new Timer(int.MaxValue);
+			ChannelId = channelId;
+			UserId = userId;
+			CallbackTimer = null;
+		}
+
+		public void Activate(Action<object, ElapsedEventArgs, Reminder> action) {
+			if (CallbackTimer == null && (Time > DateTime.UtcNow) && (Time - DateTime.UtcNow) < new TimeSpan(1, 0, 0, 0)) {
+				CallbackTimer = new Timer((Time - DateTime.UtcNow).TotalMilliseconds);
+				CallbackTimer.AutoReset = false;
+				CallbackTimer.Elapsed += (sender, e) => action(sender, e, this);
+				CallbackTimer.Start();
 			}
-			CallbackTimer.AutoReset = false;
-			CallbackTimer.Elapsed += TimerElapsed;
-			ParentContainerCallback = parentContainerCallback;
-		}
-
-		public void Activate() {
-			CallbackTimer.Start();
-		}
-
-		private async void TimerElapsed(object sender, ElapsedEventArgs e) {
-			await BotMethods.SendMessage(this, new SendMessageEventArgs {
-				Message = $"<@{User.Id}> wanted to know this message now!\n{Message}",
-				Channel = Channel,
-				LogMessage = "ReminderAlert"
-			});
-			CallbackTimer.Dispose();
-			ParentContainerCallback(this);
 		}
 
 		public int CompareTo(Reminder other) {
 			return Time.CompareTo(other.Time);
+		}
+		public void Dispose() {
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+		protected virtual void Dispose(bool disposing) {
+			if (disposing) {
+				if (CallbackTimer != null) {
+					CallbackTimer.Dispose();
+				}
+			}
 		}
 	}
 }

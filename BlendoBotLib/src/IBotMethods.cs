@@ -77,5 +77,10 @@ namespace BlendoBotLib {
 		/// Discord, or if they've been manually granted admin.
 		/// </summary>
 		Task<bool> IsUserAdmin(object o, DiscordGuild guild, DiscordChannel channel, DiscordUser user);
+
+		/// <summary>
+		/// Given a channel ID, returns the channel object.
+		/// </summary>
+		Task<DiscordChannel> GetChannel(object o, ulong channelId);
 	}
 }

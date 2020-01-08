@@ -221,6 +221,10 @@ namespace BlendoBot {
 			return GetCommand<Admin>(this, guild.Id).IsUserAdmin(user) || (await guild.GetMemberAsync(user.Id)).PermissionsIn(channel).HasFlag(Permissions.Administrator);
 		}
 
+		public async Task<DiscordChannel> GetChannel(object o, ulong channelId) {
+			return await DiscordClient.GetChannelAsync(channelId);
+		}
+
 		#endregion
 
 		#region Discord Client Methods
