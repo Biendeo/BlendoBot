@@ -18,7 +18,7 @@ namespace Weather {
 		public override string Version => "0.1.0";
 
 		private const string APIKeyMissingMessage = "PLEASE ADD API KEY";
-		private bool IsApiKeyMissing(string apiKey) => apiKey == null || apiKey == APIKeyMissingMessage;
+		private static bool IsApiKeyMissing(string apiKey) => apiKey == null || apiKey == APIKeyMissingMessage;
 
 		private string WeatherAPIKey {
 			get {
@@ -101,9 +101,8 @@ namespace Weather {
 		private async Task<WeatherResult> GetWeather(string inputLocation) {
 			string weatherJsonString = "";
 			try {
-				using (var wc = new WebClient()) {
-					weatherJsonString = await wc.DownloadStringTaskAsync($"https://api.openweathermap.org/data/2.5/weather?q={inputLocation.Replace(" ", "+")}&type=like&mode=json&APPID={WeatherAPIKey}");
-				}
+				using var wc = new WebClient();
+				weatherJsonString = await wc.DownloadStringTaskAsync($"https://api.openweathermap.org/data/2.5/weather?q={inputLocation.Replace(" ", "+")}&type=like&mode=json&APPID={WeatherAPIKey}");
 			} catch (WebException) {
 				return new WeatherResult {
 					ResultCode = 404,

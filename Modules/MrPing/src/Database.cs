@@ -23,8 +23,8 @@ namespace MrPing {
 
 		private ServerStats stats;
 
-		private MrPing mrPing;
-		private IBotMethods botMethods;
+		private readonly MrPing mrPing;
+		private readonly IBotMethods botMethods;
 
 		public async Task PingUser(DiscordUser target, DiscordUser author, DiscordChannel channel) {
 			PurgeFinishedChallenges();

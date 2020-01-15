@@ -8,7 +8,7 @@ namespace OverwatchLeague.Data {
 		public int Id { get; private set; }
 		public string Name { get; private set; }
 		public string AbbreviatedName { get; private set; }
-		private List<Team> teams;
+		private readonly List<Team> teams;
 		public ReadOnlyCollection<Team> Teams { get { return teams.AsReadOnly(); } }
 
 		public Division(int id, string name, string abbreviatedName) {

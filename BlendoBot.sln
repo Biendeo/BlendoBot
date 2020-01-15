@@ -35,7 +35,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoCorrect", "Modules\Auto
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DecimalSpiral", "Modules\DecimalSpiral\DecimalSpiral.csproj", "{1D7D2F92-FC9D-4E0F-9868-1379515756BF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WheelOfFortune", "Modules\WheelOfFortune\WheelOfFortune.csproj", "{252AC46B-F654-4913-A062-BE54A9FC8060}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WheelOfFortune", "Modules\WheelOfFortune\WheelOfFortune.csproj", "{252AC46B-F654-4913-A062-BE54A9FC8060}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

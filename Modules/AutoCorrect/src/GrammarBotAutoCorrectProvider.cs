@@ -13,20 +13,20 @@ namespace AutoCorrect
 
         public GrammarBotAutoCorrectProvider(IBotMethods botMethods, string apiKey = null)
         {
-            this.httpClient = new HttpClient();
-            this.apiKey = apiKey;
-            this.botMethods = botMethods;
+            this.HttpClient = new HttpClient();
+            this.ApiKey = apiKey;
+            this.BotMethods = botMethods;
         }
 
         public async Task<string> CorrectAsync(string input)
         {
             try
             {
-                var escaped = Uri.EscapeDataString(input);
+                string escaped = Uri.EscapeDataString(input);
                 string uriString;
-                if (!string.IsNullOrEmpty(this.apiKey))
+                if (!string.IsNullOrEmpty(this.ApiKey))
                 {
-                    uriString = $"{endpoint}?api_key={this.apiKey}&language=en-AU&text={escaped}";
+                    uriString = $"{endpoint}?api_key={this.ApiKey}&language=en-AU&text={escaped}";
                 }
                 else
                 {
@@ -34,20 +34,20 @@ namespace AutoCorrect
                 }
 
                 var uri = new Uri(uriString);
-                var httpResponse = await this.httpClient.GetAsync(uri).ConfigureAwait(false);
+                var httpResponse = await this.HttpClient.GetAsync(uri).ConfigureAwait(false);
                 httpResponse.EnsureSuccessStatusCode();
 
-                var responseJson = await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+                string responseJson = await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
                 var response = JsonConvert.DeserializeObject<GrammarBotResponse>(responseJson);
 
                 // Incrementally replace matches from the input string with their replacements
-                var outputString = input;
+                string outputString = input;
                 foreach (var match in response.matches)
                 {
                     if (match.replacements.Count == 0) continue;
-                    var bestReplacement = match.replacements[0].value;
-                    var substringToReplace = input.Substring(match.offset, match.length);
-                    var offsetInOutputString = outputString.IndexOf(substringToReplace);
+                    string bestReplacement = match.replacements[0].value;
+                    string substringToReplace = input.Substring(match.offset, match.length);
+                    int offsetInOutputString = outputString.IndexOf(substringToReplace);
                     outputString = outputString.Substring(0, offsetInOutputString)
                                     + bestReplacement
                                     + outputString.Substring(offsetInOutputString + substringToReplace.Length);
@@ -57,7 +57,7 @@ namespace AutoCorrect
             }
             catch (Exception ex)
             {
-                botMethods.Log(this, new LogEventArgs
+                BotMethods.Log(this, new LogEventArgs
                     {
                         Type = LogType.Error,
                         Message = $"Exception occurred in GrammarBotAutoCorrectProvider.CorrectAsync: {ex}"
@@ -68,13 +68,22 @@ namespace AutoCorrect
 
         public void Dispose()
         {
-            this.httpClient?.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
-        private HttpClient httpClient { get; }
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                this.HttpClient?.Dispose();
+            }
+        }
 
-        private string apiKey { get; }
+        private HttpClient HttpClient { get; }
 
-        private IBotMethods botMethods { get; }
+        private string ApiKey { get; }
+
+        private IBotMethods BotMethods { get; }
     }
 }

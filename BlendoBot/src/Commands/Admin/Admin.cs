@@ -23,7 +23,7 @@ namespace BlendoBot.Commands.Admin {
 		public override string Author => "Biendeo";
 		public override string Version => "2.0.0";
 
-		private Program program;
+		private readonly Program program;
 
 		private List<DisabledCommand> disabledCommands;
 		private List<DiscordUser> administrators;

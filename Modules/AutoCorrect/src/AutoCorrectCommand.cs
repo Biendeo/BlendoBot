@@ -24,7 +24,16 @@ namespace AutoCorrect {
 
         public void Dispose()
         {
-            this.AutoCorrectProvider?.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                this.AutoCorrectProvider?.Dispose();
+            }
         }
 
         public override async Task<bool> Startup()
@@ -38,7 +47,7 @@ namespace AutoCorrect {
         {
             await e.Channel.TriggerTypingAsync().ConfigureAwait(false);
 
-            var splitInput = e.Message.Content.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+            string[] splitInput = e.Message.Content.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
             if (splitInput.Length < 2)
             {
                 await BotMethods.SendMessage(this, new SendMessageEventArgs
@@ -50,8 +59,8 @@ namespace AutoCorrect {
                 return;
             }
 
-            var inputMessage = splitInput[1];
-            var correctedMessage = await this.AutoCorrectProvider.CorrectAsync(inputMessage).ConfigureAwait(false);
+            string inputMessage = splitInput[1];
+            string correctedMessage = await this.AutoCorrectProvider.CorrectAsync(inputMessage).ConfigureAwait(false);
 
             if (string.IsNullOrEmpty(correctedMessage))
             {
@@ -65,7 +74,7 @@ namespace AutoCorrect {
                 return;
             }
 
-            var commandOutput = $"'{inputMessage}' autocorrected to '{correctedMessage}'";
+            string commandOutput = $"'{inputMessage}' autocorrected to '{correctedMessage}'";
             await BotMethods.SendMessage(this, new SendMessageEventArgs
                 {
                     Message = commandOutput,

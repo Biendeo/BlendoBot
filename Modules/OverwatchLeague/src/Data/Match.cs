@@ -22,13 +22,13 @@ namespace OverwatchLeague.Data {
 		public DateTime EndTime { get; private set; }
 		public DateTime? ActualStartTime { get; private set; }
 		public DateTime? ActualEndTime { get; private set; }
-		private List<MatchGame> games;
+		private readonly List<MatchGame> games;
 		public ReadOnlyCollection<MatchGame> Games { get { return games.AsReadOnly(); } }
 		public Week Week { get; private set; }
 		public Stage Stage { get { return Week.Stage; } }
-		private Timer updateTimer;
+		private readonly Timer updateTimer;
 
-		private IBotMethods botMethods;
+		private readonly IBotMethods botMethods;
 
 		public Match(IBotMethods botMethods, int id, Team homeTeam, Team awayTeam, int homeScore, int awayScore, string status, DateTime startTime, DateTime endTime, DateTime? actualStartTime, DateTime? actualEndTime) {
 			Id = id;
@@ -198,6 +198,50 @@ namespace OverwatchLeague.Data {
 		}
 		public int CompareTo(Match other) {
 			return StartTime.CompareTo(other.StartTime);
+		}
+
+		public override bool Equals(object obj) {
+			if (ReferenceEquals(this, obj)) {
+				return true;
+			}
+
+			if (obj is null) {
+				return false;
+			}
+
+			return Id == (obj as Match).Id;
+		}
+
+		public override int GetHashCode() {
+			return Id.GetHashCode();
+		}
+
+		public static bool operator ==(Match left, Match right) {
+			if (left is null) {
+				return right is null;
+			}
+
+			return left.Equals(right);
+		}
+
+		public static bool operator !=(Match left, Match right) {
+			return !(left == right);
+		}
+
+		public static bool operator <(Match left, Match right) {
+			return left is null ? right is object : left.CompareTo(right) < 0;
+		}
+
+		public static bool operator <=(Match left, Match right) {
+			return left is null || left.CompareTo(right) <= 0;
+		}
+
+		public static bool operator >(Match left, Match right) {
+			return left is object && left.CompareTo(right) > 0;
+		}
+
+		public static bool operator >=(Match left, Match right) {
+			return left is null ? right is null : left.CompareTo(right) >= 0;
 		}
 	}
 }

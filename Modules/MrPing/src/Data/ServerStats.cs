@@ -21,25 +21,25 @@ namespace MrPing.Data {
 		}
 
 		[JsonProperty(Required = Required.Always)]
-		private Dictionary<ulong, DiscordUser> users;
+		private readonly Dictionary<ulong, DiscordUser> users;
 		[JsonProperty(Required = Required.Always)]
-		private Dictionary<ulong, int> numPingsSent;
+		private readonly Dictionary<ulong, int> numPingsSent;
 		[JsonProperty(Required = Required.Always)]
-		private Dictionary<ulong, int> numChallengesReceived;
+		private readonly Dictionary<ulong, int> numChallengesReceived;
 		[JsonProperty(Required = Required.Always)]
-		private Dictionary<ulong, int> numChallengesSent;
+		private readonly Dictionary<ulong, int> numChallengesSent;
 		[JsonProperty(Required = Required.Always)]
-		private Dictionary<ulong, int> numPingsPrescribed;
+		private readonly Dictionary<ulong, int> numPingsPrescribed;
 		[JsonProperty(Required = Required.Always)]
-		private Dictionary<ulong, int> numPingsReceived;
+		private readonly Dictionary<ulong, int> numPingsReceived;
 		[JsonProperty(Required = Required.Always)]
-		private Dictionary<ulong, int> numChallengesCompleted;
+		private readonly Dictionary<ulong, int> numChallengesCompleted;
 		[JsonProperty(Required = Required.Always)]
-		private Dictionary<ulong, int> numChallengesSelfFinished;
-		private Dictionary<ulong, double> percentageSuccessfulPings {
+		private readonly Dictionary<ulong, int> numChallengesSelfFinished;
+		private Dictionary<ulong, double> PercentageSuccessfulPings {
 			get {
 				var d = new Dictionary<ulong, double>();
-				foreach (var user in numPingsReceived.Keys) {
+				foreach (ulong user in numPingsReceived.Keys) {
 					d.Add(user, numPingsReceived[user] * 1.0 / (numPingsPrescribed[user] > 0 ? numPingsPrescribed[user] : 1));
 				}
 				return d;
@@ -73,8 +73,8 @@ namespace MrPing.Data {
 				var stealerUser = numChallengesSelfFinished.First(u => u.Value == numChallengesSelfFinished.Values.Max());
 				sb.AppendLine($"{"Ping stealer".Bold()} - {users[stealerUser.Key].Username} #{users[stealerUser.Key].Discriminator} ({$"{stealerUser.Value} challenges personally finished".Italics()})");
 			}
-			if (percentageSuccessfulPings.Count > 0) {
-				var reliableTarget = percentageSuccessfulPings.First(u => u.Value == percentageSuccessfulPings.Values.Max());
+			if (PercentageSuccessfulPings.Count > 0) {
+				var reliableTarget = PercentageSuccessfulPings.First(u => u.Value == PercentageSuccessfulPings.Values.Max());
 				sb.AppendLine($"{"Easy target".Bold()} - {users[reliableTarget.Key].Username} #{users[reliableTarget.Key].Discriminator} ({$"{(reliableTarget.Value * 100.0).ToString("0.0000")}% ping success rate".Italics()})");
 			}
 			return sb.ToString();

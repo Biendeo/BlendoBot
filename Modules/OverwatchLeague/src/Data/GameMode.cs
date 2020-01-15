@@ -7,7 +7,7 @@ namespace OverwatchLeague.Data {
 	public class GameMode {
 		public ulong Id { get; private set; }
 		public string Name { get; private set; }
-		private List<Map> maps;
+		private readonly List<Map> maps;
 		public ReadOnlyCollection<Map> Maps { get { return maps.AsReadOnly(); } }
 
 		public GameMode(ulong id, string name) {

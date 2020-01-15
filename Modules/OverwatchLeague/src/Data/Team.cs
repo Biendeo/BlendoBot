@@ -13,7 +13,7 @@ namespace OverwatchLeague.Data {
 		public Division Division { get; private set; }
 		public Color PrimaryColor { get; private set; }
 		public Color SecondaryColor { get; private set; }
-		private List<Match> matches;
+		private readonly List<Match> matches;
 		public ReadOnlyCollection<Match> Matches { get { return matches.AsReadOnly(); } }
 
 		public Team(int id, string name, string abbreviatedName, Color primaryColor, Color secondaryColor) {

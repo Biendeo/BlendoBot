@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace WheelOfFortune {
 	public class WheelOfFortuneMessageListener : IMessageListener {
-		private WheelOfFortune wheelOfFortune;
+		private readonly WheelOfFortune wheelOfFortune;
 
 		public WheelOfFortuneMessageListener(WheelOfFortune wheelOfFortune) {
 			this.wheelOfFortune = wheelOfFortune;

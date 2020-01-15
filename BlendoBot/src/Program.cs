@@ -37,7 +37,7 @@ namespace BlendoBot {
 			// The rest of the fields will be initialised during the Start operation.
 		}
 
-		public async Task Start(string[] args) {
+		public async Task Start(string[] _) {
 			if (!Config.FromFile(ConfigPath, out Config readInConfig)) {
 				Config = readInConfig;
 				Console.Error.WriteLine($"Could not find {ConfigPath}! A default one will be created. Please modify the appropriate fields!");
@@ -81,7 +81,7 @@ namespace BlendoBot {
 		/// <param name="guildId"></param>
 		/// <param name="commandTerm"></param>
 		/// <returns></returns>
-		public CommandBase GetCommand(object sender, ulong guildId, string commandTerm) {
+		public CommandBase GetCommand(object _, ulong guildId, string commandTerm) {
 			if (GuildCommands.ContainsKey(guildId)) {
 				if (GuildCommands[guildId].ContainsKey(commandTerm)) {
 					return GuildCommands[guildId][commandTerm];
@@ -90,7 +90,7 @@ namespace BlendoBot {
 			return null;
 		}
 
-		public List<CommandBase> GetCommands(object sender, ulong guildId) {
+		public List<CommandBase> GetCommands(object _, ulong guildId) {
 			if (GuildCommands.ContainsKey(guildId)) {
 				return GuildCommands[guildId].Values.ToList();
 			} else {
@@ -292,7 +292,7 @@ namespace BlendoBot {
 
 		#endregion
 
-		public async Task<bool> AddCommand(object o, ulong guildId, string commandClassName) {
+		public async Task<bool> AddCommand(object _, ulong guildId, string commandClassName) {
 			var commandType = LoadedCommands[commandClassName];
 			try {
 				var commandInstance = Activator.CreateInstance(commandType, new object[] { guildId, this }) as CommandBase;

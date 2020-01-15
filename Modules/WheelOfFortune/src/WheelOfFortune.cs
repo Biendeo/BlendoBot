@@ -39,14 +39,13 @@ namespace WheelOfFortune {
 				puzzles = new List<Puzzle>();
 				if (File.Exists(Path.Combine(BotMethods.GetCommandCommonDataPath(this, this), "puzzles.txt"))) {
 					using (var file = File.OpenRead(Path.Combine(BotMethods.GetCommandCommonDataPath(this, this), "puzzles.txt"))) {
-						using (var reader = new StreamReader(file)) {
-							while (!reader.EndOfStream) {
-								string line = reader.ReadLine();
-								puzzles.Add(new Puzzle {
-									Category = line.Split(";")[0],
-									Phrase = line.Split(";")[1]
-								});
-							}
+						using var reader = new StreamReader(file);
+						while (!reader.EndOfStream) {
+							string line = reader.ReadLine();
+							puzzles.Add(new Puzzle {
+								Category = line.Split(";")[0],
+								Phrase = line.Split(";")[1]
+							});
 						}
 					}
 					BotMethods.Log(this, new LogEventArgs {
@@ -70,8 +69,8 @@ namespace WheelOfFortune {
 			if (currentChannel != null && e.Channel == currentChannel) {
 				if (!eliminatedUsers.Contains(e.Author)) {
 					var alphabetRegex = new Regex("[^A-Z]");
-					var messageText = alphabetRegex.Replace(e.Message.Content.ToUpper(), "");
-					var expectedAnswer = alphabetRegex.Replace(currentPuzzle.Phrase.ToUpper(), "");
+					string messageText = alphabetRegex.Replace(e.Message.Content.ToUpper(), "");
+					string expectedAnswer = alphabetRegex.Replace(currentPuzzle.Phrase.ToUpper(), "");
 					if (messageText == expectedAnswer) {
 						currentChannel = null;
 						eliminatedUsers.Clear();

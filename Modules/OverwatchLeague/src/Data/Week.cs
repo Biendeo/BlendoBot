@@ -9,7 +9,7 @@ namespace OverwatchLeague.Data {
 		public int WeekNumber { get; private set; }
 		public string Name { get; private set; }
 		public Stage Stage { get; private set; }
-		private List<Match> matches;
+		private readonly List<Match> matches;
 		public ReadOnlyCollection<Match> Matches { get { return matches.AsReadOnly(); } }
 
 		public bool IsCurrent { get {
