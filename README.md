@@ -64,11 +64,11 @@ BlendoBot comes with a few commands that are labeled as *internal*. These comman
 
 #### `?about`
 
-The about command simply tells you information about the current BlendoBot instance and individual command modules. Using it without any arguments tells you about the running client (set in `config.json`), and using it with the name of a command afterwards (i.e. `?about help` or `?about ?help`) tells you information about that module.
+The about command simply tells you information about the current BlendoBot instance and individual command modules. Using it without any arguments tells you about the running client (set in `config.json`), and using it with the name of a command afterwards (e.g. `?about help` or `?about ?help`) tells you information about that module.
 
 #### `?help`
 
-The help command tells you how a command can be used. Using it without any arguments tells you a list of available commands. Supply a name of a command afterwards (i.e. `?help about` or `?help ?about`) and it'll tell you the help information about that command.
+The help command tells you how a command can be used. Using it without any arguments tells you a list of available commands. Supply a name of a command afterwards (e.g. `?help about` or `?help ?about`) and it'll tell you the help information about that command.
 
 #### `?admin`
 
