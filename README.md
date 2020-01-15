@@ -1,11 +1,11 @@
 ## BlendoBot
-### A Discord bot + modular framework written in C# for .NET Core 3.0
+### A Discord bot + modular framework written in C# for .NET Core 3.1
 
 BlendoBot is a Discord bot intended for fun uses. It has a modular design such that it can dynamically load in any DLL that uses a common framework. The project is split into two major outputs; the BlendoBotLib DLL, which exposes interfaces for modules, and the BlendoBot executable that connects to Discord and operates with the modules.
 
 ### Download and run BlendoBot
 
-You will require the ability to compile and run .NET Core 3.0 programs. Please follow [the instructions for your operating system](https://dotnet.microsoft.com/download/dotnet-core/3.0) on how to setup .NET Core for your commandline. Alternatively, Windows and Mac OS users may choose to open the `BlendoBot.sln` file in Visual Studio 2019 and simply run the program from there.
+You will require the ability to compile and run .NET Core 3.1 programs. Please follow [the instructions for your operating system](https://dotnet.microsoft.com/download/dotnet-core/3.1) on how to setup .NET Core for your commandline. Alternatively, Windows and Mac OS users may choose to open the `BlendoBot.sln` file in Visual Studio 2019 and simply run the program from there.
 
 If you can run `dotnet` from the commandline, simply:
 - Clone the repository using:
@@ -78,7 +78,7 @@ The admin command lets you as a guild administrator add other users to become Bl
 
 The neat part of BlendoBot is that you do not need to modify the BlendoBot program itself to add a new command! Simply create your own module in the same way as the existing modules, and compile it to a DLL. Then, if the DLL is in the same folder as the BlendoBot executable, then when the bot launches, the modules will be loaded in!
 
-First, make a new C# project targetting *.NET Core 2.1* and output as a *Class Library*. These can be set in your project properties. You will also need to add a reference to *BlendoBotLib* to your project. This will now allow your program to compile properly and utilise the BlendoBot library to help it interact.
+First, make a new C# project targetting *.NET Core 3.1* and output as a *Class Library*. These can be set in your project properties. You will also need to add a reference to *BlendoBotLib* to your project. This will now allow your program to compile properly and utilise the BlendoBot library to help it interact.
 
 BlendoBot requires two aspects in your module in order to add it into the program.
 - Your compiled module's library (i.e. the DLL file) should be located in the same folder as the BlendoBot executable. In this solution I have added every module as a dependency to BlendoBot so that they automatically copy the DLLs to the same folder. You can alternatively use a post-build script or command to automate this.
