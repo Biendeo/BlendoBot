@@ -23,8 +23,12 @@
     </EmbeddedResource>
   </ItemGroup>
 
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent" Condition="'$(OS)' == 'Windows_NT'">
     <Exec Command="setlocal&#xD;&#xA;&#xD;&#xA;for /f &quot;tokens=*&quot; %25%25i in ('git log --pretty^=format:%25%25h -n 1 *') do set hash=%25%25i&#xD;&#xA;for /f &quot;tokens=*&quot; %25%25i in ('git show --no-patch --no-notes --pretty^=%25%25cd %25hash%25') do set date=%25%25i&#xD;&#xA;&#xD;&#xA;echo %25hash%25 - %25date%25 &gt; version.txt&#xD;&#xA;&#xD;&#xA;endlocal" />
+  </Target>
+
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent" Condition="'$(OS)' != 'Windows_NT'">
+    <Exec Command="hash=`git log --pretty=format:%h -n 1 *`&#xD;&#xA;&#xD;&#xA;date=`git show --no-patch --no-notes --pretty=%cd=$hash`&#xD;&#xA;&#xD;&#xA;echo %hash%-%date% > version.txt" />
   </Target>
 
 </Project>
