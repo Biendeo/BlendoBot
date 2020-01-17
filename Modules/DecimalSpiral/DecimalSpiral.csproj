@@ -8,4 +8,23 @@
     <ProjectReference Include="..\..\BlendoBotLib\BlendoBotLib.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="setlocal&#xD;&#xA;&#xD;&#xA;for /f &quot;tokens=*&quot; %25%25i in ('git log --pretty^=format:%25%25h -n 1 *') do set hash=%25%25i&#xD;&#xA;for /f &quot;tokens=*&quot; %25%25i in ('git show --no-patch --no-notes --pretty^=%25%25cd %25hash%25') do set date=%25%25i&#xD;&#xA;&#xD;&#xA;echo %25hash%25 - %25date%25 &gt; version.txt&#xD;&#xA;&#xD;&#xA;endlocal" />
+  </Target>
+
 </Project>

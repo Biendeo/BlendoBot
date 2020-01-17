@@ -12,7 +12,7 @@ namespace DecimalSpiral {
 		public override string Description => "Makes a pretty spiral.";
 		public override string Usage => $"Usage: {"?ds [size]".Code()} {"".Italics()}\nThe size must be an odd number between 5 and 43!";
 		public override string Author => "Biendeo";
-		public override string Version => "0.1.0";
+		public override string Version => Properties.Resources.ModuleVersion.Trim();
 
 		private enum Direction {
 			Up,

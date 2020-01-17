@@ -272,5 +272,9 @@ config.cfg
 mrping/
 data/
 
+# Auto-generated BlendoBot files
+Resources.Designer.cs
+version.txt
+
 # VS Code
 .vscode/*
