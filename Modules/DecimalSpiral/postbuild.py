@@ -7,7 +7,7 @@ date = subprocess.check_output("git show --no-patch --no-notes --pretty=%cd", sh
 with open("src/DecimalSpiral.cs", "r") as in_file:
 	content = in_file.read()
 
-content = content.replace("$VERSION", "{} - {}".format(hash, date))
+content = content.replace("{} - {}".format(hash, date), "$VERSION")
 
 with open("src/DecimalSpiral.cs", "w") as out_file:
 	out_file.write(content)

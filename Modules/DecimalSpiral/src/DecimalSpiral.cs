@@ -1,6 +1,7 @@
 ﻿using BlendoBotLib;
 using DSharpPlus.EventArgs;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace DecimalSpiral {
@@ -12,7 +13,7 @@ namespace DecimalSpiral {
 		public override string Description => "Makes a pretty spiral.";
 		public override string Usage => $"Usage: {"?ds [size]".Code()} {"".Italics()}\nThe size must be an odd number between 5 and 43!";
 		public override string Author => "Biendeo";
-		public override string Version => Properties.Resources.ModuleVersion.Trim();
+		public override string Version => "$VERSION";
 
 		private enum Direction {
 			Up,
