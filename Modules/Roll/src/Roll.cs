@@ -33,8 +33,8 @@ namespace Roll {
 					await FlipCoin(e);
 				} else {
 					string[] splitRoll = splitMessage[1].Split('d');
-					if (splitRoll.Length == 1) {
-						bool success = int.TryParse(splitRoll[0], out int diceValue);
+					if (splitRoll.Length == 1 || (splitRoll.Length == 2 && string.IsNullOrWhiteSpace(splitRoll[0]))) {
+						bool success = int.TryParse(splitRoll[splitRoll.Length - 1], out int diceValue);
 						if (success) {
 							if (diceValue > 1000000) {
 								await BotMethods.SendMessage(this, new SendMessageEventArgs {
@@ -53,7 +53,7 @@ namespace Roll {
 							}
 						} else {
 							await BotMethods.SendMessage(this, new SendMessageEventArgs {
-								Message = $"{splitRoll[0]} is not a valid number!",
+								Message = $"{splitRoll[splitRoll.Length - 1]} is not a valid number!",
 								Channel = e.Channel,
 								LogMessage = "RollErrorSingleInvalidNumber"
 							});
