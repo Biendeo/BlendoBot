@@ -67,6 +67,11 @@ namespace BlendoBot {
 			DiscordClient.GuildCreated += DiscordGuildCreated;
 			DiscordClient.GuildAvailable += DiscordGuildAvailable;
 
+			//? These are for debugging in the short-term.
+			DiscordClient.ClientErrored += DiscordClientErrored;
+			DiscordClient.SocketClosed += DiscordSocketClosed;
+			DiscordClient.SocketErrored += DiscordSocketErrored;
+
 			LoadCommands();
 
 			await DiscordClient.ConnectAsync();
@@ -286,6 +291,33 @@ namespace BlendoBot {
 			});
 
 			await InstantiateCommandsForGuild(e.Guild.Id);
+
+			await Task.Delay(0);
+		}
+
+		private async Task DiscordClientErrored(ClientErrorEventArgs e) {
+			Log(this, new LogEventArgs {
+				Type = LogType.Error,
+				Message = $"ClientErrored triggered: {e.Exception}"
+			});
+
+			await Task.Delay(0);
+		}
+
+		private async Task DiscordSocketClosed(SocketCloseEventArgs e) {
+			Log(this, new LogEventArgs {
+				Type = LogType.Error,
+				Message = $"SocketClosed triggered: {e.CloseCode} - {e.CloseMessage}"
+			});
+
+			await Task.Delay(0);
+		}
+
+		private async Task DiscordSocketErrored(SocketErrorEventArgs e) {
+			Log(this, new LogEventArgs {
+				Type = LogType.Error,
+				Message = $"SocketErrored triggered: {e.Exception}"
+			});
 
 			await Task.Delay(0);
 		}
