@@ -160,7 +160,7 @@ namespace BlendoBot {
 
 		public void Log(object sender, LogEventArgs e) {
 			string typeString = Enum.GetName(typeof(LogType), e.Type);
-			string logMessage = $"[{typeString}] ({DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}) | {e.Message}";
+			string logMessage = $"[{typeString}] ({DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}) [{sender?.GetType().FullName ?? "null"}] | {e.Message}";
 			Console.WriteLine(logMessage);
 			if (!Directory.Exists("log")) Directory.CreateDirectory("log");
 			File.AppendAllText(LogFile, logMessage + "\n");
