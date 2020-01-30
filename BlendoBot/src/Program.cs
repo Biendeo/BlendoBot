@@ -319,6 +319,9 @@ namespace BlendoBot {
 				Message = $"SocketErrored triggered: {e.Exception}"
 			});
 
+			//HACK: This should try and reconnect should something wrong happen.
+			await DiscordClient.ConnectAsync();
+
 			await Task.Delay(0);
 		}
 
