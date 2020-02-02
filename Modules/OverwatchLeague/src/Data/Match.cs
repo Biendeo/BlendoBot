@@ -15,17 +15,17 @@ namespace OverwatchLeague.Data {
 		public Team AwayTeam { get; private set; }
 		public int HomeScore { get; private set; }
 		public int AwayScore { get; private set; }
-		public int DrawMaps { get { return Games.Where(x => x.HomeScore == x.AwayScore).Count(); } }
+		public int DrawMaps => Games.Where(x => x.HomeScore == x.AwayScore).Count();
 		private string status;
-		public MatchStatus Status { get { return MatchStatusExtensions.FromString(status); } }
+		public MatchStatus Status => MatchStatusExtensions.FromString(status);
 		public DateTime StartTime { get; private set; }
 		public DateTime EndTime { get; private set; }
 		public DateTime? ActualStartTime { get; private set; }
 		public DateTime? ActualEndTime { get; private set; }
 		private readonly List<MatchGame> games;
-		public ReadOnlyCollection<MatchGame> Games { get { return games.AsReadOnly(); } }
-		public Week Week { get; private set; }
-		public Stage Stage { get { return Week.Stage; } }
+		public ReadOnlyCollection<MatchGame> Games => games.AsReadOnly();
+		public Week Week => Event.Week;
+		public Event Event { get; private set; }
 		private readonly Timer updateTimer;
 
 		private readonly IBotMethods botMethods;
@@ -193,9 +193,10 @@ namespace OverwatchLeague.Data {
 			}
 		}
 
-		public void SetWeek(Week week) {
-			Week = week;
+		public void SetEvent(Event e) {
+			Event = e;
 		}
+
 		public int CompareTo(Match other) {
 			return StartTime.CompareTo(other.StartTime);
 		}
