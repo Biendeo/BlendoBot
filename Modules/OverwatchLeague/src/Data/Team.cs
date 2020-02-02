@@ -9,26 +9,22 @@ namespace OverwatchLeague.Data {
 		public int Id { get; private set; }
 		public string Name { get; private set; }
 		public string AbbreviatedName { get; private set; }
-		
-		public Division Division { get; private set; }
 		public Color PrimaryColor { get; private set; }
 		public Color SecondaryColor { get; private set; }
+		public Color TertiaryColor { get; private set; }
 		private readonly List<Match> matches;
-		public ReadOnlyCollection<Match> Matches { get { return matches.AsReadOnly(); } }
+		public ReadOnlyCollection<Match> Matches => matches.AsReadOnly();
 
-		public Team(int id, string name, string abbreviatedName, Color primaryColor, Color secondaryColor) {
+		public Team(int id, string name, string abbreviatedName, Color primaryColor, Color secondaryColor, Color tertiaryColor) {
 			Id = id;
 			Name = name;
 			AbbreviatedName = abbreviatedName;
-			Division = null;
 			PrimaryColor = primaryColor;
 			SecondaryColor = secondaryColor;
+			TertiaryColor = tertiaryColor;
 			matches = new List<Match>();
 		}
 
-		public void SetDivision(Division d) {
-			Division = d;
-		}
 
 		public void AddMatch(Match m) {
 			matches.Add(m);
