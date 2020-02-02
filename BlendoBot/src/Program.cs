@@ -394,7 +394,7 @@ namespace BlendoBot {
 
 		private async Task InstantiateCommandsForGuild(ulong guildId) {
 			if (GuildCommands.ContainsKey(guildId)) {
-				GuildCommands[guildId].Clear();
+				return;
 			} else {
 				GuildCommands.Add(guildId, new Dictionary<string, CommandBase>());
 			}
