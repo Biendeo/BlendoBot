@@ -223,7 +223,7 @@ namespace OverwatchLeague.Data {
 					Type = LogType.Log,
 					Message = $"OverwatchLeague is requesting the schedule for week {page}"
 				});
-				var uri = new Uri($"https://wzavfvwgfk.execute-api.us-east-2.amazonaws.com/production/owl/paginator/schedule?stage=regular_season&page={page}season=2020&locale=en-us");
+				var uri = new Uri($"https://wzavfvwgfk.execute-api.us-east-2.amazonaws.com/production/owl/paginator/schedule?stage=regular_season&page={page}&season=2020&locale=en-us");
 				string referer = "https://overwatchleague.com/en-us/schedule";
 				using var getMessage = new HttpRequestMessage {
 					Method = HttpMethod.Get,
@@ -251,13 +251,19 @@ namespace OverwatchLeague.Data {
 						int matchId = (int)match.id;
 						var homeTeam = teams.Single(t => t.Id == (int)match.competitors[0].id.Value);
 						var awayTeam = teams.Single(t => t.Id == (int)match.competitors[1].id.Value);
-						string status = match.Status;
+						int homeScore = 0;
+						int awayScore = 0;
+						if (match.scores.Count > 0) {
+							homeScore = (int)match.scores[0];
+							awayScore = (int)match.scores[1];
+						}
+						string status = match.status;
 						DateTime startTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.startDate);
 						DateTime endTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.endDate);
-						//TODO: Don't assume the match is 0-0.
-						//TODO: Get the actual start and end times.
-						//TODO: Get the maps afterwards.
-						var m = new Match(botMethods, matchId, homeTeam, awayTeam, 0, 0, status, startTime, endTime, null, null);
+						//TODO: Get the actual start and end times (do they not exist anymore?).
+						// Maps are added only when requested since they must be gotten on a per-match basis.
+						var m = new Match(botMethods, matchId, homeTeam, awayTeam, homeScore, awayScore, status, startTime, endTime, null, null);
+						m.SetEvent(e);
 						matches.Add(m);
 						homeTeam.AddMatch(m);
 						awayTeam.AddMatch(m);

@@ -14,6 +14,7 @@ namespace OverwatchLeague.Data {
 		public static MatchStatus FromString(string s) => s switch {
 			"PENDING" => MatchStatus.Pending,
 			"IN_PROGRESS" => MatchStatus.InProgress,
+			"ONGOING" => MatchStatus.InProgress,
 			"CONCLUDED" => MatchStatus.Concluded,
 			_ => MatchStatus.Unknown,
 		};
