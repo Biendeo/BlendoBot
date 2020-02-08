@@ -101,7 +101,6 @@ namespace OverwatchLeague {
 			using (var wc = new WebClient()) {
 				if (splitMessage.Length > 1 && splitMessage[1] == "live") {
 					Match match = (from c in Database.Matches where c.EndTime > DateTime.UtcNow && c.StartTime < DateTime.UtcNow select c).FirstOrDefault();
-
 					if (match == null) {
 						await BotMethods.SendMessage(this, new SendMessageEventArgs {
 							Message = "No match is currently live!",
@@ -109,6 +108,13 @@ namespace OverwatchLeague {
 							LogMessage = "OverwatchLeagueLiveNoMatch"
 						});
 					} else {
+						if (match.Games.Count == 0) {
+							BotMethods.Log(this, new LogEventArgs {
+								Message = $"Updating match {match.Id} on demand",
+								Type = LogType.Log,
+							});
+							await match.UpdateMatch();
+						}
 						await BotMethods.SendMessage(this, new SendMessageEventArgs {
 							Message = GetMatchDetails(match, userTimeZone),
 							Channel = e.Channel,
@@ -141,6 +147,13 @@ namespace OverwatchLeague {
 								LogMessage = "OverwatchLeagueMatchNoMatch"
 							});
 						} else {
+							if (match.Games.Count == 0) {
+								BotMethods.Log(this, new LogEventArgs {
+									Message = $"Updating match {match.Id} on demand",
+									Type = LogType.Log,
+								});
+								await match.UpdateMatch();
+							}
 							await BotMethods.SendMessage(this, new SendMessageEventArgs {
 								Message = GetMatchDetails(match, userTimeZone),
 								Channel = e.Channel,
