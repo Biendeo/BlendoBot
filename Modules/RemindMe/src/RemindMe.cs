@@ -1,5 +1,6 @@
 ﻿using BlendoBotLib;
 using DSharpPlus.EventArgs;
+using DSharpPlus.Exceptions;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -32,11 +33,18 @@ namespace RemindMe {
 				foreach (var reminder in OutstandingReminders) {
 					if (reminder.Time < DateTime.UtcNow) {
 						var channel = await BotMethods.GetChannel(this, reminder.ChannelId);
-						await BotMethods.SendMessage(this, new SendMessageEventArgs {
-							Message = $"I just woke up and forgot to send <@{reminder.UserId}> this alert on time!\n{reminder.Message}",
-							Channel = channel,
-							LogMessage = "ReminderLateAlert"
-						});
+						try {
+							await BotMethods.SendMessage(this, new SendMessageEventArgs {
+								Message = $"I just woke up and forgot to send <@{reminder.UserId}> this alert on time!\n{reminder.Message}",
+								Channel = channel,
+								LogMessage = "ReminderLateAlert"
+							});
+						} catch (UnauthorizedException exc) {
+							BotMethods.Log(this, new LogEventArgs {
+								Type = LogType.Warning,
+								Message = $"Tried doing a wakeup message {reminder.Message} which should've sent at {reminder.Time}, but a 403 was received! This tried to send to user {reminder.UserId} in channel {reminder.ChannelId}."
+							});
+						}
 					} else {
 						reminder.Activate(ReminderElapsed);
 					}
