@@ -42,9 +42,9 @@ namespace MrPing.Data {
 		[JsonProperty(Required = Required.Always)]
 		public int TargetPings { get; }
 		[JsonProperty(Required = Required.Always)]
-		private Dictionary<ulong, int> seenPings;
+		private readonly Dictionary<ulong, int> seenPings;
 		[JsonProperty(Required = Required.Always)]
-		private Dictionary<ulong, DiscordUser> seenUsers;
+		private readonly Dictionary<ulong, DiscordUser> seenUsers;
 		public int TotalPings {
 			get {
 				return seenPings.Values.Sum();

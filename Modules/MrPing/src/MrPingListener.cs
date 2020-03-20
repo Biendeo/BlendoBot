@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace MrPing {
 	public class MrPingListener : IMessageListener {
-		private MrPing mrPing;
+		private readonly MrPing mrPing;
 
 		public MrPingListener(MrPing mrPing) {
 			this.mrPing = mrPing;

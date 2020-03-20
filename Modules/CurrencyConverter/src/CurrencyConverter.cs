@@ -19,7 +19,7 @@ namespace CurrencyConverter {
 		public override string Version => "0.1.1";
 
 		private const string APIKeyMissingMessage = "PLEASE ADD API KEY";
-		private bool IsApiKeyMissing(string apiKey) => apiKey == null || apiKey == APIKeyMissingMessage;
+		private static bool IsApiKeyMissing(string apiKey) => apiKey == null || apiKey == APIKeyMissingMessage;
 
 		private string ApiKey {
 			get {
@@ -83,20 +83,19 @@ namespace CurrencyConverter {
 			var sb = new StringBuilder();
 
 			for (int i = 3; i < splitInput.Length; ++i) {
-				using (var wc = new WebClient()) {
-					string convertJsonString = await wc.DownloadStringTaskAsync($"https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency={fromCurrency}&to_currency={splitInput[i]}&apikey={BotMethods.ReadConfig(this, Name, "ApiKey")}");
-					dynamic convertJson = JsonConvert.DeserializeObject(convertJsonString);
-					try {
-						double rate = convertJson["Realtime Currency Exchange Rate"]["5. Exchange Rate"];
-						if (foundMatches == 0) {
-							sb.AppendLine($"{amount.ToString("0.00000").Substring(0, 7).Code()} - {convertJson["Realtime Currency Exchange Rate"]["1. From_Currency Code"]} ({((string)convertJson["Realtime Currency Exchange Rate"]["2. From_Currency Name"]).Italics()})");
-						}
-						sb.AppendLine($"{(amount * rate).ToString("0.00000").Substring(0, 7).Code()} - {convertJson["Realtime Currency Exchange Rate"]["3. To_Currency Code"]} ({((string)convertJson["Realtime Currency Exchange Rate"]["4. To_Currency Name"]).Italics()})");
-						++foundMatches;
-					} catch (Exception) {
-						// Unsuccessful, next one.
-						failedMatches.Add(splitInput[i]);
+				using var wc = new WebClient();
+				string convertJsonString = await wc.DownloadStringTaskAsync($"https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency={fromCurrency}&to_currency={splitInput[i]}&apikey={BotMethods.ReadConfig(this, Name, "ApiKey")}");
+				dynamic convertJson = JsonConvert.DeserializeObject(convertJsonString);
+				try {
+					double rate = convertJson["Realtime Currency Exchange Rate"]["5. Exchange Rate"];
+					if (foundMatches == 0) {
+						sb.AppendLine($"{amount.ToString("0.00000").Substring(0, 7).Code()} - {convertJson["Realtime Currency Exchange Rate"]["1. From_Currency Code"]} ({((string)convertJson["Realtime Currency Exchange Rate"]["2. From_Currency Name"]).Italics()})");
 					}
+					sb.AppendLine($"{(amount * rate).ToString("0.00000").Substring(0, 7).Code()} - {convertJson["Realtime Currency Exchange Rate"]["3. To_Currency Code"]} ({((string)convertJson["Realtime Currency Exchange Rate"]["4. To_Currency Name"]).Italics()})");
+					++foundMatches;
+				} catch (Exception) {
+					// Unsuccessful, next one.
+					failedMatches.Add(splitInput[i]);
 				}
 			}
 

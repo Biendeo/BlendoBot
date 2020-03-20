@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <StartupObject>BlendoBot.Program</StartupObject>
     <ApplicationIcon />
     <Win32Resource />
@@ -28,6 +28,7 @@
     <ProjectReference Include="..\Modules\Roll\Roll.csproj" />
     <ProjectReference Include="..\Modules\UserTimeZone\UserTimeZone.csproj" />
     <ProjectReference Include="..\Modules\Weather\Weather.csproj" />
+    <ProjectReference Include="..\Modules\WheelOfFortune\WheelOfFortune.csproj" />
   </ItemGroup>
 
 </Project>

@@ -11,7 +11,7 @@ namespace OverwatchLeague.Data {
 		public Match Match { get; private set; }
 		public Map Map { get; private set; }
 		public string status { get; private set; }
-		public MatchStatus Status { get { return MatchStatusExtensions.FromString(status); } }
+		public MatchStatus Status => MatchStatusExtensions.FromString(status);
 
 		public MatchGame(int id, int mapNumber, int homeScore, int awayScore, Match match, Map map, string status) {
 			Id = id;

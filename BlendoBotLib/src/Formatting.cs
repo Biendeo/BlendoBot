@@ -13,7 +13,7 @@ namespace BlendoBotLib {
 		/// <param name="s"></param>
 		/// <returns></returns>
 		public static string Bold(this string s) {
-			return s == "" ? s : $"**{s}**";
+			return string.IsNullOrWhiteSpace(s) ? s : $"**{s}**";
 		}
 
 		/// <summary>
@@ -22,7 +22,7 @@ namespace BlendoBotLib {
 		/// <param name="s"></param>
 		/// <returns></returns>
 		public static string Italics(this string s) {
-			return s == "" ? s : $"*{s}*";
+			return string.IsNullOrWhiteSpace(s) ? s : $"*{s}*";
 		}
 
 		/// <summary>
@@ -31,7 +31,7 @@ namespace BlendoBotLib {
 		/// <param name="s"></param>
 		/// <returns></returns>
 		public static string Underline(this string s) {
-			return s == "" ? s : $"__{s}__";
+			return string.IsNullOrWhiteSpace(s) ? s : $"__{s}__";
 		}
 
 		/// <summary>
@@ -40,7 +40,7 @@ namespace BlendoBotLib {
 		/// <param name="s"></param>
 		/// <returns></returns>
 		public static string Strikeout(this string s) {
-			return s == "" ? s : $"~~{s}~~";
+			return string.IsNullOrWhiteSpace(s) ? s : $"~~{s}~~";
 		}
 
 		/// <summary>
@@ -49,7 +49,7 @@ namespace BlendoBotLib {
 		/// <param name="s"></param>
 		/// <returns></returns>
 		public static string Code(this string s) {
-			return s == "" ? s : $"`{s}`";
+			return string.IsNullOrWhiteSpace(s) ? s : $"`{s}`";
 		}
 
 		/// <summary>
@@ -58,7 +58,7 @@ namespace BlendoBotLib {
 		/// <param name="s"></param>
 		/// <returns></returns>
 		public static string CodeBlock(this string s) {
-			return s == "" ? s : $"```{s}```";
+			return string.IsNullOrWhiteSpace(s) ? s : $"```\n{s}\n```";
 		}
 	}
 }

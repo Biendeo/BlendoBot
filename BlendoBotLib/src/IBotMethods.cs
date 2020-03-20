@@ -64,12 +64,23 @@ namespace BlendoBotLib {
 		/// Returns a path that this command can use to store persistent data. The command should give this particular
 		/// instance a unique path, and the path should exist after this call.
 		/// </summary>
-		string GetCommandDataPath(object o, CommandBase command);
+		string GetCommandInstanceDataPath(object o, CommandBase command);
+
+		/// <summary>
+		/// Returns a path that this command can use to store persistent data. The command should give this particular
+		/// instance the same path as every other instance of this command, and the path should exist after this call.
+		/// </summary>
+		string GetCommandCommonDataPath(object o, CommandBase command);
 
 		/// <summary>
 		/// Returns whether a user for a given guild is an admin. This is true if either the user is a guild admin in
 		/// Discord, or if they've been manually granted admin.
 		/// </summary>
 		Task<bool> IsUserAdmin(object o, DiscordGuild guild, DiscordChannel channel, DiscordUser user);
+
+		/// <summary>
+		/// Given a channel ID, returns the channel object.
+		/// </summary>
+		Task<DiscordChannel> GetChannel(object o, ulong channelId);
 	}
 }

@@ -7,35 +7,33 @@ using System.Collections.ObjectModel;
 using System.Drawing;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
 
 namespace OverwatchLeague.Data {
 	public class Database {
-		private List<Team> teams;
-		public ReadOnlyCollection<Team> Teams { get { return teams.AsReadOnly(); } }
-		private List<Division> divisions;
-		public ReadOnlyCollection<Division> Divisions { get { return divisions.AsReadOnly(); } }
-		private List<Map> maps;
-		public ReadOnlyCollection<Map> Maps { get { return maps.AsReadOnly(); } }
-		private List<GameMode> gameModes;
-		public ReadOnlyCollection<GameMode> GameModes { get { return gameModes.AsReadOnly(); } }
-		private List<Match> matches;
-		public ReadOnlyCollection<Match> Matches { get { return matches.AsReadOnly(); } }
-		private List<Stage> stages;
-		public ReadOnlyCollection<Stage> Stages { get { return stages.AsReadOnly(); } }
-		private Timer fullUpdateTimer;
+		private readonly List<Team> teams;
+		public ReadOnlyCollection<Team> Teams => teams.AsReadOnly();
+		private readonly List<Map> maps;
+		public ReadOnlyCollection<Map> Maps => maps.AsReadOnly();
+		private readonly List<GameMode> gameModes;
+		public ReadOnlyCollection<GameMode> GameModes => gameModes.AsReadOnly();
+		private readonly List<Match> matches;
+		public ReadOnlyCollection<Match> Matches => matches.AsReadOnly();
+		private readonly List<Week> weeks;
+		public ReadOnlyCollection<Week> Weeks => weeks.AsReadOnly();
+		private readonly Timer fullUpdateTimer;
 
-		private IBotMethods botMethods;
+		private readonly IBotMethods botMethods;
 
 		public Database(IBotMethods botMethods) {
 			teams = new List<Team>();
-			divisions = new List<Division>();
 			maps = new List<Map>();
 			gameModes = new List<GameMode>();
 			matches = new List<Match>();
-			stages = new List<Stage>();
+			weeks = new List<Week>();
 
 			this.botMethods = botMethods;
 
@@ -67,59 +65,54 @@ namespace OverwatchLeague.Data {
 
 		public void Clear() {
 			teams.Clear();
-			divisions.Clear();
 			maps.Clear();
 			gameModes.Clear();
 			matches.Clear();
-			stages.Clear();
+			weeks.Clear();
 		}
 
 		public async Task ReloadDatabase() {
 			Clear();
-			await LoadTeamsAndDivisions();
+			await LoadTeams();
 			await LoadMapsAndModes();
-			await LoadMatches();
+			//await LoadMatches();
 			await LoadSchedule();
 		}
 
-		private async Task LoadTeamsAndDivisions() {
+		private async Task LoadTeams() {
 			botMethods.Log(this, new LogEventArgs {
 				Type = LogType.Log,
 				Message = $"OverwatchLeague is requesting teams..."
 			});
-			// Both teams and divisions are available through one API call.
-			using (var wc = new WebClient()) {
-				string teamsJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/teams");
-				dynamic teamsJson = JsonConvert.DeserializeObject(teamsJsonString);
 
-				// First note the divisions.
-				foreach (var division in teamsJson.owl_divisions) {
-					// The division ID is a string for some reason.
-					int id = int.Parse(division.id.Value);
-					string name = division.name;
-					string abbreviatedName = division.abbrev;
-					divisions.Add(new Division(id, name, abbreviatedName));
-				}
+			//? BEGIN TESTING
+			using var httpClient = new HttpClient();
+			var uri = new Uri("https://wzavfvwgfk.execute-api.us-east-2.amazonaws.com/production/owl/paginator/schedule?stage=regular_season&season=2020&locale=en-us");
+			string referer = "https://overwatchleague.com/en-us/schedule?stage=regular_season&week=2";
+			using var getMessage = new HttpRequestMessage {
+				Method = HttpMethod.Get,
+				RequestUri = uri
+			};
+			getMessage.Headers.Add("Referer", referer);
+			var getResponse = await httpClient.SendAsync(getMessage);
+			var getResponseString = await getResponse.Content.ReadAsStringAsync();
+			//? END TESTING
 
-				// Then note the teams, and then we'll link back to the divisions.
-				foreach (var competitor in teamsJson.competitors) {
-					var details = competitor.competitor; // The JSON has an additional hurdle for some reason.
+			using var wc = new WebClient();
 
-					// We need to handle the colors first.
-					Color primaryColor = Color.FromArgb(Convert.ToInt32(details.primaryColor.Value, 16));
-					Color secondaryColor = Color.FromArgb(Convert.ToInt32(details.secondaryColor.Value, 16));
-					int id = details.id;
-					string name = details.name;
-					string abbreviatedName = details.abbreviatedName;
-					Team newTeam = new Team(id, name, abbreviatedName, primaryColor, secondaryColor);
-					teams.Add(newTeam);
+			string teamsJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/v2/teams");
+			dynamic teamsJson = JsonConvert.DeserializeObject(teamsJsonString);
 
-					// Also do some linking here.
-					int divisionId = details.owl_division;
-					Division division = divisions.Find(d => d.Id == divisionId);
-					division.AddTeam(newTeam);
-					newTeam.SetDivision(division);
-				}
+			// Then note the teams, and then we'll link back to the divisions.
+			foreach (var team in teamsJson.data) {
+				Color primaryColor = Color.FromArgb(Convert.ToInt32(team.colors.primary.Value, 16));
+				Color secondaryColor = Color.FromArgb(Convert.ToInt32(team.colors.secondary.Value, 16));
+				Color tertiaryColor = Color.FromArgb(Convert.ToInt32(team.colors.tertiary.Value, 16));
+				int id = team.id;
+				string name = team.name;
+				string abbreviatedName = team.abbreviatedName;
+				Team newTeam = new Team(id, name, abbreviatedName, primaryColor, secondaryColor, tertiaryColor);
+				teams.Add(newTeam);
 			}
 		}
 
@@ -128,218 +121,183 @@ namespace OverwatchLeague.Data {
 				Type = LogType.Log,
 				Message = $"OverwatchLeague is requesting maps..."
 			});
-			using (var wc = new WebClient()) {
-				string mapsJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/maps");
-				dynamic mapsJson = JsonConvert.DeserializeObject(mapsJsonString);
+			using var wc = new WebClient();
+			string mapsJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/maps");
+			dynamic mapsJson = JsonConvert.DeserializeObject(mapsJsonString);
 
-				// Just store the maps straight.
-				foreach (var map in mapsJson) {
-					ulong guid = Convert.ToUInt64(map.guid.Value, 16);
-					string name = map.name.en_US;
+			// Just store the maps straight.
+			foreach (var map in mapsJson) {
+				ulong guid = Convert.ToUInt64(map.guid.Value, 16);
+				string name = map.name.en_US;
 
-					Map newMap = new Map(guid, name);
-					maps.Add(newMap);
+				Map newMap = new Map(guid, name);
+				maps.Add(newMap);
 
 
-					if (map["gameModes"] != null) {
-						foreach (var gameMode in map.gameModes) {
-							ulong gameModeId = Convert.ToUInt64(gameMode.Id.Value, 16);
-							string modeName = gameMode.Name;
+				if (map["gameModes"] != null) {
+					foreach (var gameMode in map.gameModes) {
+						ulong gameModeId = Convert.ToUInt64(gameMode.Id.Value, 16);
+						string modeName = gameMode.Name;
 
-							GameMode mode = gameModes.Find(m => m.Id == gameModeId);
-							if (mode == null) {
-								mode = new GameMode(gameModeId, modeName);
-								gameModes.Add(mode);
-							}
-							mode.AddMap(newMap);
-							newMap.AddGameMode(mode);
+						GameMode mode = gameModes.Find(m => m.Id == gameModeId);
+						if (mode == null) {
+							mode = new GameMode(gameModeId, modeName);
+							gameModes.Add(mode);
 						}
+						mode.AddMap(newMap);
+						newMap.AddGameMode(mode);
 					}
 				}
 			}
 		}
 
 		private async Task LoadMatches() {
+			//TODO: This may be irrelevent if the new endpoint delivers all the appropriate information.
 			botMethods.Log(this, new LogEventArgs {
 				Type = LogType.Log,
 				Message = $"OverwatchLeague is requesting matches..."
 			});
-			using (var wc = new WebClient()) {
-				string matchesJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/matches");
-				dynamic matchesJson = JsonConvert.DeserializeObject(matchesJsonString);
+			using var wc = new WebClient();
+			string matchesJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/matches");
+			dynamic matchesJson = JsonConvert.DeserializeObject(matchesJsonString);
 
-				foreach (var match in matchesJson.content) {
-					int id = match.id;
-					Team homeTeam = teams.Find(t => t.Id == match.competitors[0].id.Value);
-					Team awayTeam = teams.Find(t => t.Id == match.competitors[1].id.Value);
-					int homeScore = match.scores[0].value;
-					int awayScore = match.scores[1].value;
-					string status = match.status;
-					DateTime startTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.startDate);
-					DateTime endTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.endDate);
-					DateTime? actualStartTime = null;
-					if (match["actualStartTime"] != null) {
-						actualStartTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.actualStartTime);
+			foreach (var match in matchesJson.content) {
+				int id = match.id;
+				Team homeTeam = teams.Find(t => t.Id == match.competitors[0].id.Value);
+				Team awayTeam = teams.Find(t => t.Id == match.competitors[1].id.Value);
+				int homeScore = match.scores[0].value;
+				int awayScore = match.scores[1].value;
+				string status = match.status;
+				DateTime startTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.startDate);
+				DateTime endTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.endDate);
+				DateTime? actualStartTime = null;
+				if (match["actualStartTime"] != null) {
+					actualStartTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.actualStartTime);
+				}
+				DateTime? actualEndTime = null;
+				if (match["actualEndTime"] != null) {
+					actualEndTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.actualEndTime);
+				}
+
+				Match m = new Match(botMethods, id, homeTeam, awayTeam, homeScore, awayScore, status, startTime, endTime, actualStartTime, actualEndTime);
+				matches.Add(m);
+				if (homeTeam != null) {
+					homeTeam.AddMatch(m);
+				}
+				if (awayTeam != null) {
+					awayTeam.AddMatch(m);
+				}
+
+				// Now the individual games of the matches.
+				foreach (var game in match.games) {
+					int gameId = game.id;
+					int gameNumber = game.number;
+					int gameHomePoints = 0;
+					int gameAwayPoints = 0;
+					if (game["points"] != null) {
+						gameHomePoints = game.points[0];
+						gameAwayPoints = game.points[1];
 					}
-					DateTime? actualEndTime = null;
-					if (match["actualEndTime"] != null) {
-						actualEndTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.actualEndTime);
+					ulong mapGuid = 0;
+					if (game["attributes"]["mapGuid"] != null) {
+						mapGuid = Convert.ToUInt64(game.attributes.mapGuid.Value, 16);
 					}
+					Map map = maps.Find(x => x.Guid == mapGuid);
+					string gameStatus = game.status;
 
-					Match m = new Match(botMethods, id, homeTeam, awayTeam, homeScore, awayScore, status, startTime, endTime, actualStartTime, actualEndTime);
-					matches.Add(m);
-					if (homeTeam != null) {
-						homeTeam.AddMatch(m);
-					}
-					if (awayTeam != null) {
-						awayTeam.AddMatch(m);
-					}
+					MatchGame g = new MatchGame(gameId, gameNumber, gameHomePoints, gameAwayPoints, m, map, gameStatus);
 
-					// Now the individual games of the matches.
-					foreach (var game in match.games) {
-						int gameId = game.id;
-						int gameNumber = game.number;
-						int gameHomePoints = 0;
-						int gameAwayPoints = 0;
-						if (game["points"] != null) {
-							gameHomePoints = game.points[0];
-							gameAwayPoints = game.points[1];
-						}
-						ulong mapGuid = 0;
-						if (game["attributes"]["mapGuid"] != null) {
-							mapGuid = Convert.ToUInt64(game.attributes.mapGuid.Value, 16);
-						}
-						Map map = maps.Find(x => x.Guid == mapGuid);
-						string gameStatus = game.status;
-
-						MatchGame g = new MatchGame(gameId, gameNumber, gameHomePoints, gameAwayPoints, m, map, gameStatus);
-
-						m.AddGame(g);
-						if (map != null) {
-							map.AddGame(g);
-						}
+					m.AddGame(g);
+					if (map != null) {
+						map.AddGame(g);
 					}
 				}
 			}
 		}
 
 		private async Task LoadSchedule() {
-			botMethods.Log(this, new LogEventArgs {
-				Type = LogType.Log,
-				Message = $"OverwatchLeague is requesting the schedule..."
-			});
-			using (var wc = new WebClient()) {
-				string scheduleJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/schedule");
-				dynamic scheduleJson = JsonConvert.DeserializeObject(scheduleJsonString);
+			using var httpClient = new HttpClient();
+			//TODO: Hard-coded week count, if there was a non-paginated version that'd be nice.
+			foreach (int page in Enumerable.Range(1, 27)) {
+				botMethods.Log(this, new LogEventArgs {
+					Type = LogType.Log,
+					Message = $"OverwatchLeague is requesting the schedule for week {page}"
+				});
+				var uri = new Uri($"https://wzavfvwgfk.execute-api.us-east-2.amazonaws.com/production/owl/paginator/schedule?stage=regular_season&page={page}&season=2020&locale=en-us");
+				string referer = "https://overwatchleague.com/en-us/schedule";
+				using var getMessage = new HttpRequestMessage {
+					Method = HttpMethod.Get,
+					RequestUri = uri
+				};
+				getMessage.Headers.Add("Referer", referer);
+				var getResponse = await httpClient.SendAsync(getMessage);
+				var getResponseString = await getResponse.Content.ReadAsStringAsync();
+				dynamic getResponseJson = JsonConvert.DeserializeObject(getResponseString);
 
-				foreach (var stage in scheduleJson.data.stages) {
-					int id = stage.id;
-					string name = stage.name;
+				int weekNumber = (int)getResponseJson.content.tableData.weekNumber.Value;
+				string weekName = getResponseJson.content.tableData.name;
 
-					// The all-star weekend is not really important in the long term and tries to read teams and matches
-					// that don't exist in the matches API. It's easier to ignore it.
-					if (name == "All-Stars") {
-						continue;
-					}
+				var week = new Week(weekNumber, weekName);
+				foreach (var weekEvent in getResponseJson.content.tableData.events) {
+					string eventTitle = "Venue to be decided"; //TODO: Week 10 is the first event where this is the case; the website seems to not list a venue either.
+					try {
+						eventTitle = weekEvent.eventBanner.title;
+					} catch (RuntimeBinderException) { }
+					var e = new Event(eventTitle);
+					e.SetWeek(week);
+					week.AddEvent(e);
 
-					Stage s = new Stage(id, name);
-
-					stages.Add(s);
-
-					// Associate several weeks for the stage.
-					foreach (var week in stage.weeks) {
-						int weekId = week.id;
-						string weekName = week.name;
-
-						Week w = new Week(weekId, weekName);
-
-						s.AddWeek(w);
-						w.SetStage(s);
-
-						// Associate all the matches for this week.
-						foreach (var match in week.matches) {
-							int matchId = match.id;
-							Match m = matches.Find(x => x.Id == matchId);
-							if (m == null) {
-								botMethods.Log(this, new LogEventArgs {
-									Type = LogType.Warning,
-									Message = $"OverwatchLeague found match ID {matchId} in the schedule, but not the matches JSON. Watch this!"
-								});
-							} else {
-								m.SetWeek(w);
-								w.AddMatch(m);
-							}
+					foreach (var match in weekEvent.matches) {
+						int matchId = (int)match.id;
+						var homeTeam = teams.Single(t => t.Id == (int)match.competitors[0].id.Value);
+						var awayTeam = teams.Single(t => t.Id == (int)match.competitors[1].id.Value);
+						int homeScore = 0;
+						int awayScore = 0;
+						if (match.scores.Count > 0) {
+							homeScore = (int)match.scores[0];
+							awayScore = (int)match.scores[1];
 						}
-					}
-
-					// Every stage also has a playoff week.
-					Week playoffWeek = new Week(-1, "PLAYOFFS");
-					s.SetPlayoffs(playoffWeek);
-					playoffWeek.SetStage(s);
-
-					// And then we find what matches haven't been allocated yet and set them.
-					foreach (var match in stage.matches) {
-						int matchId = match.id;
-						Match m = matches.Find(x => x.Id == matchId);
-						if (m == null) {
-							// The match didn't exist so we need to make it.
-							Team homeTeam = null;
-							Team awayTeam = null;
-							int homeScore = match.scores[0].value;
-							int awayScore = match.scores[1].value;
-							string status = match.status;
-							DateTime startTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.startDateTS);
-							DateTime endTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.endDateTS);
-							DateTime? actualStartTime = null; // These are always null in schedule.
-							DateTime? actualEndTime = null;
-
-							m = new Match(botMethods, matchId, homeTeam, awayTeam, homeScore, awayScore, status, startTime, endTime, actualStartTime, actualEndTime);
-							matches.Add(m);
-						}
-						if (m.Week == null) {
-							m.SetWeek(playoffWeek);
-							playoffWeek.AddMatch(m);
-						}
+						string status = match.status;
+						DateTime startTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.startDate);
+						DateTime endTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.endDate);
+						//TODO: Get the actual start and end times (do they not exist anymore?).
+						// Maps are added only when requested since they must be gotten on a per-match basis.
+						var m = new Match(botMethods, matchId, homeTeam, awayTeam, homeScore, awayScore, status, startTime, endTime, null, null);
+						m.SetEvent(e);
+						matches.Add(m);
+						homeTeam.AddMatch(m);
+						awayTeam.AddMatch(m);
+						e.AddMatch(m);
 					}
 				}
+
+				weeks.Add(week);
 			}
 		}
 
-		public List<Standing> GetStandings(int stage = 0) {
-			List<int> stageIndiciesToUse;
-			if (stage >= 1 && stage <= 4) {
-				stageIndiciesToUse = new List<int> { stage - 1 };
-			} else {
-				stageIndiciesToUse = new List<int> { 0, 1, 2, 3 };
-			}
-
-			List<Standing> standings = new List<Standing>();
+		public List<Standing> GetStandings() {
+			var standings = new List<Standing>();
 			foreach (Team team in teams) {
-				Standing s = new Standing { Team = team };
-
-				foreach (int i in stageIndiciesToUse) {
-					foreach (Week week in stages[i].Weeks) {
-						foreach (Match match in week.Matches) {
-							if (match.Status == MatchStatus.Concluded) {
-								if (match.HomeTeam == team) {
-									s.MapWins += match.HomeScore;
-									s.MapDraws += match.DrawMaps;
-									s.MapLosses += match.AwayScore;
-									if (match.HomeScore > match.AwayScore) {
-										++s.MatchWins;
-									} else {
-										++s.MatchLosses;
-									}
-								} else if (match.AwayTeam == team) {
-									s.MapWins += match.AwayScore;
-									s.MapDraws += match.DrawMaps;
-									s.MapLosses += match.HomeScore;
-									if (match.AwayScore > match.HomeScore) {
-										++s.MatchWins;
-									} else {
-										++s.MatchLosses;
-									}
-								}
+				var s = new Standing { Team = team };
+				foreach (Match match in matches) {
+					if (match.Status == MatchStatus.Concluded) {
+						if (match.HomeTeam == team) {
+							s.MapWins += match.HomeScore;
+							s.MapDraws += match.DrawMaps;
+							s.MapLosses += match.AwayScore;
+							if (match.HomeScore > match.AwayScore) {
+								++s.MatchWins;
+							} else {
+								++s.MatchLosses;
+							}
+						} else if (match.AwayTeam == team) {
+							s.MapWins += match.AwayScore;
+							s.MapDraws += match.DrawMaps;
+							s.MapLosses += match.HomeScore;
+							if (match.AwayScore > match.HomeScore) {
+								++s.MatchWins;
+							} else {
+								++s.MatchLosses;
 							}
 						}
 					}
@@ -372,7 +330,7 @@ namespace OverwatchLeague.Data {
 		}
 
 		public Week GetCurrentWeek() {
-			return stages.Find(s => s.LastEndTime > DateTime.Now)?.CurrentWeek;
+			return weeks.Find(w => w.LastEndTime > DateTime.Now);
 		}
 
 		private static DateTime NextFullUpdate() {

@@ -23,7 +23,7 @@ namespace BlendoBot.Commands.Admin {
 		public override string Author => "Biendeo";
 		public override string Version => "2.0.0";
 
-		private Program program;
+		private readonly Program program;
 
 		private List<DisabledCommand> disabledCommands;
 		private List<DiscordUser> administrators;
@@ -210,17 +210,17 @@ namespace BlendoBot.Commands.Admin {
 		}
 
 		private void LoadData() {
-			if (File.Exists(Path.Combine(BotMethods.GetCommandDataPath(this, this), "disabled-commands.json"))) {
-				disabledCommands = JsonConvert.DeserializeObject<List<DisabledCommand>>(File.ReadAllText(Path.Combine(BotMethods.GetCommandDataPath(this, this), "disabled-commands.json")));
+			if (File.Exists(Path.Combine(BotMethods.GetCommandInstanceDataPath(this, this), "disabled-commands.json"))) {
+				disabledCommands = JsonConvert.DeserializeObject<List<DisabledCommand>>(File.ReadAllText(Path.Combine(BotMethods.GetCommandInstanceDataPath(this, this), "disabled-commands.json")));
 			}
-			if (File.Exists(Path.Combine(BotMethods.GetCommandDataPath(this, this), "administrators.json"))) {
-				administrators = JsonConvert.DeserializeObject<List<DiscordUser>>(File.ReadAllText(Path.Combine(BotMethods.GetCommandDataPath(this, this), "administrators.json")));
+			if (File.Exists(Path.Combine(BotMethods.GetCommandInstanceDataPath(this, this), "administrators.json"))) {
+				administrators = JsonConvert.DeserializeObject<List<DiscordUser>>(File.ReadAllText(Path.Combine(BotMethods.GetCommandInstanceDataPath(this, this), "administrators.json")));
 			}
 		}
 
 		private void SaveData() {
-			File.WriteAllText(Path.Combine(BotMethods.GetCommandDataPath(this, this), "disabled-commands.json"), JsonConvert.SerializeObject(disabledCommands));
-			File.WriteAllText(Path.Combine(BotMethods.GetCommandDataPath(this, this), "administrators.json"), JsonConvert.SerializeObject(administrators));
+			File.WriteAllText(Path.Combine(BotMethods.GetCommandInstanceDataPath(this, this), "disabled-commands.json"), JsonConvert.SerializeObject(disabledCommands));
+			File.WriteAllText(Path.Combine(BotMethods.GetCommandInstanceDataPath(this, this), "administrators.json"), JsonConvert.SerializeObject(administrators));
 		}
 
 		public bool IsUserAdmin(DiscordUser user) {

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace BlendoBotLib {
 	public abstract class CommandBase {
-		public CommandBase(ulong guildId, IBotMethods botMethods) {
+		protected CommandBase(ulong guildId, IBotMethods botMethods) {
 			GuildId = guildId;
 			BotMethods = botMethods;
 		}

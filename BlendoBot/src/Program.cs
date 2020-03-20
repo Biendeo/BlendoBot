@@ -37,7 +37,7 @@ namespace BlendoBot {
 			// The rest of the fields will be initialised during the Start operation.
 		}
 
-		public async Task Start(string[] args) {
+		public async Task Start(string[] _) {
 			if (!Config.FromFile(ConfigPath, out Config readInConfig)) {
 				Config = readInConfig;
 				Console.Error.WriteLine($"Could not find {ConfigPath}! A default one will be created. Please modify the appropriate fields!");
@@ -67,6 +67,11 @@ namespace BlendoBot {
 			DiscordClient.GuildCreated += DiscordGuildCreated;
 			DiscordClient.GuildAvailable += DiscordGuildAvailable;
 
+			//? These are for debugging in the short-term.
+			DiscordClient.ClientErrored += DiscordClientErrored;
+			DiscordClient.SocketClosed += DiscordSocketClosed;
+			DiscordClient.SocketErrored += DiscordSocketErrored;
+
 			LoadCommands();
 
 			await DiscordClient.ConnectAsync();
@@ -81,7 +86,7 @@ namespace BlendoBot {
 		/// <param name="guildId"></param>
 		/// <param name="commandTerm"></param>
 		/// <returns></returns>
-		public CommandBase GetCommand(object sender, ulong guildId, string commandTerm) {
+		public CommandBase GetCommand(object _, ulong guildId, string commandTerm) {
 			if (GuildCommands.ContainsKey(guildId)) {
 				if (GuildCommands[guildId].ContainsKey(commandTerm)) {
 					return GuildCommands[guildId][commandTerm];
@@ -90,7 +95,7 @@ namespace BlendoBot {
 			return null;
 		}
 
-		public List<CommandBase> GetCommands(object sender, ulong guildId) {
+		public List<CommandBase> GetCommands(object _, ulong guildId) {
 			if (GuildCommands.ContainsKey(guildId)) {
 				return GuildCommands[guildId].Values.ToList();
 			} else {
@@ -155,7 +160,7 @@ namespace BlendoBot {
 
 		public void Log(object sender, LogEventArgs e) {
 			string typeString = Enum.GetName(typeof(LogType), e.Type);
-			string logMessage = $"[{typeString}] ({DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}) | {e.Message}";
+			string logMessage = $"[{typeString}] ({DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}) [{sender?.GetType().FullName ?? "null"}] | {e.Message}";
 			Console.WriteLine(logMessage);
 			if (!Directory.Exists("log")) Directory.CreateDirectory("log");
 			File.AppendAllText(LogFile, logMessage + "\n");
@@ -184,6 +189,9 @@ namespace BlendoBot {
 			if (GuildMessageListeners.ContainsKey(guildId)) {
 				GuildMessageListeners[guildId].Remove(messageListener);
 			}
+			if (messageListener is IDisposable disposable) {
+				disposable.Dispose();
+			}
 		}
 
 		/// <summary>
@@ -200,15 +208,26 @@ namespace BlendoBot {
 			return null;
 		}
 
-		public string GetCommandDataPath(object sender, CommandBase command) {
+		public string GetCommandInstanceDataPath(object sender, CommandBase command) {
 			if (!Directory.Exists(Path.Combine(Path.Combine("data", command.GuildId.ToString()), command.Name))) {
 				Directory.CreateDirectory(Path.Combine(Path.Combine("data", command.GuildId.ToString()), command.Name));
 			}
 			return Path.Combine(Path.Combine("data", command.GuildId.ToString()), command.Name);
 		}
 
+		public string GetCommandCommonDataPath(object sender, CommandBase command) {
+			if (!Directory.Exists(Path.Combine(Path.Combine("data", "common"), command.Name))) {
+				Directory.CreateDirectory(Path.Combine(Path.Combine("data", "common"), command.Name));
+			}
+			return Path.Combine(Path.Combine("data", "common"), command.Name);
+		}
+
 		public async Task<bool> IsUserAdmin(object o, DiscordGuild guild, DiscordChannel channel, DiscordUser user) {
 			return GetCommand<Admin>(this, guild.Id).IsUserAdmin(user) || (await guild.GetMemberAsync(user.Id)).PermissionsIn(channel).HasFlag(Permissions.Administrator);
+		}
+
+		public async Task<DiscordChannel> GetChannel(object o, ulong channelId) {
+			return await DiscordClient.GetChannelAsync(channelId);
 		}
 
 		#endregion
@@ -229,25 +248,27 @@ namespace BlendoBot {
 			await Task.Delay(0);
 			// The rule is: don't react to my own messages, and commands need to be triggered with a
 			// ? character.
-			if (!e.Author.IsCurrent && !e.Author.IsBot && e.Message.Content.Length > 1 && e.Message.Content[0] == '?' && IsAlphabetical(e.Message.Content[1])) {
-				string commandTerm = e.Message.Content.Split(' ')[0].ToLower();
-				if (GuildCommands[e.Guild.Id].ContainsKey(commandTerm)) {
-					try {
-						await GuildCommands[e.Guild.Id][commandTerm].OnMessage(e);
-					} catch (Exception exc) {
-						// This should hopefully make it such that the bot never crashes (although it hasn't stopped it).
-						await SendException(this, new SendExceptionEventArgs {
-							Exception = exc,
+			if (!e.Author.IsCurrent && !e.Author.IsBot) {
+				if (e.Message.Content.Length > 1 && e.Message.Content[0] == '?' && IsAlphabetical(e.Message.Content[1])) {
+					string commandTerm = e.Message.Content.Split(' ')[0].ToLower();
+					if (GuildCommands[e.Guild.Id].ContainsKey(commandTerm)) {
+						try {
+							await GuildCommands[e.Guild.Id][commandTerm].OnMessage(e);
+						} catch (Exception exc) {
+							// This should hopefully make it such that the bot never crashes (although it hasn't stopped it).
+							await SendException(this, new SendExceptionEventArgs {
+								Exception = exc,
+								Channel = e.Channel,
+								LogExceptionType = "GenericExceptionNotCaught"
+							});
+						}
+					} else {
+						await SendMessage(this, new SendMessageEventArgs {
+							Message = $"I didn't know what you meant by that, {e.Author.Username}. Use {"?help".Code()} to see what I can do!",
 							Channel = e.Channel,
-							LogExceptionType = "GenericExceptionNotCaught"
+							LogMessage = "UnknownMessage"
 						});
 					}
-				} else {
-					await SendMessage(this, new SendMessageEventArgs {
-						Message = $"I didn't know what you meant by that, {e.Author.Username}. Use {"?help".Code()} to see what I can do!",
-						Channel = e.Channel,
-						LogMessage = "UnknownMessage"
-					});
 				}
 				foreach (var listener in GuildMessageListeners[e.Guild.Id]) {
 					await listener.OnMessage(e);
@@ -274,9 +295,39 @@ namespace BlendoBot {
 			await Task.Delay(0);
 		}
 
+		private async Task DiscordClientErrored(ClientErrorEventArgs e) {
+			Log(this, new LogEventArgs {
+				Type = LogType.Error,
+				Message = $"ClientErrored triggered: {e.Exception}"
+			});
+
+			await Task.Delay(0);
+		}
+
+		private async Task DiscordSocketClosed(SocketCloseEventArgs e) {
+			Log(this, new LogEventArgs {
+				Type = LogType.Error,
+				Message = $"SocketClosed triggered: {e.CloseCode} - {e.CloseMessage}"
+			});
+
+			await Task.Delay(0);
+		}
+
+		private async Task DiscordSocketErrored(SocketErrorEventArgs e) {
+			Log(this, new LogEventArgs {
+				Type = LogType.Error,
+				Message = $"SocketErrored triggered: {e.Exception}"
+			});
+
+			//HACK: This should try and reconnect should something wrong happen.
+			await DiscordClient.ConnectAsync();
+
+			await Task.Delay(0);
+		}
+
 		#endregion
 
-		public async Task<bool> AddCommand(object o, ulong guildId, string commandClassName) {
+		public async Task<bool> AddCommand(object _, ulong guildId, string commandClassName) {
 			var commandType = LoadedCommands[commandClassName];
 			try {
 				var commandInstance = Activator.CreateInstance(commandType, new object[] { guildId, this }) as CommandBase;
@@ -304,8 +355,15 @@ namespace BlendoBot {
 
 		public async Task RemoveCommand(object o, ulong guildId, string classTerm) {
 			var command = GuildCommands[guildId][classTerm];
+			int messageListenerCount = 0;
+			foreach (var messageListener in GuildMessageListeners[guildId].Where(ml => ml.Command == command)) {
+				RemoveMessageListener(o, guildId, messageListener);
+				++messageListenerCount;
+			}
 			GuildCommands[guildId].Remove(classTerm);
-			int messageListenerCount = GuildMessageListeners[guildId].RemoveAll(ml => ml.Command == command);
+			if (command is IDisposable disposable) {
+				disposable.Dispose();
+			}
 			Log(this, new LogEventArgs {
 				Type = LogType.Error,
 				Message = $"Successfully unloaded module {command.GetType().FullName} and {messageListenerCount} message listener{(messageListenerCount == 1 ? "" : "s")}"
@@ -336,7 +394,7 @@ namespace BlendoBot {
 
 		private async Task InstantiateCommandsForGuild(ulong guildId) {
 			if (GuildCommands.ContainsKey(guildId)) {
-				GuildCommands[guildId].Clear();
+				return;
 			} else {
 				GuildCommands.Add(guildId, new Dictionary<string, CommandBase>());
 			}

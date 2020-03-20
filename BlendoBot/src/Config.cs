@@ -18,7 +18,7 @@ namespace BlendoBot {
 		public Dictionary<string, Dictionary<string, string>> Values;
 		public string ConfigPath { get; private set; }
 
-		public string ReadString(object o, string configHeader, string configKey) {
+		public string ReadString(object _, string configHeader, string configKey) {
 			if (Values.ContainsKey(configHeader) && Values[configHeader].ContainsKey(configKey)) {
 				return Values[configHeader][configKey];
 			} else {
@@ -26,11 +26,11 @@ namespace BlendoBot {
 			}
 		}
 
-		public bool DoesKeyExist(object o, string configHeader, string configKey) {
+		public bool DoesKeyExist(object _, string configHeader, string configKey) {
 			return Values.ContainsKey(configHeader) && Values[configHeader].ContainsKey(configKey);
 		}
 
-		public void WriteString(object o, string configHeader, string configKey, string configValue) {
+		public void WriteString(object _, string configHeader, string configKey, string configValue) {
 			if (!Values.ContainsKey(configHeader)) {
 				Values.Add(configHeader, new Dictionary<string, string>());
 			}
@@ -88,8 +88,9 @@ namespace BlendoBot {
 		/// <param name="filePath"></param>
 		/// <returns></returns>
 		public static bool FromFile(string filePath, out Config config) {
-			config = new Config();
-			config.ConfigPath = filePath;
+			config = new Config {
+				ConfigPath = filePath
+			};
 			if (!File.Exists(filePath)) {
 				return false;
 			}
