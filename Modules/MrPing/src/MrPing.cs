@@ -16,10 +16,10 @@ namespace MrPing {
 	public class MrPing : CommandBase {
 		public MrPing(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
 
-		public override string Term => "?mrping";
+		public override string DefaultTerm => "?mrping";
 		public override string Name => "Mr. Ping Challenge";
 		public override string Description => "Subjects someone to the Mr. Ping Challenge!";
-		public override string Usage => $"{"?mrping".Code()} ({"Creates a new Mr Ping challenge for a random victim".Italics()})\n{"?mrping list".Code()} ({"Prints a list of all outstanding challenges".Italics()})\n{"?mrping stats".Code()} ({"Posts some neat stats about the challenge".Italics()})";
+		public override string Usage => $"{Term.Code()} ({"Creates a new Mr Ping challenge for a random victim".Italics()})\n{$"{Term} list".Code()} ({"Prints a list of all outstanding challenges".Italics()})\n{$"{Term} stats".Code()} ({"Posts some neat stats about the challenge".Italics()})";
 		public override string Author => "Biendeo";
 		public override string Version => "1.0.0";
 
@@ -127,7 +127,7 @@ namespace MrPing {
 				});
 			} else {
 				await BotMethods.SendMessage(this, new SendMessageEventArgs {
-					Message = $"Incorrect usage of mr ping. Simply type {"?mrping".Code()} to challenge someone, or type {"?help mrping".Code()} for more commands.",
+					Message = $"Incorrect usage of mr ping. Simply type {Term.Code()} to challenge someone, or type {$"?help {Term}".Code()} for more commands.",
 					Channel = e.Channel,
 					LogMessage = "MrPingErrorBadArguments"
 				});

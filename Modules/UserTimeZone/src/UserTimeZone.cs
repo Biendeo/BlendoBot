@@ -12,10 +12,10 @@ namespace UserTimeZone {
 	public class UserTimeZone : CommandBase {
 		public UserTimeZone(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
 
-		public override string Term => "?usertimezone";
+		public override string DefaultTerm => "?usertimezone";
 		public override string Name => "User Timezone";
 		public override string Description => "Saves a timezone so that commands can represent times in your timezone.";
-		public override string Usage => $"Usage:\n{"?usertimezone".Code()} {"(prints what time zone is set for your account)".Italics()}\n{"?usertimezone [timezone]".Code()} {"(sets your timezone to the given timezone)".Italics()}\nA timezone is represented as an offset from UTC, in the format of {"+3:00".Code()}, {"10:00".Code()}, {"-4:30".Code()} etc.\n{"UTC".Code()} is a valid timezone.";
+		public override string Usage => $"Usage:\n{Term.Code()} {"(prints what time zone is set for your account)".Italics()}\n{$"{Term} [timezone]".Code()} {"(sets your timezone to the given timezone)".Italics()}\nA timezone is represented as an offset from UTC, in the format of {"+3:00".Code()}, {"10:00".Code()}, {"-4:30".Code()} etc.\n{"UTC".Code()} is a valid timezone.";
 		public override string Author => "Biendeo";
 		public override string Version => "0.1.0";
 

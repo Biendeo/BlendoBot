@@ -12,10 +12,10 @@ namespace BlendoBot.Commands {
 			this.program = program;
 		}
 
-		public override string Term => "?help";
+		public override string DefaultTerm => "?help";
 		public override string Name => "Help";
 		public override string Description => "Posts what commands this bot can do, and additional help on how to use a command.";
-		public override string Usage => $"Use {"?help".Code()} to see a list of all commands on the server.\nUse {"?help [command]".Code()} to see help on a specific command, but you probably already know how to do that!";
+		public override string Usage => $"Use {Term.Code()} to see a list of all commands on the server.\nUse {$"{Term} [command]".Code()} to see help on a specific command, but you probably already know how to do that!";
 		public override string Author => "Biendeo";
 		public override string Version => "1.0.0";
 

@@ -10,10 +10,10 @@ namespace Roll {
 	public class Roll : CommandBase {
 		public Roll(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
 
-		public override string Term => "?roll";
+		public override string DefaultTerm => "?roll";
 		public override string Name => "Roll";
 		public override string Description => "Simulates dice rolls and coin flips";
-		public override string Usage => $"Usage ({$"where {"x".Code()} and {"y".Code()} are positive integers".Italics()}):\n{"?random [y]".Code()} ({$"rolls a {"y".Code()}-sided dice, giving a value between 1 and {"y".Code()}".Italics()})\n{"?roll d[y]".Code()} ({$"same as {"?roll y".Code()}".Italics()})\n{"?roll [x]d[y]".Code()} ({$"rolls a {"y".Code()}-sided dice {"x".Code()} number of times".Italics()})\n{"?roll coin".Code()} ({"returns either heads or tails".Italics()})";
+		public override string Usage => $"Usage ({$"where {"x".Code()} and {"y".Code()} are positive integers".Italics()}):\n{$"{Term} [y]".Code()} ({$"rolls a {"y".Code()}-sided dice, giving a value between 1 and {"y".Code()}".Italics()})\n{$"{Term} d[y]".Code()} ({$"same as {$"{Term} y".Code()}".Italics()})\n{$"{Term} [x]d[y]".Code()} ({$"rolls a {"y".Code()}-sided dice {"x".Code()} number of times".Italics()})\n{$"{Term} coin".Code()} ({"returns either heads or tails".Italics()})";
 		public override string Author => "Biendeo";
 		public override string Version => "0.3.0";
 

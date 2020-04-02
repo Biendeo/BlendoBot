@@ -9,10 +9,10 @@ namespace BlendoBot.Commands {
 	public class Regional : CommandBase {
 		public Regional(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
 
-		public override string Term => "?regional";
+		public override string DefaultTerm => "?regional";
 		public override string Name => "Regional Indicator";
 		public override string Description => "Converts a message into lovely regional indicator text.";
-		public override string Usage => $"Usage: {"?regional [message]".Code()}";
+		public override string Usage => $"Usage: {$"{Term} [message]".Code()}";
 		public override string Author => "Biendeo";
 		public override string Version => "0.1.0";
 

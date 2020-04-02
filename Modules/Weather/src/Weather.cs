@@ -10,10 +10,10 @@ namespace Weather {
 	public class Weather : CommandBase {
 		public Weather(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
 
-		public override string Term => "?weather";
+		public override string DefaultTerm => "?weather";
 		public override string Name => "Weather";
-		public override string Description => "Returns the weather for a given address.\nUsage: ?weather [location]";
-		public override string Usage => $"Usage: {"?weather [location]".Code()}";
+		public override string Description => $"Returns the weather for a given address.\nUsage: {Term} [location]";
+		public override string Usage => $"Usage: {$"{Term} [location]".Code()}";
 		public override string Author => "Biendeo";
 		public override string Version => "0.1.0";
 
@@ -58,7 +58,7 @@ namespace Weather {
 		public override async Task OnMessage(MessageCreateEventArgs e) {
 			if (e.Message.Content.Length < 9) {
 				await BotMethods.SendMessage(this, new SendMessageEventArgs {
-					Message = "Too few arguments specified to `?weather`",
+					Message = $"Too few arguments specified to {Term.Code()}",
 					Channel = e.Channel,
 					LogMessage = "WeatherErrorTooFewArgs"
 				});

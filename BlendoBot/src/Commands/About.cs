@@ -13,10 +13,10 @@ namespace BlendoBot.Commands {
 			this.program = program;
 		}
 
-		public override string Term => "?about";
+		public override string DefaultTerm => "?about";
 		public override string Name => "About";
 		public override string Description => "Posts information about this version of the bot, or of any loaded module. You probably already know how to use this command by now.";
-		public override string Usage => $"Use {"?about".Code()} to see the information about the bot.\nUse {"?about [command]".Code()} to see information about another command.";
+		public override string Usage => $"Use {Term.Code()} to see the information about the bot.\nUse {$"{Term} [command]".Code()} to see information about another command.";
 		public override string Author => "Biendeo";
 		public override string Version => "1.0.0";
 

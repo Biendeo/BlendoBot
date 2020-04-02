@@ -16,10 +16,10 @@ namespace BlendoBot.Commands.Admin {
 			administrators = new List<DiscordUser>();
 		}
 
-		public override string Term => "?admin";
+		public override string DefaultTerm => "?admin";
 		public override string Name => "Admin";
 		public override string Description => "Does admin stuff, but only if you are either an administrator of the server, or if you've been granted permission!";
-		public override string Usage => $"Usage:\n({"All of these commands are only accessible if you are either an administrator role on this Discord guild, or if you have been added to this admin list!".Italics()})\n{"?admin user add @person".Code()} ({"Adds a new person to be a BlendoBot administrator".Italics()})\n{"?admin user remove @person".Code()} ({"Removes a person from being a BlendoBot administrator".Italics()})\n{"?admin user list".Code()} ({"Lists all current BlendoBot admins".Italics()})\n{"?admin command enable [command term]".Code()} ({"Enables a command currently disabled by BlendoBot".Italics()})\n{"?admin command disable [command term]".Code()} ({"Disables a command currently enabled by BlendoBot".Italics()})\n{"?admin command list".Code()} ({$"Lists all currently disabled commands from BlendoBot (all enabled commands are in {"?help".Code()})".Italics()})";
+		public override string Usage => $"Usage:\n({"All of these commands are only accessible if you are either an administrator role on this Discord guild, or if you have been added to this admin list!".Italics()})\n{$"{Term} user add @person".Code()} ({"Adds a new person to be a BlendoBot administrator".Italics()})\n{$"{Term} user remove @person".Code()} ({"Removes a person from being a BlendoBot administrator".Italics()})\n{$"{Term} user list".Code()} ({"Lists all current BlendoBot admins".Italics()})\n{$"{Term} command enable [command term]".Code()} ({"Enables a command currently disabled by BlendoBot".Italics()})\n{$"{Term} command disable [command term]".Code()} ({"Disables a command currently enabled by BlendoBot".Italics()})\n{$"{Term} command list".Code()} ({$"Lists all currently disabled commands from BlendoBot (all enabled commands are in {"?help".Code()})".Italics()})";
 		public override string Author => "Biendeo";
 		public override string Version => "2.0.0";
 
@@ -37,7 +37,7 @@ namespace BlendoBot.Commands.Admin {
 		public override async Task OnMessage(MessageCreateEventArgs e) {
 			if (!await BotMethods.IsUserAdmin(this, e.Guild, e.Channel, e.Author)) {
 				await BotMethods.SendMessage(this, new SendMessageEventArgs {
-					Message = $"Only administrators can use {"?admin".Code()}!",
+					Message = $"Only administrators can use {$"{Term}".Code()}!",
 					Channel = e.Channel,
 					LogMessage = "AdminNotAuthorised"
 				});
@@ -48,7 +48,7 @@ namespace BlendoBot.Commands.Admin {
 				if (splitString[2] == "add") {
 					if (e.MentionedUsers.Count != 1) {
 						await BotMethods.SendMessage(this, new SendMessageEventArgs {
-							Message = $"Please mention only one user when using {"?admin user add".Code()}.",
+							Message = $"Please mention only one user when using {$"{Term} user add".Code()}.",
 							Channel = e.Channel,
 							LogMessage = "AdminUserRemoveIncorrectCount"
 						});
@@ -70,7 +70,7 @@ namespace BlendoBot.Commands.Admin {
 				} else if (splitString[2] == "remove") {
 					if (e.MentionedUsers.Count != 1) {
 						await BotMethods.SendMessage(this, new SendMessageEventArgs {
-							Message = $"Please mention only one user when using {"?admin user remove".Code()}.",
+							Message = $"Please mention only one user when using {$"{Term} user remove".Code()}.",
 							Channel = e.Channel,
 							LogMessage = "AdminUserRemoveIncorrectCount"
 						});
@@ -99,7 +99,7 @@ namespace BlendoBot.Commands.Admin {
 							sb.AppendLine($"{user.Username} #{user.Discriminator.ToString().PadLeft(4, '0')}");
 						}
 					} else {
-						sb.AppendLine($"No BlendoBot administrators have been assigned. If you are a guild administrator and want someone else to administer BlendoBot, please use {"?admin user add".Code()}.");
+						sb.AppendLine($"No BlendoBot administrators have been assigned. If you are a guild administrator and want someone else to administer BlendoBot, please use {$"{Term} user add".Code()}.");
 					}
 
 					await BotMethods.SendMessage(this, new SendMessageEventArgs {
