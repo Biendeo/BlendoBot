@@ -1,8 +1,15 @@
 ﻿using BlendoBot.Commands.Admin;
+using BlendoBot.ConfigSchemas;
 using BlendoBotLib;
+using BlendoBotLib.Interfaces;
+using BlendoBotLib.Services;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -23,10 +30,50 @@ namespace BlendoBot {
 		private Dictionary<ulong, Dictionary<string, CommandBase>> GuildCommands { get; set; }
 		private Dictionary<ulong, List<IMessageListener>> GuildMessageListeners { get; set; }
 
-		public static void Main(string[] args) {
-			var program = new Program("config.cfg");
-			program.Start(args).ConfigureAwait(false).GetAwaiter().GetResult();
+		public static async Task Main(string[] args) {
+			await CreateHostBuilder(args).Build().RunAsync();
 		}
+
+		private static IHostBuilder CreateHostBuilder(string[] args) => 
+			Host.CreateDefaultBuilder(args)
+				.ConfigureAppConfiguration((hostContext, config) =>
+				{
+					// NOTE: by default this will load appconfig.json from the PWD
+				})
+				.ConfigureLogging(logging =>
+				{
+					logging.AddConsole();
+				})
+				.ConfigureServices((hostContext, services) =>
+				{
+					// Bind config sections
+					var config = hostContext.Configuration;
+					var blendoBotConfig = config.GetSection("BlendoBot").Get<BlendoBotConfig>();
+					var commandRegistryConfig = config.GetSection("CommandRegistry").Get<CommandRegistryConfig>();
+
+					// Configure external services to be injected
+					AutoCorrect.AutoCorrectCommand.ConfigureServices(hostContext, services);
+
+					// Command registry and commands
+					var commandRegistryBuilder = new CommandRegistryBuilder(services)
+						.WithConfig(commandRegistryConfig)
+						.RegisterSingleton<AutoCorrect.AutoCorrectCommand>();
+					services.AddSingleton<CommandRegistryBuilder>(commandRegistryBuilder);
+
+					// Discord client service
+					var discordClient = new DiscordClient(new DiscordConfiguration
+					{
+						Token = blendoBotConfig.Token,
+						TokenType = TokenType.Bot
+					});
+					services.AddSingleton<DiscordClient>(discordClient);
+					services.AddSingleton<IDiscordClientService, DiscordClientService>();
+
+					// Main bot service
+					services.AddSingleton<BlendoBotConfig>(blendoBotConfig);
+					services.AddHostedService<Bot>();
+				})
+				.UseConsoleLifetime();
 
 		public Program(string configPath) {
 			ConfigPath = configPath;
@@ -449,7 +496,10 @@ namespace BlendoBot {
 				Message = $"All modules have finished loading for guild {guildId.ToString()}"
 			});
 		}
+
+		[Obsolete]
 		private static bool IsAlphabetical(char c) {
+			// TODO remove
 			return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 		}
 	}
