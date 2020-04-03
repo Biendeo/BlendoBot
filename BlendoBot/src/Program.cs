@@ -248,20 +248,21 @@ namespace BlendoBot {
 			// The rule is: don't react to my own messages, and commands need to be triggered with a
 			// ? character.
 			if (!e.Author.IsCurrent && !e.Author.IsBot) {
-				if (e.Message.Content.Length > 1 && e.Message.Content[0] == '?' && IsAlphabetical(e.Message.Content[1])) {
-					string commandTerm = e.Message.Content.Split(' ')[0].ToLower();
-					if (GuildCommands[e.Guild.Id].ContainsKey(commandTerm)) {
-						try {
-							await GuildCommands[e.Guild.Id][commandTerm].OnMessage(e);
-						} catch (Exception exc) {
-							// This should hopefully make it such that the bot never crashes (although it hasn't stopped it).
-							await SendException(this, new SendExceptionEventArgs {
-								Exception = exc,
-								Channel = e.Channel,
-								LogExceptionType = "GenericExceptionNotCaught"
-							});
-						}
-					} else {
+				string commandTerm = e.Message.Content.Split(' ')[0].ToLower();
+				if (GuildCommands[e.Guild.Id].ContainsKey(commandTerm)) {
+					try {
+						await GuildCommands[e.Guild.Id][commandTerm].OnMessage(e);
+					} catch (Exception exc) {
+						// This should hopefully make it such that the bot never crashes (although it hasn't stopped it).
+						await SendException(this, new SendExceptionEventArgs {
+							Exception = exc,
+							Channel = e.Channel,
+							LogExceptionType = "GenericExceptionNotCaught"
+						});
+					}
+				} else {
+					var adminCommand = GetCommand<Admin>(this, e.Guild.Id);
+					if (adminCommand.IsUnknownCommandEnabled && commandTerm.StartsWith(adminCommand.UnknownCommandPrefix)) {
 						await SendMessage(this, new SendMessageEventArgs {
 							Message = $"I didn't know what you meant by that, {e.Author.Username}. Use {"?help".Code()} to see what I can do!",
 							Channel = e.Channel,

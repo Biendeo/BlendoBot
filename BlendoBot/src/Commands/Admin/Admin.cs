@@ -16,6 +16,7 @@ namespace BlendoBot.Commands.Admin {
 			disabledCommands = new List<DisabledCommand>();
 			renamedCommands = new List<RenamedCommand>();
 			administrators = new List<DiscordUser>();
+			OtherSettings = new OtherSettings();
 		}
 
 		public override string DefaultTerm => "?admin";
@@ -41,6 +42,7 @@ namespace BlendoBot.Commands.Admin {
 		private List<DisabledCommand> disabledCommands;
 		private List<RenamedCommand> renamedCommands;
 		private List<DiscordUser> administrators;
+		private OtherSettings OtherSettings;
 
 		public override async Task<bool> Startup() {
 			LoadData();
@@ -58,8 +60,8 @@ namespace BlendoBot.Commands.Admin {
 				return;
 			}
 			string[] splitString = e.Message.Content.Split(' ');
-			if (splitString.Length > 2 && splitString[1] == "user") {
-				if (splitString[2] == "add") {
+			if (splitString.Length > 2 && splitString[1].ToLower() == "user") {
+				if (splitString[2].ToLower() == "add") {
 					if (e.MentionedUsers.Count != 1) {
 						await BotMethods.SendMessage(this, new SendMessageEventArgs {
 							Message = $"Please mention only one user when using {$"{Term} user add".Code()}.",
@@ -81,7 +83,7 @@ namespace BlendoBot.Commands.Admin {
 							});
 						}
 					}
-				} else if (splitString[2] == "remove") {
+				} else if (splitString[2].ToLower() == "remove") {
 					if (e.MentionedUsers.Count != 1) {
 						await BotMethods.SendMessage(this, new SendMessageEventArgs {
 							Message = $"Please mention only one user when using {$"{Term} user remove".Code()}.",
@@ -103,7 +105,7 @@ namespace BlendoBot.Commands.Admin {
 							});
 						}
 					}
-				} else if (splitString[2] == "list") {
+				} else if (splitString[2].ToLower() == "list") {
 					var sb = new StringBuilder();
 
 					if (administrators.Count > 0) {
@@ -128,8 +130,8 @@ namespace BlendoBot.Commands.Admin {
 						LogMessage = "AdminUnknownCommand"
 					});
 				}
-			} else if (splitString.Length > 2 && splitString[1] == "command") {
-				if (splitString.Length > 3 && splitString[2] == "enable") {
+			} else if (splitString.Length > 2 && splitString[1].ToLower() == "command") {
+				if (splitString.Length > 3 && splitString[2].ToLower() == "enable") {
 					string commandTerm = splitString[3].ToLower();
 
 					var disabledCommand = disabledCommands.Find(dc => dc.Term == commandTerm);
@@ -156,7 +158,7 @@ namespace BlendoBot.Commands.Admin {
 							LogMessage = "AdminCommandEnableNotFound"
 						});
 					}
-				} else if (splitString.Length > 3 && splitString[2] == "disable") {
+				} else if (splitString.Length > 3 && splitString[2].ToLower() == "disable") {
 					string commandTerm = splitString[3].ToLower();
 
 					var disabledCommand = program.GetCommand(this, GuildId, commandTerm);
@@ -184,7 +186,7 @@ namespace BlendoBot.Commands.Admin {
 							LogMessage = "AdminCommandDisableNotFound"
 						});
 					}
-				} else if (splitString.Length > 4 && splitString[2] == "rename") {
+				} else if (splitString.Length > 4 && splitString[2].ToLower() == "rename") {
 					string commandTerm = splitString[3].ToLower();
 
 					var commandToRename = program.GetCommand(this, GuildId, commandTerm);
@@ -220,7 +222,29 @@ namespace BlendoBot.Commands.Admin {
 							LogMessage = "AdminCommandRenameNotFound"
 						});
 					}
-				} else if (splitString[2] == "list") {
+				} else if (splitString.Length == 3 && splitString[2].ToLower() == "unknownprefix") {
+					await BotMethods.SendMessage(this, new SendMessageEventArgs {
+						Message = $"The current unknown command prefix is \"{OtherSettings.UnknownCommandPrefix.Code()}\"",
+						Channel = e.Channel,
+						LogMessage = "AdminCommandUnknownPrefixDisplay"
+					});
+				} else if (splitString.Length > 3 && splitString[2].ToLower() == "unknownprefix") {
+					OtherSettings.UnknownCommandPrefix = splitString[3].ToLower();
+					SaveData();
+					await BotMethods.SendMessage(this, new SendMessageEventArgs {
+						Message = $"Unknown command prefix is now \"{OtherSettings.UnknownCommandPrefix.Code()}\"",
+						Channel = e.Channel,
+						LogMessage = "AdminCommandUnknownPrefixChange"
+					});
+				} else if (splitString.Length == 3 && splitString[2].ToLower() == "unknowntoggle") {
+					OtherSettings.IsUnknownCommandEnabled = !OtherSettings.IsUnknownCommandEnabled;
+					SaveData();
+					await BotMethods.SendMessage(this, new SendMessageEventArgs {
+						Message = $"Unknown command is now {(OtherSettings.IsUnknownCommandEnabled ? "enabled" : "disabled").Bold()}",
+						Channel = e.Channel,
+						LogMessage = "AdminCommandUnknownPrefixChange"
+					});
+				} else if (splitString[2].ToLower() == "list") {
 					var sb = new StringBuilder();
 
 					if (disabledCommands.Count > 0) {
@@ -261,16 +285,16 @@ namespace BlendoBot.Commands.Admin {
 		public string RenameCommandTermFromDatabase(CommandBase command) {
 			var renamedCommand = renamedCommands.Find(c => c.ClassName == command.GetType().FullName);
 			if (renamedCommand == null) {
-				string targetTerm = command.DefaultTerm;
+				string targetTerm = command.DefaultTerm.ToLower();
 				int count = 1;
 				while (renamedCommands.Exists(c => c.Term == targetTerm)) {
-					targetTerm = $"{command.DefaultTerm}{++count}";
+					targetTerm = $"{command.DefaultTerm.ToLower()}{++count}";
 				}
 				StoreRenamedCommand(command, targetTerm);
 				return targetTerm;
 			} else {
-				command.Term = renamedCommand.Term;
-				return renamedCommand.Term;
+				command.Term = renamedCommand.Term.ToLower();
+				return command.Term;
 			}
 		}
 
@@ -284,12 +308,16 @@ namespace BlendoBot.Commands.Admin {
 			if (File.Exists(Path.Combine(BotMethods.GetCommandInstanceDataPath(this, this), "administrators.json"))) {
 				administrators = JsonConvert.DeserializeObject<List<DiscordUser>>(File.ReadAllText(Path.Combine(BotMethods.GetCommandInstanceDataPath(this, this), "administrators.json")));
 			}
+			if (File.Exists(Path.Combine(BotMethods.GetCommandInstanceDataPath(this, this), "other-settings.json"))) {
+				OtherSettings = JsonConvert.DeserializeObject<OtherSettings>(File.ReadAllText(Path.Combine(BotMethods.GetCommandInstanceDataPath(this, this), "other-settings.json")));
+			}
 		}
 
 		private void SaveData() {
 			File.WriteAllText(Path.Combine(BotMethods.GetCommandInstanceDataPath(this, this), "disabled-commands.json"), JsonConvert.SerializeObject(disabledCommands));
 			File.WriteAllText(Path.Combine(BotMethods.GetCommandInstanceDataPath(this, this), "renamed-commands.json"), JsonConvert.SerializeObject(renamedCommands));
 			File.WriteAllText(Path.Combine(BotMethods.GetCommandInstanceDataPath(this, this), "administrators.json"), JsonConvert.SerializeObject(administrators));
+			File.WriteAllText(Path.Combine(BotMethods.GetCommandInstanceDataPath(this, this), "other-settings.json"), JsonConvert.SerializeObject(OtherSettings));
 		}
 
 		public bool IsUserAdmin(DiscordUser user) {
@@ -323,6 +351,9 @@ namespace BlendoBot.Commands.Admin {
 		public bool IsCommandNameDisabled(string name) {
 			return disabledCommands.Exists(dc => dc.ClassName == name);
 		}
+
+		public string UnknownCommandPrefix => OtherSettings.UnknownCommandPrefix;
+		public bool IsUnknownCommandEnabled => OtherSettings.IsUnknownCommandEnabled;
 
 		public bool DisableCommand(string term) {
 			if (!IsCommandTermDisabled(term)) {
