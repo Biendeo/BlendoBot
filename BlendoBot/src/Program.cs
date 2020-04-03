@@ -1,4 +1,5 @@
-﻿using BlendoBot.Commands.Admin;
+﻿using BlendoBot.Commands;
+using BlendoBot.Commands.Admin;
 using BlendoBotLib;
 using DSharpPlus;
 using DSharpPlus.Entities;
@@ -19,7 +20,6 @@ namespace BlendoBot {
 		public DateTime StartTime { get; private set; }
 
 		private Dictionary<string, Type> LoadedCommands { get; set; }
-		private Dictionary<string, Type> SystemCommands { get; set; }
 		private Dictionary<ulong, Dictionary<string, CommandBase>> GuildCommands { get; set; }
 		private Dictionary<ulong, List<IMessageListener>> GuildMessageListeners { get; set; }
 
@@ -31,7 +31,6 @@ namespace BlendoBot {
 		public Program(string configPath) {
 			ConfigPath = configPath;
 			LoadedCommands = new Dictionary<string, Type>();
-			SystemCommands = new Dictionary<string, Type>();
 			GuildCommands = new Dictionary<ulong, Dictionary<string, CommandBase>>();
 			GuildMessageListeners = new Dictionary<ulong, List<IMessageListener>>();
 			// The rest of the fields will be initialised during the Start operation.
@@ -365,17 +364,24 @@ namespace BlendoBot {
 				disposable.Dispose();
 			}
 			Log(this, new LogEventArgs {
-				Type = LogType.Error,
+				Type = LogType.Log,
 				Message = $"Successfully unloaded module {command.GetType().FullName} and {messageListenerCount} message listener{(messageListenerCount == 1 ? "" : "s")}"
 			});
 			await Task.Delay(0);
 		}
 
-		private void LoadCommands() {
-			foreach (var type in Assembly.GetCallingAssembly().GetTypes().Where(t => t.IsSubclassOf(typeof(CommandBase)))) {
-				SystemCommands.Add(type.FullName, type);
-			}
+		public void RenameCommand(object o, ulong guildId, string commandTerm, string newTerm) {
+			var command = GuildCommands[guildId][commandTerm];
+			GuildCommands[guildId].Remove(commandTerm);
+			command.Term = newTerm;
+			GuildCommands[guildId].Add(newTerm, command);
+			Log(this, new LogEventArgs {
+				Type = LogType.Log,
+				Message = $"Successfully renamed module {command.GetType().FullName} from {commandTerm} to {newTerm}"
+			});
+		}
 
+		private void LoadCommands() {
 			var dlls = Directory.GetFiles(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)).ToList().FindAll(s => Path.GetExtension(s) == ".dll");
 			dlls.RemoveAll(s => Path.GetFileName(s) == "BlendoBot.dll" || Path.GetFileName(s) == "BlendoBotLib.dll");
 
@@ -403,22 +409,29 @@ namespace BlendoBot {
 			} else {
 				GuildMessageListeners.Add(guildId, new List<IMessageListener>());
 			}
-			foreach (var commandType in SystemCommands.Values) {
-				var commandInstance = Activator.CreateInstance(commandType, new object[] { guildId, this }) as CommandBase;
-				GuildCommands[guildId].Add(commandInstance.Term, commandInstance);
-				await commandInstance.Startup();
+
+			var adminCommand = new Admin(guildId, this);
+			var systemCommands = new CommandBase[] { adminCommand, new Help(guildId, this), new About(guildId, this) };
+
+			foreach (var command in systemCommands) {
+				await command.Startup();
+			}
+
+			foreach (var command in systemCommands) {
+				string term = adminCommand.RenameCommandTermFromDatabase(command);
+				GuildCommands[guildId].Add(term, command);
 				Log(this, new LogEventArgs {
 					Type = LogType.Log,
-					Message = $"Successfully loaded internal module {commandInstance.Name} ({commandInstance.Term}) for guild {guildId}"
+					Message = $"Successfully loaded internal module {command.Name} ({term}) for guild {guildId}"
 				});
 			}
 
-			var adminCommand = GetCommand<Admin>(this, guildId);
 			foreach (var commandType in LoadedCommands.Values) {
 				if (!adminCommand.IsCommandNameDisabled(commandType.FullName)) {
 					try {
 						var commandInstance = Activator.CreateInstance(commandType, new object[] { guildId, this }) as CommandBase;
 						if (await commandInstance.Startup()) {
+							commandInstance.Term = adminCommand.RenameCommandTermFromDatabase(commandInstance);
 							GuildCommands[guildId].Add(commandInstance.Term, commandInstance);
 							Log(this, new LogEventArgs {
 								Type = LogType.Log,
@@ -427,7 +440,7 @@ namespace BlendoBot {
 						} else {
 							Log(this, new LogEventArgs {
 								Type = LogType.Error,
-								Message = $"Could not load module {commandInstance.Name} ({commandInstance.Term}), startup failed"
+								Message = $"Could not load module {commandInstance.Name}, startup failed"
 							});
 						}
 					} catch (Exception exc) {
