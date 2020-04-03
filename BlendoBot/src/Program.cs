@@ -215,6 +215,10 @@ namespace BlendoBot {
 			return null;
 		}
 
+		public string GetHelpCommandTerm(object o, ulong guildId) {
+			return GetCommand<Help>(this, guildId).Term;
+		}
+
 		public string GetCommandInstanceDataPath(object sender, CommandBase command) {
 			if (!Directory.Exists(Path.Combine(Path.Combine("data", command.GuildId.ToString()), command.Name))) {
 				Directory.CreateDirectory(Path.Combine(Path.Combine("data", command.GuildId.ToString()), command.Name));

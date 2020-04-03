@@ -29,7 +29,7 @@ namespace BlendoBot.Commands.Admin {
 			$"{$"{Term} user list".Code()} ({"Lists all current BlendoBot admins".Italics()})\n" +
 			$"{$"{Term} command enable [command term]".Code()} ({"Enables a command currently disabled by BlendoBot".Italics()})\n" +
 			$"{$"{Term} command disable [command term]".Code()} ({"Disables a command currently enabled by BlendoBot".Italics()})\n" +
-			$"{$"{Term} command list".Code()} ({$"Lists all currently disabled commands from BlendoBot (all enabled commands are in {"?help".Code()})".Italics()})\n" +
+			$"{$"{Term} command list".Code()} ({$"Lists all currently disabled commands from BlendoBot (all enabled commands are in {BotMethods.GetHelpCommandTerm(this, GuildId).Code()})".Italics()})\n" +
 			$"{$"{Term} command rename [command term] [new term]".Code()} ({"Renames a command to use the new term (must be unique!)".Italics()})\n" +
 			$"{$"{Term} command unknownprefix".Code()} ({"Lists the current prefix used for the unknown command message".Italics()})\n" +
 			$"{$"{Term} command unknownprefix [prefix]".Code()} ({"Changes the prefix used for the unkown command message".Italics()})\n" +
@@ -125,7 +125,7 @@ namespace BlendoBot.Commands.Admin {
 					});
 				} else {
 					await BotMethods.SendMessage(this, new SendMessageEventArgs {
-						Message = $"I couldn't determine what you wanted. Make sure your command is handled by {"?help admin".Code()}",
+						Message = $"I couldn't determine what you wanted. Make sure your command is handled by {$"{BotMethods.GetHelpCommandTerm(this, GuildId)} admin".Code()}",
 						Channel = e.Channel,
 						LogMessage = "AdminUnknownCommand"
 					});
@@ -263,14 +263,14 @@ namespace BlendoBot.Commands.Admin {
 					});
 				} else {
 					await BotMethods.SendMessage(this, new SendMessageEventArgs {
-						Message = $"I couldn't determine what you wanted. Make sure your command is handled by {"?help admin".Code()}",
+						Message = $"I couldn't determine what you wanted. Make sure your command is handled by {$"{BotMethods.GetHelpCommandTerm(this, GuildId)} admin".Code()}",
 						Channel = e.Channel,
 						LogMessage = "AdminUnknownCommand"
 					});
 				}
 			} else {
 				await BotMethods.SendMessage(this, new SendMessageEventArgs {
-					Message = $"I couldn't determine what you wanted. Make sure your command is handled by {"?help admin".Code()}",
+					Message = $"I couldn't determine what you wanted. Make sure your command is handled by {$"{BotMethods.GetHelpCommandTerm(this, GuildId)} admin".Code()}",
 					Channel = e.Channel,
 					LogMessage = "AdminUnknownCommand"
 				});

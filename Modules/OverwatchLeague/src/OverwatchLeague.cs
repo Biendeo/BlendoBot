@@ -14,7 +14,7 @@ namespace OverwatchLeague {
 		public override string DefaultTerm => "?owl";
 		public override string Name => "Overwatch League";
 		public override string Description => "Tells you up-to-date stats about the Overwatch League.";
-		public override string Usage => $"Usage:\n{$"{Term} live".Code()} {"(stats about the match that is currently on)".Italics()}\n{$"{Term} next".Code()} {"(stats about the next match that will be played)".Italics()}\n{$"{Term} match [match id]".Code()} {"(stats about the specified match (match IDs are the 5-digit numbers in square brackets in the schedule commands))".Italics()}\n{$"{Term} standings".Code()} {"(the overall standings of the league)".Italics()}\n{$"{Term} schedule".Code()} {"(shows times and scores for each match in the current or next week)".Italics()}\n{$"{Term} schedule [week]".Code()} {"(shows times and scores for each match in the given week)".Italics()}\n{$"{Term} schedule [abbreviated team name]".Code()} {"(shows times and scores for each match that a team plays)".Italics()}\nAll times are determined by the user's {"?usertimezone".Code()} setting.";
+		public override string Usage => $"Usage:\n{$"{Term} live".Code()} {"(stats about the match that is currently on)".Italics()}\n{$"{Term} next".Code()} {"(stats about the next match that will be played)".Italics()}\n{$"{Term} match [match id]".Code()} {"(stats about the specified match (match IDs are the 5-digit numbers in square brackets in the schedule commands))".Italics()}\n{$"{Term} standings".Code()} {"(the overall standings of the league)".Italics()}\n{$"{Term} schedule".Code()} {"(shows times and scores for each match in the current or next week)".Italics()}\n{$"{Term} schedule [week]".Code()} {"(shows times and scores for each match in the given week)".Italics()}\n{$"{Term} schedule [abbreviated team name]".Code()} {"(shows times and scores for each match that a team plays)".Italics()}\nAll times are determined by the user's {BotMethods.GetCommand<UserTimeZone.UserTimeZone>(this, GuildId).Term.Code()} setting.";
 		public override string Author => "Biendeo";
 		public override string Version => "1.1.0";
 
@@ -323,7 +323,7 @@ namespace OverwatchLeague {
 					}
 				} else {
 					await BotMethods.SendMessage(this, new SendMessageEventArgs {
-						Message = $"I couldn't determine what you wanted. Make sure your command is handled by {"?help owl".Code()}",
+						Message = $"I couldn't determine what you wanted. Make sure your command is handled by {$"{BotMethods.GetHelpCommandTerm(this, GuildId)} owl".Code()}",
 						Channel = e.Channel,
 						LogMessage = "OverwatchLeagueUnknownCommand"
 					});

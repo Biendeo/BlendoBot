@@ -84,7 +84,7 @@ namespace UserTimeZone {
 				}
 			} else {
 				await BotMethods.SendMessage(this, new SendMessageEventArgs {
-					Message = $"Too many arguments! Please refer to {"?help usertimezone".Code()} for usage information.",
+					Message = $"Too many arguments! Please refer to {$"{BotMethods.GetHelpCommandTerm(this, GuildId)} usertimezone".Code()} for usage information.",
 					Channel = e.Channel,
 					LogMessage = "UserTimezoneTooManyArguments"
 				});

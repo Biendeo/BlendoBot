@@ -108,7 +108,7 @@ namespace Roll {
 						}
 					} else {
 						await BotMethods.SendMessage(this, new SendMessageEventArgs {
-							Message = $"I couldn't determine what you wanted. Check {"?help roll".Code()} for ways to use this command.",
+							Message = $"I couldn't determine what you wanted. Check {$"{BotMethods.GetHelpCommandTerm(this, GuildId)} roll".Code()} for ways to use this command.",
 							Channel = e.Channel,
 							LogMessage = "RollErrorTooManyDs"
 						});
@@ -116,7 +116,7 @@ namespace Roll {
 				}
 			} else {
 				await BotMethods.SendMessage(this, new SendMessageEventArgs {
-					Message = $"I couldn't determine what you wanted. Check {"?help roll".Code()} for ways to use this command.",
+					Message = $"I couldn't determine what you wanted. Check {$"{BotMethods.GetHelpCommandTerm(this, GuildId)} roll".Code()} for ways to use this command.",
 					Channel = e.Channel,
 					LogMessage = "RollErrorInvalidArgumentCount"
 				});

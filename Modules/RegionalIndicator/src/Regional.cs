@@ -71,7 +71,7 @@ namespace BlendoBot.Commands {
 			// First covert the original message to lower-case, and remove the original command.
 			if (e.Message.Content.Length <= 10) {
 				await BotMethods.SendMessage(this, new SendMessageEventArgs {
-					Message = $"You must add something after the `?regional`!",
+					Message = $"You must add something after the {Term.Code()}!",
 					Channel = e.Channel,
 					LogMessage = "RegionalErrorNoMessage"
 				});

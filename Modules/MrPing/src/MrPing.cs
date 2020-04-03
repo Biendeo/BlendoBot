@@ -127,7 +127,7 @@ namespace MrPing {
 				});
 			} else {
 				await BotMethods.SendMessage(this, new SendMessageEventArgs {
-					Message = $"Incorrect usage of mr ping. Simply type {Term.Code()} to challenge someone, or type {$"?help {Term}".Code()} for more commands.",
+					Message = $"Incorrect usage of mr ping. Simply type {Term.Code()} to challenge someone, or type {$"{BotMethods.GetHelpCommandTerm(this, GuildId)} {Term}".Code()} for more commands.",
 					Channel = e.Channel,
 					LogMessage = "MrPingErrorBadArguments"
 				});
