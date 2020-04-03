@@ -332,7 +332,7 @@ namespace BlendoBot {
 			});
 
 			//HACK: This should try and reconnect should something wrong happen.
-			await DiscordClient.ConnectAsync();
+			await DiscordClient.ReconnectAsync();
 
 			await Task.Delay(0);
 		}
