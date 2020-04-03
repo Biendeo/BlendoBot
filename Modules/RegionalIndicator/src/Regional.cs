@@ -9,10 +9,10 @@ namespace BlendoBot.Commands {
 	public class Regional : CommandBase {
 		public Regional(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
 
-		public override string Term => "?regional";
+		public override string DefaultTerm => "?regional";
 		public override string Name => "Regional Indicator";
 		public override string Description => "Converts a message into lovely regional indicator text.";
-		public override string Usage => $"Usage: {"?regional [message]".Code()}";
+		public override string Usage => $"Usage: {$"{Term} [message]".Code()}";
 		public override string Author => "Biendeo";
 		public override string Version => "0.1.0";
 
@@ -71,7 +71,7 @@ namespace BlendoBot.Commands {
 			// First covert the original message to lower-case, and remove the original command.
 			if (e.Message.Content.Length <= 10) {
 				await BotMethods.SendMessage(this, new SendMessageEventArgs {
-					Message = $"You must add something after the `?regional`!",
+					Message = $"You must add something after the {Term.Code()}!",
 					Channel = e.Channel,
 					LogMessage = "RegionalErrorNoMessage"
 				});

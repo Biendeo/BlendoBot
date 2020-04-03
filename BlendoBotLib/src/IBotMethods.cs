@@ -61,6 +61,11 @@ namespace BlendoBotLib {
 		T GetCommand<T>(object o, ulong guildId) where T : CommandBase;
 
 		/// <summary>
+		/// Gets the term used for the help command on a certain guild.
+		/// </summary>
+		string GetHelpCommandTerm(object o, ulong guildId);
+
+		/// <summary>
 		/// Returns a path that this command can use to store persistent data. The command should give this particular
 		/// instance a unique path, and the path should exist after this call.
 		/// </summary>

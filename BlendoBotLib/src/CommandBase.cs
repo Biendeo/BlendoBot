@@ -9,6 +9,7 @@ namespace BlendoBotLib {
 		protected CommandBase(ulong guildId, IBotMethods botMethods) {
 			GuildId = guildId;
 			BotMethods = botMethods;
+			Term = DefaultTerm;
 		}
 
 		/// <summary>
@@ -25,7 +26,12 @@ namespace BlendoBotLib {
 		/// <summary>
 		/// The string that users will need to type in order to access this command.
 		/// </summary>
-		public abstract string Term { get; }
+		public string Term { get; set; }
+
+		/// <summary>
+		/// The default string that users will need to type in order to access this command.
+		/// </summary>
+		public abstract string DefaultTerm { get; }
 
 		/// <summary>
 		/// The user-friendly name for this command. Appears in help.

@@ -8,10 +8,10 @@ namespace AutoCorrect {
     {
         public AutoCorrectCommand(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
 
-        public override string Term => "?ac";
+        public override string DefaultTerm => "?ac";
         public override string Name => "AutoCorrect";
         public override string Description => "Performs autocorrect on a message";
-        public override string Usage => $"Usage: {"?ac <message>".Code()}";
+        public override string Usage => $"Usage: {$"{Term} <message>".Code()}";
         public override string Author => "mozzarella";
         public override string Version => "0.0.1";
 
@@ -52,7 +52,7 @@ namespace AutoCorrect {
             {
                 await BotMethods.SendMessage(this, new SendMessageEventArgs
                     {
-                        Message = $"Too few arguments specified to {"?ac".Code()}",
+                        Message = $"Too few arguments specified to {Term.Code()}",
                         Channel = e.Channel,
                         LogMessage = "AutoCorrectTooFewArgs"
                     }).ConfigureAwait(false);

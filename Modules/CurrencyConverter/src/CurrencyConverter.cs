@@ -11,10 +11,10 @@ namespace CurrencyConverter {
 	public class CurrencyConverter : CommandBase {
 		public CurrencyConverter(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
 
-		public override string Term => "?currency";
+		public override string DefaultTerm => "?currency";
 		public override string Name => "Currency Converter";
 		public override string Description => "Returns the conversion rate between two currencies.";
-		public override string Usage => $"Usage: {"?currency [value] [from currency code] [to currency code] ...".Code()}\nYou can write several currencies, and a conversion will be listed for each one.";
+		public override string Usage => $"Usage: {$"{Term} [value] [from currency code] [to currency code] ...".Code()}\nYou can write several currencies, and a conversion will be listed for each one.";
 		public override string Author => "Biendeo";
 		public override string Version => "0.1.1";
 
@@ -51,7 +51,7 @@ namespace CurrencyConverter {
 
 			if (splitInput.Length < 4) {
 				await BotMethods.SendMessage(this, new SendMessageEventArgs {
-					Message = $"Too few arguments specified to {"?currency".Code()}",
+					Message = $"Too few arguments specified to {Term.Code()}",
 					Channel = e.Channel,
 					LogMessage = "CurrencyErrorTooFewArgs"
 				});
