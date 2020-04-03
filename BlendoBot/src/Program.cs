@@ -81,6 +81,9 @@ namespace BlendoBot {
 		/// <summary>
 		/// Returns and instance of a command given the guild ID that it belongs to and the term used to invoke it.
 		/// Returns null if the command could not be found.
+		/// If the command cannot be found, the unknown command prefix is applied and then checked again.
+		/// E.g. if "help" is the commandTerm, and "?" is the unknown command prefix, "?help" will also be looked for.
+		/// This is specifically only if "help" is not already an existing command though.
 		/// </summary>
 		/// <param name="guildId"></param>
 		/// <param name="commandTerm"></param>
@@ -89,6 +92,11 @@ namespace BlendoBot {
 			if (GuildCommands.ContainsKey(guildId)) {
 				if (GuildCommands[guildId].ContainsKey(commandTerm)) {
 					return GuildCommands[guildId][commandTerm];
+				} else {
+					var adminCommand = GetCommand<Admin>(this, guildId);
+					if (GuildCommands[guildId].ContainsKey($"{adminCommand.UnknownCommandPrefix}{commandTerm}")) {
+						return GuildCommands[guildId][$"{adminCommand.UnknownCommandPrefix}{commandTerm}"];
+					}
 				}
 			}
 			return null;

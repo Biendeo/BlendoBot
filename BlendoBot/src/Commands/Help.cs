@@ -55,7 +55,7 @@ namespace BlendoBot.Commands {
 						LogMessage = "HelpErrorInvalidCommand"
 					});
 				} else {
-					sb.AppendLine($"Help for {specifiedCommand.Code()}");
+					sb.AppendLine($"Help for {command.Term.Code()}:");
 					if (command.Usage != null && command.Usage.Length != 0) {
 						sb.AppendLine(command.Usage);
 					} else {
