@@ -13,10 +13,10 @@ namespace RemindMe {
 	public class RemindMe : CommandBase {
 		public RemindMe(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
 
-		public override string Term => "?remind";
+		public override string DefaultTerm => "?remind";
 		public override string Name => "Remind Me";
 		public override string Description => "Reminds you about something later on! Please note that I currently do not remember messages if I am restarted.";
-		public override string Usage => $"Usage:\n{$"?remind at [date and/or time] to [message]".Code()} {"(this reminds you at a certain point in time)".Italics()}\n{$"?remind in [timespan] to [message]".Code()} {"(this reminds you after a certain interval)".Italics()}\n\n{"Valid date formats".Bold()}\n{"dd/mm/yyyy".Code()} ({"e.g. 1/03/2020".Italics()})\n{"dd/mm/yy".Code()} ({"e.g. 20/05/19".Italics()})\n{"dd/mm".Code()} ({"e.g. 30/11 (the year is implied)".Italics()})\n\n{"Valid time formats".Bold()}\n{"hh:mm:ss".Code()} ({"e.g. 13:40:00".Italics()})\n{"hh:mm".Code()} ({"e.g. 21:12".Italics()})\n{"All times are in 24-hour time!".Bold()}\n\n{"Valid timespan formats".Bold()}\n{"hh:mm:ss".Code()} ({"e.g. 1:20:00".Italics()})\n{"mm:ss".Code()} ({"e.g. 00:01".Italics()})\n\nFor {"?remind at".Code()}, you may choose to either write either a date, a time, or both! Some examples:\n{"?remind at 1/01/2020".Code()}\n{"?remind at 12:00:00".Code()}\n{"?remind at 1/01/2020 12:00:00".Code()}\n{"?remind at 12:00:00 1/01/2020".Code()}\n\nPlease note that all date/time strings are interpreted as UTC time unless you have set a {"?usertimezone".Code()}.\nThe output is always formatted as {TimeFormatString.Code()}";
+		public override string Usage => $"Usage:\n{$"{Term} at [date and/or time] to [message]".Code()} {"(this reminds you at a certain point in time)".Italics()}\n{$"{Term} in [timespan] to [message]".Code()} {"(this reminds you after a certain interval)".Italics()}\n\n{"Valid date formats".Bold()}\n{"dd/mm/yyyy".Code()} ({"e.g. 1/03/2020".Italics()})\n{"dd/mm/yy".Code()} ({"e.g. 20/05/19".Italics()})\n{"dd/mm".Code()} ({"e.g. 30/11 (the year is implied)".Italics()})\n\n{"Valid time formats".Bold()}\n{"hh:mm:ss".Code()} ({"e.g. 13:40:00".Italics()})\n{"hh:mm".Code()} ({"e.g. 21:12".Italics()})\n{"All times are in 24-hour time!".Bold()}\n\n{"Valid timespan formats".Bold()}\n{"hh:mm:ss".Code()} ({"e.g. 1:20:00".Italics()})\n{"mm:ss".Code()} ({"e.g. 00:01".Italics()})\n\nFor {"{Term} at".Code()}, you may choose to either write either a date, a time, or both! Some examples:\n{"{Term} at 1/01/2020".Code()}\n{"{Term} at 12:00:00".Code()}\n{"{Term} at 1/01/2020 12:00:00".Code()}\n{"{Term} at 12:00:00 1/01/2020".Code()}\n\nPlease note that all date/time strings are interpreted as UTC time unless you have set a {BotMethods.GetCommand<UserTimeZone.UserTimeZone>(this, GuildId).Term.Code()}.\nThe output is always formatted as {TimeFormatString.Code()}";
 		public override string Author => "Biendeo";
 		public override string Version => "0.1.3";
 
@@ -39,7 +39,7 @@ namespace RemindMe {
 								Channel = channel,
 								LogMessage = "ReminderLateAlert"
 							});
-						} catch (UnauthorizedException exc) {
+						} catch (UnauthorizedException) {
 							BotMethods.Log(this, new LogEventArgs {
 								Type = LogType.Warning,
 								Message = $"Tried doing a wakeup message {reminder.Message} which should've sent at {reminder.Time}, but a 403 was received! This tried to send to user {reminder.UserId} in channel {reminder.ChannelId}."
@@ -165,7 +165,7 @@ namespace RemindMe {
 				}
 				if (!successfulFormat) {
 					await BotMethods.SendMessage(this, new SendMessageEventArgs {
-						Message = $"The date/time you input could not be parsed! See {"?help remind".Code()} for how to format your date/time!",
+						Message = $"The date/time you input could not be parsed! See {$"{BotMethods.GetHelpCommandTerm(this, GuildId)} remind".Code()} for how to format your date/time!",
 						Channel = e.Channel,
 						LogMessage = "ReminderErrorInvalidTime"
 					});
@@ -195,7 +195,7 @@ namespace RemindMe {
 				}
 				if (!successfulFormat) {
 					await BotMethods.SendMessage(this, new SendMessageEventArgs {
-						Message = $"The timespan you input could not be parsed! See {"?help remind".Code()} for how to format your timespan!",
+						Message = $"The timespan you input could not be parsed! See {$"{BotMethods.GetHelpCommandTerm(this, GuildId)} remind".Code()} for how to format your timespan!",
 						Channel = e.Channel,
 						LogMessage = "ReminderErrorInvalidTimespan"
 					});

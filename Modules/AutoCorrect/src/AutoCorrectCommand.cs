@@ -48,7 +48,7 @@ namespace AutoCorrect
             {
                 await this.discordClient.SendMessage(this, new SendMessageEventArgs
                     {
-                        Message = $"Too few arguments specified to {"?ac".Code()}",
+                        Message = $"Too few arguments specified",
                         Channel = e.Channel,
                         LogMessage = "AutoCorrectTooFewArgs"
                     }).ConfigureAwait(false);

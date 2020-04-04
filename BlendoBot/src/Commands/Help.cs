@@ -12,10 +12,10 @@ namespace BlendoBot.Commands {
 			this.program = program;
 		}
 
-		public override string Term => "?help";
+		public override string DefaultTerm => "?help";
 		public override string Name => "Help";
 		public override string Description => "Posts what commands this bot can do, and additional help on how to use a command.";
-		public override string Usage => $"Use {"?help".Code()} to see a list of all commands on the server.\nUse {"?help [command]".Code()} to see help on a specific command, but you probably already know how to do that!";
+		public override string Usage => $"Use {Term.Code()} to see a list of all commands on the server.\nUse {$"{Term} [command]".Code()} to see help on a specific command, but you probably already know how to do that!";
 		public override string Author => "Biendeo";
 		public override string Version => "1.0.0";
 
@@ -47,9 +47,6 @@ namespace BlendoBot.Commands {
 				// This block runs if the ?help is run with an argument. The relevant command is searched and its usage
 				// is printed out, or an error message if that command doesn't exist.
 				string specifiedCommand = e.Message.Content.Substring(Term.Length + 1);
-				if (!specifiedCommand.StartsWith('?')) {
-					specifiedCommand = $"?{specifiedCommand}";
-				}
 				var command = program.GetCommand(this, GuildId, specifiedCommand);
 				if (command == null) {
 					await BotMethods.SendMessage(this, new SendMessageEventArgs {
@@ -58,7 +55,7 @@ namespace BlendoBot.Commands {
 						LogMessage = "HelpErrorInvalidCommand"
 					});
 				} else {
-					sb.AppendLine($"Help for {specifiedCommand.Code()}");
+					sb.AppendLine($"Help for {command.Term.Code()}:");
 					if (command.Usage != null && command.Usage.Length != 0) {
 						sb.AppendLine(command.Usage);
 					} else {

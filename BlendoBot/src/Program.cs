@@ -1,4 +1,5 @@
-﻿using BlendoBot.Commands.Admin;
+﻿using BlendoBot.Commands;
+using BlendoBot.Commands.Admin;
 using BlendoBot.ConfigSchemas;
 using BlendoBotLib;
 using BlendoBotLib.Interfaces;
@@ -26,7 +27,6 @@ namespace BlendoBot {
 		public DateTime StartTime { get; private set; }
 
 		private Dictionary<string, Type> LoadedCommands { get; set; }
-		private Dictionary<string, Type> SystemCommands { get; set; }
 		private Dictionary<ulong, Dictionary<string, CommandBase>> GuildCommands { get; set; }
 		private Dictionary<ulong, List<IMessageListener>> GuildMessageListeners { get; set; }
 
@@ -78,7 +78,6 @@ namespace BlendoBot {
 		public Program(string configPath) {
 			ConfigPath = configPath;
 			LoadedCommands = new Dictionary<string, Type>();
-			SystemCommands = new Dictionary<string, Type>();
 			GuildCommands = new Dictionary<ulong, Dictionary<string, CommandBase>>();
 			GuildMessageListeners = new Dictionary<ulong, List<IMessageListener>>();
 			// The rest of the fields will be initialised during the Start operation.
@@ -129,6 +128,9 @@ namespace BlendoBot {
 		/// <summary>
 		/// Returns and instance of a command given the guild ID that it belongs to and the term used to invoke it.
 		/// Returns null if the command could not be found.
+		/// If the command cannot be found, the unknown command prefix is applied and then checked again.
+		/// E.g. if "help" is the commandTerm, and "?" is the unknown command prefix, "?help" will also be looked for.
+		/// This is specifically only if "help" is not already an existing command though.
 		/// </summary>
 		/// <param name="guildId"></param>
 		/// <param name="commandTerm"></param>
@@ -137,6 +139,11 @@ namespace BlendoBot {
 			if (GuildCommands.ContainsKey(guildId)) {
 				if (GuildCommands[guildId].ContainsKey(commandTerm)) {
 					return GuildCommands[guildId][commandTerm];
+				} else {
+					var adminCommand = GetCommand<Admin>(this, guildId);
+					if (GuildCommands[guildId].ContainsKey($"{adminCommand.UnknownCommandPrefix}{commandTerm}")) {
+						return GuildCommands[guildId][$"{adminCommand.UnknownCommandPrefix}{commandTerm}"];
+					}
 				}
 			}
 			return null;
@@ -255,6 +262,10 @@ namespace BlendoBot {
 			return null;
 		}
 
+		public string GetHelpCommandTerm(object o, ulong guildId) {
+			return GetCommand<Help>(this, guildId).Term;
+		}
+
 		public string GetCommandInstanceDataPath(object sender, CommandBase command) {
 			if (!Directory.Exists(Path.Combine(Path.Combine("data", command.GuildId.ToString()), command.Name))) {
 				Directory.CreateDirectory(Path.Combine(Path.Combine("data", command.GuildId.ToString()), command.Name));
@@ -296,20 +307,21 @@ namespace BlendoBot {
 			// The rule is: don't react to my own messages, and commands need to be triggered with a
 			// ? character.
 			if (!e.Author.IsCurrent && !e.Author.IsBot) {
-				if (e.Message.Content.Length > 1 && e.Message.Content[0] == '?' && IsAlphabetical(e.Message.Content[1])) {
-					string commandTerm = e.Message.Content.Split(' ')[0].ToLower();
-					if (GuildCommands[e.Guild.Id].ContainsKey(commandTerm)) {
-						try {
-							await GuildCommands[e.Guild.Id][commandTerm].OnMessage(e);
-						} catch (Exception exc) {
-							// This should hopefully make it such that the bot never crashes (although it hasn't stopped it).
-							await SendException(this, new SendExceptionEventArgs {
-								Exception = exc,
-								Channel = e.Channel,
-								LogExceptionType = "GenericExceptionNotCaught"
-							});
-						}
-					} else {
+				string commandTerm = e.Message.Content.Split(' ')[0].ToLower();
+				if (GuildCommands[e.Guild.Id].ContainsKey(commandTerm)) {
+					try {
+						await GuildCommands[e.Guild.Id][commandTerm].OnMessage(e);
+					} catch (Exception exc) {
+						// This should hopefully make it such that the bot never crashes (although it hasn't stopped it).
+						await SendException(this, new SendExceptionEventArgs {
+							Exception = exc,
+							Channel = e.Channel,
+							LogExceptionType = "GenericExceptionNotCaught"
+						});
+					}
+				} else {
+					var adminCommand = GetCommand<Admin>(this, e.Guild.Id);
+					if (adminCommand.IsUnknownCommandEnabled && commandTerm.StartsWith(adminCommand.UnknownCommandPrefix)) {
 						await SendMessage(this, new SendMessageEventArgs {
 							Message = $"I didn't know what you meant by that, {e.Author.Username}. Use {"?help".Code()} to see what I can do!",
 							Channel = e.Channel,
@@ -412,17 +424,24 @@ namespace BlendoBot {
 				disposable.Dispose();
 			}
 			Log(this, new LogEventArgs {
-				Type = LogType.Error,
+				Type = LogType.Log,
 				Message = $"Successfully unloaded module {command.GetType().FullName} and {messageListenerCount} message listener{(messageListenerCount == 1 ? "" : "s")}"
 			});
 			await Task.Delay(0);
 		}
 
-		private void LoadCommands() {
-			foreach (var type in Assembly.GetCallingAssembly().GetTypes().Where(t => t.IsSubclassOf(typeof(CommandBase)))) {
-				SystemCommands.Add(type.FullName, type);
-			}
+		public void RenameCommand(object o, ulong guildId, string commandTerm, string newTerm) {
+			var command = GuildCommands[guildId][commandTerm];
+			GuildCommands[guildId].Remove(commandTerm);
+			command.Term = newTerm;
+			GuildCommands[guildId].Add(newTerm, command);
+			Log(this, new LogEventArgs {
+				Type = LogType.Log,
+				Message = $"Successfully renamed module {command.GetType().FullName} from {commandTerm} to {newTerm}"
+			});
+		}
 
+		private void LoadCommands() {
 			var dlls = Directory.GetFiles(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)).ToList().FindAll(s => Path.GetExtension(s) == ".dll");
 			dlls.RemoveAll(s => Path.GetFileName(s) == "BlendoBot.dll" || Path.GetFileName(s) == "BlendoBotLib.dll");
 
@@ -450,22 +469,29 @@ namespace BlendoBot {
 			} else {
 				GuildMessageListeners.Add(guildId, new List<IMessageListener>());
 			}
-			foreach (var commandType in SystemCommands.Values) {
-				var commandInstance = Activator.CreateInstance(commandType, new object[] { guildId, this }) as CommandBase;
-				GuildCommands[guildId].Add(commandInstance.Term, commandInstance);
-				await commandInstance.Startup();
+
+			var adminCommand = new Admin(guildId, this);
+			var systemCommands = new CommandBase[] { adminCommand, new Help(guildId, this), new About(guildId, this) };
+
+			foreach (var command in systemCommands) {
+				await command.Startup();
+			}
+
+			foreach (var command in systemCommands) {
+				string term = adminCommand.RenameCommandTermFromDatabase(command);
+				GuildCommands[guildId].Add(term, command);
 				Log(this, new LogEventArgs {
 					Type = LogType.Log,
-					Message = $"Successfully loaded internal module {commandInstance.Name} ({commandInstance.Term}) for guild {guildId}"
+					Message = $"Successfully loaded internal module {command.Name} ({term}) for guild {guildId}"
 				});
 			}
 
-			var adminCommand = GetCommand<Admin>(this, guildId);
 			foreach (var commandType in LoadedCommands.Values) {
 				if (!adminCommand.IsCommandNameDisabled(commandType.FullName)) {
 					try {
 						var commandInstance = Activator.CreateInstance(commandType, new object[] { guildId, this }) as CommandBase;
 						if (await commandInstance.Startup()) {
+							commandInstance.Term = adminCommand.RenameCommandTermFromDatabase(commandInstance);
 							GuildCommands[guildId].Add(commandInstance.Term, commandInstance);
 							Log(this, new LogEventArgs {
 								Type = LogType.Log,
@@ -474,7 +500,7 @@ namespace BlendoBot {
 						} else {
 							Log(this, new LogEventArgs {
 								Type = LogType.Error,
-								Message = $"Could not load module {commandInstance.Name} ({commandInstance.Term}), startup failed"
+								Message = $"Could not load module {commandInstance.Name}, startup failed"
 							});
 						}
 					} catch (Exception exc) {
