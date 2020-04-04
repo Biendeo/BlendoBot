@@ -22,5 +22,8 @@ namespace BlendoBot.ConfigSchemas
 
         [JsonPropertyName("token")]
         public string Token { get; set; }
+
+        [JsonPropertyName("prefix")]
+        public string Prefix { get; set; }
     }
 }

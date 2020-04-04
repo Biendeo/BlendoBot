@@ -6,7 +6,6 @@ namespace BlendoBot
     using BlendoBot.ConfigSchemas;
     using BlendoBotLib;
     using BlendoBotLib.Interfaces;
-    using BlendoBotLib.Services;
     using DSharpPlus;
     using DSharpPlus.Entities;
     using DSharpPlus.EventArgs;
@@ -52,11 +51,8 @@ namespace BlendoBot
                 await this.discordClientService.ConnectAsync();
 
                 // Wait on stopping token
-                var tcs = new TaskCompletionSource<bool>();
-                stoppingToken.Register(s => ((TaskCompletionSource<bool>)s).SetResult(true), stoppingToken);
-                await tcs.Task;
-
-                this.logger.LogInformation("Received stopping signal");
+                WaitHandle.WaitAny(new[] { stoppingToken.WaitHandle });
+                this.logger.LogInformation("Service received stopping signal, bot is shutting down");
             }
         }
 
@@ -77,8 +73,6 @@ namespace BlendoBot
 
         private async Task DiscordMessageCreated(MessageCreateEventArgs e)
         {
-            this.logger.LogInformation("Incoming message");
-            await Task.Delay(0);
             // The rule is: don't react to my own messages, and commands need to be triggered with a
             // ? character.
             if (!e.Author.IsCurrent && !e.Author.IsBot)
