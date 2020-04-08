@@ -71,6 +71,8 @@ namespace BlendoBot {
 			DiscordClient.SocketClosed += DiscordSocketClosed;
 			DiscordClient.SocketErrored += DiscordSocketErrored;
 
+			DiscordClient.Heartbeated += DiscordHeartbeated;
+
 			LoadCommands();
 
 			await DiscordClient.ConnectAsync();
@@ -324,7 +326,6 @@ namespace BlendoBot {
 
 			await Task.Delay(0);
 		}
-
 		private async Task DiscordSocketErrored(SocketErrorEventArgs e) {
 			Log(this, new LogEventArgs {
 				Type = LogType.Error,
@@ -333,6 +334,15 @@ namespace BlendoBot {
 
 			//HACK: This should try and reconnect should something wrong happen.
 			await DiscordClient.ReconnectAsync();
+
+			await Task.Delay(0);
+		}
+
+		private async Task DiscordHeartbeated(HeartbeatEventArgs e) {
+			Log(this, new LogEventArgs {
+				Type = LogType.Error,
+				Message = $"Heartbeat triggered: handled = {e.Handled}, checksum = {e.IntegrityChecksum}, ping = {e.Ping}, timestamp = {e.Timestamp}"
+			});
 
 			await Task.Delay(0);
 		}
