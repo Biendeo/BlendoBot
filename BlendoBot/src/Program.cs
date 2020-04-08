@@ -340,7 +340,7 @@ namespace BlendoBot {
 
 		private async Task DiscordHeartbeated(HeartbeatEventArgs e) {
 			Log(this, new LogEventArgs {
-				Type = LogType.Error,
+				Type = LogType.Log,
 				Message = $"Heartbeat triggered: handled = {e.Handled}, checksum = {e.IntegrityChecksum}, ping = {e.Ping}, timestamp = {e.Timestamp}"
 			});
 
