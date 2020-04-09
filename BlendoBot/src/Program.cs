@@ -56,6 +56,20 @@ namespace BlendoBot {
 				}
 			}
 
+			await SetupDiscordClient();
+
+			LoadCommands();
+
+			HeartbeatCheck = new Timer(120000.0);
+			HeartbeatCheck.Elapsed += HeartbeatCheck_Elapsed;
+			HeartbeatCheck.AutoReset = true;
+			HeartbeatCheck.Start();
+			ClientRestarts = 0;
+
+			await Task.Delay(-1);
+		}
+
+		private async Task SetupDiscordClient() {
 			//! This is very unsafe because other modules can attempt to read the bot API token, and worse, try and
 			//! change it.
 			DiscordClient = new DiscordClient(new DiscordConfiguration {
@@ -78,17 +92,7 @@ namespace BlendoBot {
 
 			DiscordClient.Heartbeated += DiscordHeartbeated;
 
-			LoadCommands();
-
 			await DiscordClient.ConnectAsync();
-
-			HeartbeatCheck = new Timer(120000.0);
-			HeartbeatCheck.Elapsed += HeartbeatCheck_Elapsed;
-			HeartbeatCheck.AutoReset = true;
-			HeartbeatCheck.Start();
-			ClientRestarts = 0;
-
-			await Task.Delay(-1);
 		}
 
 		private void HeartbeatCheck_Elapsed(object sender, ElapsedEventArgs e) {
@@ -96,11 +100,8 @@ namespace BlendoBot {
 				Type = LogType.Error,
 				Message = $"Heartbeat didn't occur for 120 seconds, re-connecting..."
 			});
-			DiscordClient.ReconnectAsync(true).Wait();
-			++ClientRestarts;
-			if (ClientRestarts >= 5) {
-				Environment.Exit(1);
-			}
+			DiscordClient.Dispose();
+			SetupDiscordClient().RunSynchronously();
 		}
 
 		/// <summary>
