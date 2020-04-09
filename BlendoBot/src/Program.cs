@@ -10,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using System.Timers;
 
 namespace BlendoBot {
 	public class Program : IBotMethods {
@@ -22,6 +23,8 @@ namespace BlendoBot {
 		private Dictionary<string, Type> LoadedCommands { get; set; }
 		private Dictionary<ulong, Dictionary<string, CommandBase>> GuildCommands { get; set; }
 		private Dictionary<ulong, List<IMessageListener>> GuildMessageListeners { get; set; }
+
+		private Timer HeartbeatCheck { get; set; }
 
 		public static void Main(string[] args) {
 			var program = new Program("config.cfg");
@@ -77,7 +80,20 @@ namespace BlendoBot {
 
 			await DiscordClient.ConnectAsync();
 
+			HeartbeatCheck = new Timer(120.0);
+			HeartbeatCheck.Elapsed += HeartbeatCheck_Elapsed;
+			HeartbeatCheck.AutoReset = true;
+			HeartbeatCheck.Start();
+
 			await Task.Delay(-1);
+		}
+
+		private void HeartbeatCheck_Elapsed(object sender, ElapsedEventArgs e) {
+			Log(this, new LogEventArgs {
+				Type = LogType.Error,
+				Message = $"Heartbeat didn't occur for 60 seconds, re-connecting..."
+			});
+			DiscordClient.ReconnectAsync().Wait();
 		}
 
 		/// <summary>
@@ -343,6 +359,8 @@ namespace BlendoBot {
 				Type = LogType.Log,
 				Message = $"Heartbeat triggered: handled = {e.Handled}, checksum = {e.IntegrityChecksum}, ping = {e.Ping}, timestamp = {e.Timestamp}"
 			});
+			HeartbeatCheck.Stop();
+			HeartbeatCheck.Start();
 
 			await Task.Delay(0);
 		}
