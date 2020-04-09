@@ -91,9 +91,9 @@ namespace BlendoBot {
 		private void HeartbeatCheck_Elapsed(object sender, ElapsedEventArgs e) {
 			Log(this, new LogEventArgs {
 				Type = LogType.Error,
-				Message = $"Heartbeat didn't occur for 60 seconds, re-connecting..."
+				Message = $"Heartbeat didn't occur for 120 seconds, re-connecting..."
 			});
-			DiscordClient.ReconnectAsync().Wait();
+			DiscordClient.ReconnectAsync(true).Wait();
 		}
 
 		/// <summary>
