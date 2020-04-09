@@ -26,6 +26,8 @@ namespace BlendoBot {
 
 		private Timer HeartbeatCheck { get; set; }
 
+		private int ClientRestarts { get; set; }
+
 		public static void Main(string[] args) {
 			var program = new Program("config.cfg");
 			program.Start(args).ConfigureAwait(false).GetAwaiter().GetResult();
@@ -84,6 +86,7 @@ namespace BlendoBot {
 			HeartbeatCheck.Elapsed += HeartbeatCheck_Elapsed;
 			HeartbeatCheck.AutoReset = true;
 			HeartbeatCheck.Start();
+			ClientRestarts = 0;
 
 			await Task.Delay(-1);
 		}
@@ -94,6 +97,10 @@ namespace BlendoBot {
 				Message = $"Heartbeat didn't occur for 120 seconds, re-connecting..."
 			});
 			DiscordClient.ReconnectAsync(true).Wait();
+			++ClientRestarts;
+			if (ClientRestarts >= 5) {
+				Environment.Exit(1);
+			}
 		}
 
 		/// <summary>
