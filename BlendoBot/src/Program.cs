@@ -80,7 +80,7 @@ namespace BlendoBot {
 
 			await DiscordClient.ConnectAsync();
 
-			HeartbeatCheck = new Timer(120.0);
+			HeartbeatCheck = new Timer(120000.0);
 			HeartbeatCheck.Elapsed += HeartbeatCheck_Elapsed;
 			HeartbeatCheck.AutoReset = true;
 			HeartbeatCheck.Start();
