@@ -13,7 +13,7 @@ namespace BlendoBot.CommandDiscovery
         public CommandRouter(
             ulong guildId,
             ILogger<CommandRouter> logger,
-            IInstancedDataStore<CommandRouterFactory> dataStore,
+            IInstancedDataStore<CommandRouter> dataStore,
             CommandRouterConfig config,
             ISet<Type> commandTypes)
         {
@@ -162,7 +162,7 @@ namespace BlendoBot.CommandDiscovery
 
         private ILogger<CommandRouter> logger;
 
-        private readonly IInstancedDataStore<CommandRouterFactory> dataStore;
+        private readonly IInstancedDataStore<CommandRouter> dataStore;
 
         private Dictionary<string, Type> commandMap;
 

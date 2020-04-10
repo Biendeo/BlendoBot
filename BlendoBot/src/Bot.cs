@@ -76,7 +76,7 @@ namespace BlendoBot
 
         private async Task DiscordMessageCreated(MessageCreateEventArgs e)
         {
-            // Do not react to my own messages, not messages from other bots
+            // Do not react to my own messages, nor messages from other bots
             if (e.Author.IsCurrent || e.Author.IsBot)
             {
                 return;

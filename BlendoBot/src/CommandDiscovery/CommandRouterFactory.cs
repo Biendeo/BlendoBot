@@ -18,7 +18,7 @@ namespace BlendoBot.CommandDiscovery
         public CommandRouterFactory(
             ILoggerFactory loggerFactory,
             ILogger<CommandRouterFactory> logger,
-            IInstancedDataStore<CommandRouterFactory> dataStore)
+            IInstancedDataStore<CommandRouter> dataStore)
         {
             this.dataStore = dataStore;
             this.logger = logger;
@@ -28,11 +28,11 @@ namespace BlendoBot.CommandDiscovery
         public static void ConfigureServices(HostBuilderContext hostBuilderContext, IServiceCollection services)
         {
             services.AddSingleton<
-                IDataStore<CommandRouterFactory>,
-                JsonFileDataStore<CommandRouterFactory>>();
+                IDataStore<CommandRouter>,
+                JsonFileDataStore<CommandRouter>>();
             services.AddSingleton<
-                IInstancedDataStore<CommandRouterFactory>,
-                GuildInstancedDataStore<CommandRouterFactory>>();
+                IInstancedDataStore<CommandRouter>,
+                GuildInstancedDataStore<CommandRouter>>();
         }
 
         public async Task<ICommandRouter> CreateForGuild(ulong guildId, ISet<Type> commandTypes)
@@ -70,7 +70,7 @@ namespace BlendoBot.CommandDiscovery
             return router;
         }
 
-        private IInstancedDataStore<CommandRouterFactory> dataStore;
+        private IInstancedDataStore<CommandRouter> dataStore;
 
         private ILogger<CommandRouterFactory> logger;
 
