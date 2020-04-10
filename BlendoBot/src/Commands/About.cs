@@ -59,7 +59,8 @@
                 // This block runs if the ?about is run with an argument. Take the remaining length of the string and
                 // figure out which command uses that. Then print their name, version, author, and description.
                 string specifiedCommand = e.Message.Content.Split(' ')[1];
-				if (!this.commandRouter.TryTranslateTerm(specifiedCommand, out var commandType))
+				if (!(this.commandRouter.TryTranslateTerm(specifiedCommand, out var commandType) &&
+                    this.commandRegistry.TryGetCommandInstance(commandType, this.guildId, out var command)))
                 {
                     await this.discordClient.SendMessage(this, new SendMessageEventArgs
                     {
@@ -70,7 +71,6 @@
                 }
                 else
                 {
-					this.commandRegistry.TryGetCommandInstance(commandType, this.guildId, out var command);
                     sb.AppendLine($"{command.Name.Bold()} ({command.Version?.Italics()}) by {command.Author?.Italics()}");
                     sb.AppendLine(command.Description);
                     await this.discordClient.SendMessage(this, new SendMessageEventArgs

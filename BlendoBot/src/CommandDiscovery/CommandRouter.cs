@@ -143,6 +143,9 @@ namespace BlendoBot.CommandDiscovery
         public ISet<string> GetDisabledTerms() =>
             this.disabledCommands.Join(this.commandMap, t => t, kvp => kvp.Value, (t, kvp) => kvp.Key).ToHashSet();
 
+        public ISet<string> GetEnabledTerms() =>
+            this.commandMap.Keys.Except(this.GetDisabledTerms()).ToHashSet();
+
         private CommandRouterConfig ToConfig()
         {
             var commands = this.commandMap.Select(kvp => new CommandConfig

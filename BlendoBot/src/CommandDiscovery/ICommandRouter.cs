@@ -16,5 +16,7 @@ namespace BlendoBot.CommandDiscovery
         Task<bool> DisableTerm(string term);
 
         ISet<string> GetDisabledTerms();
+
+        ISet<string> GetEnabledTerms();
     }
 }

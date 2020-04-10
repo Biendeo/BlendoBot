@@ -38,7 +38,7 @@ namespace AutoCorrect
             services.AddHttpClient<IAutoCorrectProvider, GrammarBotAutoCorrectProvider>();
         }
 
-        public string GetUsage(string term) => $"Usage: {"{term} <message>".Code()}";
+        public string GetUsage(string term) => $"Usage: {$"{term} <message>".Code()}";
 
         public async Task OnMessage(MessageCreateEventArgs e)
         {

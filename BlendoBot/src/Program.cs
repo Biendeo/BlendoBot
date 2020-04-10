@@ -52,7 +52,8 @@ namespace BlendoBot
                     var commandRegistryBuilder = new CommandRegistryBuilder(services)
                         .RegisterGuildScoped<About>()
                         .RegisterGuildScoped<AdminV3>()
-                        .RegisterSingleton<AutoCorrect.AutoCorrectCommand>();
+                        .RegisterSingleton<AutoCorrect.AutoCorrectCommand>()
+						.RegisterGuildScoped<Help>();
                     services.AddSingleton<ICommandRegistryBuilder>(commandRegistryBuilder);
 
                     // Command router factory and manager
@@ -295,7 +296,7 @@ namespace BlendoBot
 
         public string GetHelpCommandTerm(object o, ulong guildId)
         {
-            return GetCommand<Help>(this, guildId).Term;
+			throw new NotImplementedException();
         }
 
         public string GetCommandInstanceDataPath(object sender, CommandBase command)
@@ -440,7 +441,7 @@ namespace BlendoBot
             }
 
             var adminCommand = new Admin(guildId, this);
-            var systemCommands = new CommandBase[] { adminCommand, new Help(guildId, this) };
+            var systemCommands = new CommandBase[] { adminCommand };
 
             foreach (var command in systemCommands)
             {
