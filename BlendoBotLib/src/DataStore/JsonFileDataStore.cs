@@ -33,7 +33,7 @@ namespace BlendoBotLib.DataStore
             Directory.CreateDirectory(Directory.GetParent(fullpath).ToString());
             using (var ostream = new FileStream(fullpath, FileMode.Create))
             {
-                await JsonSerializer.SerializeAsync(ostream, value);
+                await JsonSerializer.SerializeAsync(ostream, value, new JsonSerializerOptions { WriteIndented = true });
             }
         }
 
