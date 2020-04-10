@@ -53,7 +53,8 @@ namespace BlendoBot
                         .RegisterGuildScoped<About>()
                         .RegisterGuildScoped<AdminV3>()
                         .RegisterSingleton<AutoCorrect.AutoCorrectCommand>()
-						.RegisterGuildScoped<Help>();
+						.RegisterGuildScoped<Help>()
+						.RegisterSingleton<Roll.Roll>();
                     services.AddSingleton<ICommandRegistryBuilder>(commandRegistryBuilder);
 
                     // Command router factory and manager
@@ -511,12 +512,6 @@ namespace BlendoBot
             });
         }
 
-        [Obsolete]
-        private static bool IsAlphabetical(char c)
-        {
-            // TODO remove
-            return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
-        }
         private DiscordClient DiscordClient { get; set; }
         private string ConfigPath { get; }
         public Config Config { get; private set; }
