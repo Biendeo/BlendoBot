@@ -1,4 +1,4 @@
-namespace BlendoBot
+namespace BlendoBot.CommandDiscovery
 {
     using System;
     using System.Collections.Concurrent;
@@ -24,19 +24,11 @@ namespace BlendoBot
         }
 
         public async Task ExecuteForAsync(
+            Type commandType,
             MessageCreateEventArgs e,
-            Func<Task> onUnmatchedCommand,
             Func<Exception, Task> onException
         )
         {
-            string verb = e.Message.Content.Split(' ')[0].ToLowerInvariant().Substring(1);
-            if (!this.verbMap.TryGetValue(verb, out var commandType))
-            {
-                // No verb
-                await onUnmatchedCommand();
-                return;
-            }
-
             ICommand? cmd = null;
             switch (this.lifetimes[commandType])
             {
@@ -81,6 +73,8 @@ namespace BlendoBot
                 await onException(ex);
             }
         }
+
+        public ISet<Type> RegisteredCommandTypes => new HashSet<Type>(this.lifetimes.Keys);
 
         private IServiceProvider serviceProvider;
 

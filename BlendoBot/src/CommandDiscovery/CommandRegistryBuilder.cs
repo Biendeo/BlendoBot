@@ -1,14 +1,12 @@
-namespace BlendoBot
+namespace BlendoBot.CommandDiscovery
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
-    using BlendoBot.ConfigSchemas;
     using BlendoBotLib;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
 
-    public class CommandRegistryBuilder
+    public class CommandRegistryBuilder : ICommandRegistryBuilder
     {
         public CommandRegistryBuilder(IServiceCollection services)
         {
@@ -17,7 +15,7 @@ namespace BlendoBot
             this.lifetimes = new Dictionary<Type, CommandLifetime>();
         }
 
-        public CommandRegistry Build(IServiceProvider serviceProvider, ILogger<CommandRegistryBuilder> logger)
+        public ICommandRegistry Build(IServiceProvider serviceProvider, ILogger<ICommandRegistryBuilder> logger)
         {
             // Process verb map to build Command Registry, injecting DI container.
             var verbMapToType = new Dictionary<string, Type>(this.verbMap.Count);
@@ -41,37 +39,26 @@ namespace BlendoBot
             return registry;
         }
 
-        public CommandRegistryBuilder RegisterSingleton<T>() where T : class, ICommand
+        public ICommandRegistryBuilder RegisterSingleton<T>() where T : class, ICommand
         {
             this.services.AddSingleton<T>();
             this.lifetimes[typeof(T)] = CommandLifetime.Singleton;
             return this;
         }
 
-        public CommandRegistryBuilder RegisterGuildScoped<T>() where T : class, ICommand
+        public ICommandRegistryBuilder RegisterGuildScoped<T>() where T : class, ICommand
         {
             // Here we register as transient.
-            // Lifetime is manually managed in CommandRegistryBuilder.
+            // Lifetime is manually managed by CommandRegistry.
             this.services.AddTransient<T>();
             this.lifetimes[typeof(T)] = CommandLifetime.GuildScoped;
             return this;
         }
 
-        public CommandRegistryBuilder RegisterTransient<T>() where T : class, ICommand
+        public ICommandRegistryBuilder RegisterTransient<T>() where T : class, ICommand
         {
             this.services.AddTransient<T>();
             this.lifetimes[typeof(T)] = CommandLifetime.Transient;
-            return this;
-        }
-
-        public CommandRegistryBuilder WithConfig(CommandRegistryConfig? config)
-        {
-            // Merge verb overrides with replacements
-            if (config?.VerbMapping?.Any() ?? false)
-            {
-                config.VerbMapping.ToList().ForEach(x => this.verbMap[x.Key] = x.Value);
-            }
-
             return this;
         }
 

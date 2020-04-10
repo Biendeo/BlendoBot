@@ -1,4 +1,5 @@
-﻿using BlendoBot.Commands;
+﻿using BlendoBot.CommandDiscovery;
+using BlendoBot.Commands;
 using BlendoBot.Commands.Admin;
 using BlendoBot.ConfigSchemas;
 using BlendoBotLib;
@@ -20,16 +21,6 @@ using System.Threading.Tasks;
 
 namespace BlendoBot {
 	public class Program : IBotMethods {
-		private DiscordClient DiscordClient { get; set; }
-		private string ConfigPath { get; }
-		public Config Config { get; private set; }
-		private string LogFile { get; set; }
-		public DateTime StartTime { get; private set; }
-
-		private Dictionary<string, Type> LoadedCommands { get; set; }
-		private Dictionary<ulong, Dictionary<string, CommandBase>> GuildCommands { get; set; }
-		private Dictionary<ulong, List<IMessageListener>> GuildMessageListeners { get; set; }
-
 		public static async Task Main(string[] args) {
 			await CreateHostBuilder(args).Build().RunAsync();
 		}
@@ -49,16 +40,19 @@ namespace BlendoBot {
 					// Bind config sections
 					var config = hostContext.Configuration;
 					var blendoBotConfig = config.GetSection("BlendoBot").Get<BlendoBotConfig>();
-					var commandRegistryConfig = config.GetSection("CommandRegistry").Get<CommandRegistryConfig>();
+					var commandRegistryConfig = config.GetSection("CommandRegistry").Get<CommandRouterConfig>();
 
 					// Configure external services to be injected
 					AutoCorrect.AutoCorrectCommand.ConfigureServices(hostContext, services);
 
 					// Command registry and commands
 					var commandRegistryBuilder = new CommandRegistryBuilder(services)
-						.WithConfig(commandRegistryConfig)
 						.RegisterSingleton<AutoCorrect.AutoCorrectCommand>();
-					services.AddSingleton<CommandRegistryBuilder>(commandRegistryBuilder);
+					services.AddSingleton<ICommandRegistryBuilder>(commandRegistryBuilder);
+
+					// Command router factory
+					CommandRouterFactory.ConfigureServices(hostContext, services);
+					services.AddSingleton<ICommandRouterFactory, CommandRouterFactory>();
 
 					// Discord client service
 					var discordClient = new DiscordClient(new DiscordConfiguration
@@ -67,7 +61,7 @@ namespace BlendoBot {
 						TokenType = TokenType.Bot
 					});
 					services.AddSingleton<DiscordClient>(discordClient);
-					services.AddSingleton<IDiscordClientService, DiscordClientService>();
+					services.AddSingleton<IDiscordClient, DiscordClientService>();
 
 					// Main bot service
 					services.AddSingleton<BlendoBotConfig>(blendoBotConfig);
@@ -528,5 +522,15 @@ namespace BlendoBot {
 			// TODO remove
 			return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 		}
+		private DiscordClient DiscordClient { get; set; }
+		private string ConfigPath { get; }
+		public Config Config { get; private set; }
+		private string LogFile { get; set; }
+		public DateTime StartTime { get; private set; }
+
+		private Dictionary<string, Type> LoadedCommands { get; set; }
+		private Dictionary<ulong, Dictionary<string, CommandBase>> GuildCommands { get; set; }
+		private Dictionary<ulong, List<IMessageListener>> GuildMessageListeners { get; set; }
+
 	}
 }

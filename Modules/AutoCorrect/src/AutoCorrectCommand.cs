@@ -15,7 +15,7 @@ namespace AutoCorrect
     {
         public AutoCorrectCommand(
             ILogger<AutoCorrectCommand> logger,
-            IDiscordClientService discordClient,
+            IDiscordClient discordClient,
             IAutoCorrectProvider autoCorrectProvider)
         {
             this.logger = logger;
@@ -81,7 +81,7 @@ namespace AutoCorrect
 
         private ILogger<AutoCorrectCommand> logger;
 
-        private IDiscordClientService discordClient;
+        private IDiscordClient discordClient;
 
         private IAutoCorrectProvider autoCorrectProvider;
     }

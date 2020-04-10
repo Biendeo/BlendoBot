@@ -1,12 +1,13 @@
 namespace BlendoBot
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+    using BlendoBot.CommandDiscovery;
     using BlendoBot.ConfigSchemas;
     using BlendoBotLib;
     using BlendoBotLib.Interfaces;
-    using DSharpPlus;
     using DSharpPlus.Entities;
     using DSharpPlus.EventArgs;
     using Microsoft.Extensions.Hosting;
@@ -16,8 +17,9 @@ namespace BlendoBot
     {
         public Bot(
             BlendoBotConfig botConfig,
-            CommandRegistryBuilder registryBuilder,
-            IDiscordClientService discordClientService,
+            ICommandRegistryBuilder registryBuilder,
+            ICommandRouterFactory commandRouterFactory,
+            IDiscordClient discordClientService,
             ILogger<Bot> logger,
             IServiceProvider serviceProvider
         )
@@ -29,7 +31,11 @@ namespace BlendoBot
             // Build the command registry
             this.commandRegistry = registryBuilder.Build(
                 serviceProvider,
-                (ILogger<CommandRegistryBuilder>)serviceProvider.GetService(typeof(ILogger<CommandRegistryBuilder>)));
+                (ILogger<ICommandRegistryBuilder>)serviceProvider.GetService(typeof(ILogger<ICommandRegistryBuilder>)));
+
+            // Command routers are tied to guilds. Build them on guild available event
+            this.commandRouters = new Dictionary<ulong, ICommandRouter>();
+            this.commandRouterFactory = commandRouterFactory;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -73,22 +79,44 @@ namespace BlendoBot
 
         private async Task DiscordMessageCreated(MessageCreateEventArgs e)
         {
-            // The rule is: don't react to my own messages, and commands need to be triggered with a
-            // ? character.
-            if (!e.Author.IsCurrent && !e.Author.IsBot)
+            // Do not react to my own messages, not messages from other bots
+            if (e.Author.IsCurrent || e.Author.IsBot)
             {
-                if (e.Message.Content.Length > 1 && e.Message.Content[0] == '?' && char.IsLetter(e.Message.Content[1]))
+                return;
+            }
+
+            // TODO dynamic runtime listeners
+            // Run these in a separate task?
+            // foreach (var listener in something)
+            // {
+            // }
+
+            // Commands need to be triggered with a '?' character, followed by a letter
+            // i.e. no "??"
+            if (e.Message.Content.Length > 1 && e.Message.Content[0] == '?' && char.IsLetter(e.Message.Content[1]))
+            {
+                string term = e.Message.Content.Split(' ')[0].ToLowerInvariant().Substring(1);
+
+                // Get the router for the current guild.
+                // Router is responsible for translating the term to a command
+                if (!this.commandRouters.TryGetValue(e.Guild.Id, out var router))
+                {
+                    this.logger.LogError("Command router for guild {} not found", e.Guild.Id);
+                    await this.discordClientService.SendMessage(this, new SendMessageEventArgs
+                    {
+                        Message = $"Internal error, command router for guild id {e.Guild.Id} not found",
+                        Channel = e.Channel,
+                        LogMessage = "CommandRouterNotFound"
+                    });
+                    return;
+                }
+
+                // Attempt to map the term to a command
+                if (router!.TryTranslateTerm(term, out Type commandType))
                 {
                     await this.commandRegistry.ExecuteForAsync(
+                        commandType,
                         e,
-                        onUnmatchedCommand: () =>
-                            this.discordClientService.SendMessage(this, new SendMessageEventArgs
-                            {
-                                Message = $"I didn't know what you meant by that, {e.Author.Username}. Use {"?help".Code()} to see what I can do!",
-                                Channel = e.Channel,
-                                LogMessage = "UnknownMessage"
-                            }),
-                        // This should hopefully make it such that the bot never crashes (although it hasn't stopped it).
                         onException: ex =>
                             this.discordClientService.SendException(this, new SendExceptionEventArgs
                             {
@@ -98,12 +126,15 @@ namespace BlendoBot
                             })
                     );
                 }
-
-                // TODO dynamic runtime listeners
-                // foreach (var listener in GuildMessageListeners[e.Guild.Id])
-                // {
-                //     await listener.OnMessage(e);
-                // }
+                else
+                {
+                    await this.discordClientService.SendMessage(this, new SendMessageEventArgs
+                    {
+                        Message = $"I didn't know what you meant by that, {e.Author.Username}. Use {"?help".Code()} to see what I can do!",
+                        Channel = e.Channel,
+                        LogMessage = "UnknownMessage"
+                    });
+                };
             }
         }
 
@@ -116,8 +147,12 @@ namespace BlendoBot
         private async Task DiscordGuildAvailable(GuildCreateEventArgs e)
         {
             this.logger.LogInformation($"Guild available: {e.Guild.Name} ({e.Guild.Id})");
-            // command lifetimes are now managed by CommandRegistry
-            // await InstantiateCommandsForGuild(e.Guild.Id);
+
+            // Create a command router for the newly available guild
+            var guildId = e.Guild.Id;
+            var router = await this.commandRouterFactory.CreateForGuild(guildId, this.commandRegistry.RegisteredCommandTypes);
+            this.commandRouters.Add(guildId, router);
+            await Task.CompletedTask;
         }
 
         private async Task DiscordClientErrored(ClientErrorEventArgs e)
@@ -136,7 +171,7 @@ namespace BlendoBot
         {
             this.logger.LogError(e.Exception, "SocketErrored triggered");
 
-            //HACK: This should try and reconnect should something wrong happen.
+            // HACK: This should try and reconnect should something wrong happen.
             await this.discordClientService.ConnectAsync();
         }
 
@@ -144,9 +179,13 @@ namespace BlendoBot
 
         private BlendoBotConfig botConfig;
 
-        private CommandRegistry commandRegistry;
+        private ICommandRegistry commandRegistry;
 
-        private IDiscordClientService discordClientService;
+        private Dictionary<ulong, ICommandRouter> commandRouters;
+
+        private ICommandRouterFactory commandRouterFactory;
+
+        private IDiscordClient discordClientService;
 
         private ILogger<Bot> logger;
     }

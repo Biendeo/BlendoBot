@@ -9,7 +9,7 @@ namespace BlendoBotLib.Services
     using DSharpPlus.EventArgs;
     using Microsoft.Extensions.Logging;
 
-    public class DiscordClientService : IDiscordClientService
+    public class DiscordClientService : IDiscordClient
     {
         public DiscordClientService(
             DiscordClient client,
@@ -53,13 +53,13 @@ namespace BlendoBotLib.Services
             return await e.Channel.SendMessageAsync(messageHeader + exceptionString + messageFooter);
         }
 
-        public Task ConnectAsync(DiscordActivity activity = null, UserStatus? status = null, DateTimeOffset? idleSince = null)
+        public Task ConnectAsync(DiscordActivity? activity = null, UserStatus? status = null, DateTimeOffset? idleSince = null)
         {
             this.logger.LogInformation("Connecting");
             return this.client.ConnectAsync(activity, status, idleSince);
         }
 
-        public Task UpdateStatusAsync(DiscordActivity activity = null, UserStatus? status = null, DateTimeOffset? idleSince = null)
+        public Task UpdateStatusAsync(DiscordActivity? activity = null, UserStatus? status = null, DateTimeOffset? idleSince = null)
         {
             this.logger.LogInformation(
                 "Updating status: activity={}, status={}, idleSince={}",

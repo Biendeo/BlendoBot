@@ -1,4 +1,4 @@
-namespace BlendoBot
+namespace BlendoBot.CommandDiscovery
 {
     public enum CommandLifetime
     {

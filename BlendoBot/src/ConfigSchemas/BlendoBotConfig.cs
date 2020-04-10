@@ -3,6 +3,8 @@ namespace BlendoBot.ConfigSchemas
     using System.Text.Json.Serialization;
     using DSharpPlus.Entities;
 
+#pragma warning disable CS8618
+
     public class BlendoBotConfig
     {
         [JsonPropertyName("name")]
@@ -26,4 +28,6 @@ namespace BlendoBot.ConfigSchemas
         [JsonPropertyName("prefix")]
         public string Prefix { get; set; }
     }
+
+#pragma warning restore CS8618
 }

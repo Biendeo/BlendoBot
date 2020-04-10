@@ -6,7 +6,7 @@ namespace BlendoBotLib.Interfaces
     using DSharpPlus.Entities;
     using DSharpPlus.EventArgs;
 
-    public interface IDiscordClientService
+    public interface IDiscordClient
     {
         Task ConnectAsync(DiscordActivity? activity = null, UserStatus? status = null, DateTimeOffset? idleSince = null);
 
