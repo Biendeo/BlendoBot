@@ -12,11 +12,9 @@ namespace BlendoBot.CommandDiscovery
     {
         public CommandRegistry(
             IServiceProvider serviceProvider,
-            IDictionary<string, Type> verbMap,
             IDictionary<Type, CommandLifetime> lifetimes
         )
         {
-            this.verbMap = new ConcurrentDictionary<string, Type>(verbMap);
             this.lifetimes = new Dictionary<Type, CommandLifetime>(lifetimes);
             this.guildScopedCommandInstances = new ConcurrentDictionary<ulong, ConcurrentDictionary<Type, ICommand>>();
             this.serviceProvider = serviceProvider;
@@ -79,8 +77,6 @@ namespace BlendoBot.CommandDiscovery
         private IServiceProvider serviceProvider;
 
         private ILogger<CommandRegistry> logger;
-
-        private ConcurrentDictionary<string, Type> verbMap;
 
         private readonly Dictionary<Type, CommandLifetime> lifetimes;
 

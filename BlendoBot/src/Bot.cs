@@ -29,9 +29,7 @@ namespace BlendoBot
             this.logger = logger;
 
             // Build the command registry
-            this.commandRegistry = registryBuilder.Build(
-                serviceProvider,
-                (ILogger<ICommandRegistryBuilder>)serviceProvider.GetService(typeof(ILogger<ICommandRegistryBuilder>)));
+            this.commandRegistry = registryBuilder.Build(serviceProvider);
 
             // Command routers are tied to guilds. Build them on guild available event
             this.commandRouters = new Dictionary<ulong, ICommandRouter>();

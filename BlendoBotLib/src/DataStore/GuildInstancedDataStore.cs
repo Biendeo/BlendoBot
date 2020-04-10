@@ -1,12 +1,12 @@
-namespace BlendoBotLib.Services
+namespace BlendoBotLib.DataStore
 {
     using System.IO;
     using System.Threading.Tasks;
     using BlendoBotLib.Interfaces;
 
-    public class GuildInstancedDataStoreService<TConsumer> : IInstancedDataStore<TConsumer>
+    public class GuildInstancedDataStore<TConsumer> : IInstancedDataStore<TConsumer>
     {
-        public GuildInstancedDataStoreService(IDataStore<TConsumer> dataStore)
+        public GuildInstancedDataStore(IDataStore<TConsumer> dataStore)
         {
             this.dataStore = dataStore;
         }

@@ -2,11 +2,13 @@ namespace BlendoBot.CommandDiscovery
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.IO;
+    using System.Linq;
     using System.Threading.Tasks;
     using BlendoBot.ConfigSchemas;
+    using BlendoBotLib.DataStore;
     using BlendoBotLib.Interfaces;
-    using BlendoBotLib.Services;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
@@ -27,14 +29,19 @@ namespace BlendoBot.CommandDiscovery
         {
             services.AddSingleton<
                 IDataStore<CommandRouterFactory>,
-                JsonFileDataStoreService<CommandRouterFactory>>();
+                JsonFileDataStore<CommandRouterFactory>>();
             services.AddSingleton<
                 IInstancedDataStore<CommandRouterFactory>,
-                GuildInstancedDataStoreService<CommandRouterFactory>>();
+                GuildInstancedDataStore<CommandRouterFactory>>();
         }
 
         public async Task<ICommandRouter> CreateForGuild(ulong guildId, ISet<Type> commandTypes)
         {
+            var sw = Stopwatch.StartNew();
+            this.logger.LogInformation(
+                "Creating command router for guild {}. Supported command types: [{}]",
+                guildId,
+                string.Join(",", commandTypes.Select(t => t.Name)));
             CommandRouterConfig config;
             try
             {
@@ -55,6 +62,8 @@ namespace BlendoBot.CommandDiscovery
                 config,
                 commandTypes
             );
+
+            this.logger.LogInformation("Command router created for guild {} in {}ms", guildId, sw.Elapsed.TotalMilliseconds);
 
             return router;
         }

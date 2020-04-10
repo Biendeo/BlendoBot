@@ -1,4 +1,4 @@
-namespace BlendoBotLib.Services
+namespace BlendoBotLib.DataStore
 {
     using System.IO;
     using System.Text.Json;
@@ -6,10 +6,10 @@ namespace BlendoBotLib.Services
     using BlendoBotLib.Interfaces;
     using Microsoft.Extensions.Logging;
 
-    public class JsonFileDataStoreService<TConsumer> : IDataStore<TConsumer>
+    public class JsonFileDataStore<TConsumer> : IDataStore<TConsumer>
     {
-        public JsonFileDataStoreService(
-            ILogger<JsonFileDataStoreService<TConsumer>> logger)
+        public JsonFileDataStore(
+            ILogger<JsonFileDataStore<TConsumer>> logger)
         {
             this.logger = logger;
             this.path = "data";
@@ -37,7 +37,7 @@ namespace BlendoBotLib.Services
             }
         }
 
-        private ILogger<JsonFileDataStoreService<TConsumer>> logger;
+        private ILogger<JsonFileDataStore<TConsumer>> logger;
 
         private string path;
     }

@@ -6,7 +6,7 @@ namespace BlendoBot.CommandDiscovery
 
     public interface ICommandRegistryBuilder
     {
-        ICommandRegistry Build(IServiceProvider serviceProvider, ILogger<ICommandRegistryBuilder> logger);
+        ICommandRegistry Build(IServiceProvider serviceProvider);
 
         ICommandRegistryBuilder RegisterGuildScoped<T>() where T : class, ICommand;
 

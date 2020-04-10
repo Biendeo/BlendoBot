@@ -1,6 +1,7 @@
 namespace BlendoBotLib.Services
 {
     using System;
+    using System.Globalization;
     using System.Threading.Tasks;
     using BlendoBotLib;
     using BlendoBotLib.Interfaces;
@@ -65,7 +66,7 @@ namespace BlendoBotLib.Services
                 "Updating status: activity={}, status={}, idleSince={}",
                 activity,
                 status,
-                idleSince);
+                idleSince?.ToString("o"));
             return this.client.UpdateStatusAsync(activity, status, idleSince);
         }
 
