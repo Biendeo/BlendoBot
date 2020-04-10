@@ -13,6 +13,9 @@ namespace BlendoBot.ConfigSchemas
         [JsonPropertyName("version")]
         public string Version { get; set; }
 
+        [JsonPropertyName("description")]
+        public string Description { get; set; }
+
         [JsonPropertyName("author")]
         public string Author { get; set; }
 

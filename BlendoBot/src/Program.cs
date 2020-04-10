@@ -7,7 +7,6 @@ using BlendoBotLib.Interfaces;
 using BlendoBotLib.Services;
 using DSharpPlus;
 using DSharpPlus.Entities;
-using DSharpPlus.EventArgs;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -19,415 +18,513 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace BlendoBot {
-	public class Program : IBotMethods {
-		public static async Task Main(string[] args) {
-			await CreateHostBuilder(args).Build().RunAsync();
-		}
+namespace BlendoBot
+{
+    public class Program : IBotMethods
+    {
+        public static async Task Main(string[] args)
+        {
+            await CreateHostBuilder(args).Build().RunAsync();
+        }
 
-		private static IHostBuilder CreateHostBuilder(string[] args) => 
-			Host.CreateDefaultBuilder(args)
-				.ConfigureAppConfiguration((hostContext, config) =>
-				{
-					// NOTE: by default this will load appconfig.json from the PWD
-				})
-				.ConfigureLogging(logging =>
-				{
-					logging.AddConsole();
-				})
-				.ConfigureServices((hostContext, services) =>
-				{
-					// Bind config sections
-					var config = hostContext.Configuration;
-					var blendoBotConfig = config.GetSection("BlendoBot").Get<BlendoBotConfig>();
-					var commandRegistryConfig = config.GetSection("CommandRegistry").Get<CommandRouterConfig>();
+        private static IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
+                .ConfigureAppConfiguration((hostContext, config) =>
+                {
+                    // NOTE: by default this will load appconfig.json from the PWD
+                })
+                .ConfigureLogging(logging =>
+                {
+                    logging.AddConsole();
+                })
+                .ConfigureServices((hostContext, services) =>
+                {
+                    // Bind config sections
+                    var config = hostContext.Configuration;
+                    var blendoBotConfig = config.GetSection("BlendoBot").Get<BlendoBotConfig>();
+                    var commandRegistryConfig = config.GetSection("CommandRegistry").Get<CommandRouterConfig>();
 
-					// Configure external services to be injected
-					AdminV3.ConfigureServices(hostContext, services);
-					AutoCorrect.AutoCorrectCommand.ConfigureServices(hostContext, services);
+                    // Configure external services to be injected
+                    AdminV3.ConfigureServices(hostContext, services);
+                    AutoCorrect.AutoCorrectCommand.ConfigureServices(hostContext, services);
 
-					// Command registry and commands
-					var commandRegistryBuilder = new CommandRegistryBuilder(services)
-						.RegisterGuildScoped<AdminV3>()
-						.RegisterSingleton<AutoCorrect.AutoCorrectCommand>();
-					services.AddSingleton<ICommandRegistryBuilder>(commandRegistryBuilder);
+                    // Command registry and commands
+                    var commandRegistryBuilder = new CommandRegistryBuilder(services)
+                        .RegisterGuildScoped<About>()
+                        .RegisterGuildScoped<AdminV3>()
+                        .RegisterSingleton<AutoCorrect.AutoCorrectCommand>();
+                    services.AddSingleton<ICommandRegistryBuilder>(commandRegistryBuilder);
 
-					// Command router factory and manager
-					CommandRouterFactory.ConfigureServices(hostContext, services);
-					services.AddSingleton<ICommandRouterFactory, CommandRouterFactory>();
-					services.AddSingleton<ICommandRouterManager, CommandRouterManager>();
+                    // Command router factory and manager
+                    CommandRouterFactory.ConfigureServices(hostContext, services);
+                    services.AddSingleton<ICommandRouterFactory, CommandRouterFactory>();
+                    services.AddSingleton<ICommandRouterManager, CommandRouterManager>();
 
-					// Discord client service
-					var discordClient = new DiscordClient(new DiscordConfiguration
-					{
-						Token = blendoBotConfig.Token,
-						TokenType = TokenType.Bot
-					});
-					services.AddSingleton<DiscordClient>(discordClient);
-					services.AddSingleton<IDiscordClient, DiscordClientService>();
+                    // Discord client service
+                    var discordClient = new DiscordClient(new DiscordConfiguration
+                    {
+                        Token = blendoBotConfig.Token,
+                        TokenType = TokenType.Bot
+                    });
+                    services.AddSingleton<DiscordClient>(discordClient);
+                    services.AddSingleton<IDiscordClient, DiscordClientService>();
 
-					// Main bot service
-					services.AddSingleton<BlendoBotConfig>(blendoBotConfig);
-					services.AddHostedService<Bot>();
-				})
-				.UseConsoleLifetime();
+                    // Main bot service
+                    services.AddSingleton<BlendoBotConfig>(blendoBotConfig);
+                    services.AddHostedService<Bot>();
+                })
+                .UseConsoleLifetime();
 
-		public Program(string configPath) {
-			ConfigPath = configPath;
-			LoadedCommands = new Dictionary<string, Type>();
-			GuildCommands = new Dictionary<ulong, Dictionary<string, CommandBase>>();
-			GuildMessageListeners = new Dictionary<ulong, List<IMessageListener>>();
-			// The rest of the fields will be initialised during the Start operation.
-		}
+        public Program(string configPath)
+        {
+            ConfigPath = configPath;
+            LoadedCommands = new Dictionary<string, Type>();
+            GuildCommands = new Dictionary<ulong, Dictionary<string, CommandBase>>();
+            GuildMessageListeners = new Dictionary<ulong, List<IMessageListener>>();
+            // The rest of the fields will be initialised during the Start operation.
+        }
 
-		public async Task Start(string[] _) {
-			if (!Config.FromFile(ConfigPath, out Config readInConfig)) {
-				Config = readInConfig;
-				Console.Error.WriteLine($"Could not find {ConfigPath}! A default one will be created. Please modify the appropriate fields!");
-				CreateDefaultConfig();
-				Environment.Exit(1);
-			} else {
-				Config = readInConfig;
-				Console.WriteLine($"Successfully read config file: bot name is {Config.Name}");
+        public async Task Start(string[] _)
+        {
+            if (!Config.FromFile(ConfigPath, out Config readInConfig))
+            {
+                Config = readInConfig;
+                Console.Error.WriteLine($"Could not find {ConfigPath}! A default one will be created. Please modify the appropriate fields!");
+                CreateDefaultConfig();
+                Environment.Exit(1);
+            }
+            else
+            {
+                Config = readInConfig;
+                Console.WriteLine($"Successfully read config file: bot name is {Config.Name}");
 
-				if (Config.ActivityType.HasValue ^ Config.ActivityName != null) {
-					Console.WriteLine("The config's ActivityType and ActivityName must both be present to work. Defaulting to no current activity.");
-				}
-			}
+                if (Config.ActivityType.HasValue ^ Config.ActivityName != null)
+                {
+                    Console.WriteLine("The config's ActivityType and ActivityName must both be present to work. Defaulting to no current activity.");
+                }
+            }
 
-			//! This is very unsafe because other modules can attempt to read the bot API token, and worse, try and
-			//! change it.
-			DiscordClient = new DiscordClient(new DiscordConfiguration {
-				Token = Config.ReadString(this, "BlendoBot", "Token"),
-				TokenType = TokenType.Bot
-			});
+            //! This is very unsafe because other modules can attempt to read the bot API token, and worse, try and
+            //! change it.
+            DiscordClient = new DiscordClient(new DiscordConfiguration
+            {
+                Token = Config.ReadString(this, "BlendoBot", "Token"),
+                TokenType = TokenType.Bot
+            });
 
-			StartTime = DateTime.Now;
-			LogFile = Path.Join("log", $"{StartTime.ToString("yyyyMMddHHmmss")}.log");
+            StartTime = DateTime.Now;
+            LogFile = Path.Join("log", $"{StartTime.ToString("yyyyMMddHHmmss")}.log");
 
-			LoadCommands();
+            LoadCommands();
 
-			await DiscordClient.ConnectAsync();
+            await DiscordClient.ConnectAsync();
 
-			await Task.Delay(-1);
-		}
+            await Task.Delay(-1);
+        }
 
-		/// <summary>
-		/// Returns and instance of a command given the guild ID that it belongs to and the term used to invoke it.
-		/// Returns null if the command could not be found.
-		/// If the command cannot be found, the unknown command prefix is applied and then checked again.
-		/// E.g. if "help" is the commandTerm, and "?" is the unknown command prefix, "?help" will also be looked for.
-		/// This is specifically only if "help" is not already an existing command though.
-		/// </summary>
-		/// <param name="guildId"></param>
-		/// <param name="commandTerm"></param>
-		/// <returns></returns>
-		public CommandBase GetCommand(object _, ulong guildId, string commandTerm) {
-			if (GuildCommands.ContainsKey(guildId)) {
-				if (GuildCommands[guildId].ContainsKey(commandTerm)) {
-					return GuildCommands[guildId][commandTerm];
-				} else {
-					var adminCommand = GetCommand<Admin>(this, guildId);
-					if (GuildCommands[guildId].ContainsKey($"{adminCommand.UnknownCommandPrefix}{commandTerm}")) {
-						return GuildCommands[guildId][$"{adminCommand.UnknownCommandPrefix}{commandTerm}"];
-					}
-				}
-			}
-			return null;
-		}
+        /// <summary>
+        /// Returns and instance of a command given the guild ID that it belongs to and the term used to invoke it.
+        /// Returns null if the command could not be found.
+        /// If the command cannot be found, the unknown command prefix is applied and then checked again.
+        /// E.g. if "help" is the commandTerm, and "?" is the unknown command prefix, "?help" will also be looked for.
+        /// This is specifically only if "help" is not already an existing command though.
+        /// </summary>
+        /// <param name="guildId"></param>
+        /// <param name="commandTerm"></param>
+        /// <returns></returns>
+        public CommandBase GetCommand(object _, ulong guildId, string commandTerm)
+        {
+            if (GuildCommands.ContainsKey(guildId))
+            {
+                if (GuildCommands[guildId].ContainsKey(commandTerm))
+                {
+                    return GuildCommands[guildId][commandTerm];
+                }
+                else
+                {
+                    var adminCommand = GetCommand<Admin>(this, guildId);
+                    if (GuildCommands[guildId].ContainsKey($"{adminCommand.UnknownCommandPrefix}{commandTerm}"))
+                    {
+                        return GuildCommands[guildId][$"{adminCommand.UnknownCommandPrefix}{commandTerm}"];
+                    }
+                }
+            }
+            return null;
+        }
 
-		public List<CommandBase> GetCommands(object _, ulong guildId) {
-			if (GuildCommands.ContainsKey(guildId)) {
-				return GuildCommands[guildId].Values.ToList();
-			} else {
-				return new List<CommandBase>();
-			}
-		}
+        public List<CommandBase> GetCommands(object _, ulong guildId)
+        {
+            if (GuildCommands.ContainsKey(guildId))
+            {
+                return GuildCommands[guildId].Values.ToList();
+            }
+            else
+            {
+                return new List<CommandBase>();
+            }
+        }
 
-		private void CreateDefaultConfig() {
-			Config.WriteString(this, "BlendoBot", "Name", "YOUR BLENDOBOT NAME HERE");
-			Config.WriteString(this, "BlendoBot", "Version", "YOUR BLENDOBOT VERSION HERE");
-			Config.WriteString(this, "BlendoBot", "Description", "YOUR BLENDOBOT DESCRIPTION HERE");
-			Config.WriteString(this, "BlendoBot", "Author", "YOUR BLENDOBOT AUTHOR HERE");
-			Config.WriteString(this, "BlendoBot", "ActivityName", "YOUR BLENDOBOT ACTIVITY NAME HERE");
-			Config.WriteString(this, "BlendoBot", "ActivityType", "Please replace this with Playing, ListeningTo, Streaming, or Watching.");
-			Config.WriteString(this, "BlendoBot", "Token", "YOUR BLENDOBOT TOKEN HERE");
-		}
+        private void CreateDefaultConfig()
+        {
+            Config.WriteString(this, "BlendoBot", "Name", "YOUR BLENDOBOT NAME HERE");
+            Config.WriteString(this, "BlendoBot", "Version", "YOUR BLENDOBOT VERSION HERE");
+            Config.WriteString(this, "BlendoBot", "Description", "YOUR BLENDOBOT DESCRIPTION HERE");
+            Config.WriteString(this, "BlendoBot", "Author", "YOUR BLENDOBOT AUTHOR HERE");
+            Config.WriteString(this, "BlendoBot", "ActivityName", "YOUR BLENDOBOT ACTIVITY NAME HERE");
+            Config.WriteString(this, "BlendoBot", "ActivityType", "Please replace this with Playing, ListeningTo, Streaming, or Watching.");
+            Config.WriteString(this, "BlendoBot", "Token", "YOUR BLENDOBOT TOKEN HERE");
+        }
 
-		#region BotFunctions
+        #region BotFunctions
 
-		public async Task<DiscordMessage> SendMessage(object sender, SendMessageEventArgs e) {
-			Log(sender, new LogEventArgs {
-				Type = LogType.Log,
-				Message = $"Sending message {e.LogMessage} to channel #{e.Channel.Name} ({e.Channel.Guild.Name})"
-			});
-			if (e.LogMessage.Length > 2000) {
-				int oldLength = e.Message.Length;
-				e.LogMessage = e.LogMessage.Substring(0, 2000);
-				Log(sender, new LogEventArgs {
-					Type = LogType.Warning,
-					Message = $"Last message was {oldLength} characters long, truncated to 2000"
-				});
-			}
-			return await e.Channel.SendMessageAsync(e.Message);
-		}
+        public async Task<DiscordMessage> SendMessage(object sender, SendMessageEventArgs e)
+        {
+            Log(sender, new LogEventArgs
+            {
+                Type = LogType.Log,
+                Message = $"Sending message {e.LogMessage} to channel #{e.Channel.Name} ({e.Channel.Guild.Name})"
+            });
+            if (e.LogMessage.Length > 2000)
+            {
+                int oldLength = e.Message.Length;
+                e.LogMessage = e.LogMessage.Substring(0, 2000);
+                Log(sender, new LogEventArgs
+                {
+                    Type = LogType.Warning,
+                    Message = $"Last message was {oldLength} characters long, truncated to 2000"
+                });
+            }
+            return await e.Channel.SendMessageAsync(e.Message);
+        }
 
-		public async Task<DiscordMessage> SendFile(object sender, SendFileEventArgs e) {
-			Log(sender, new LogEventArgs {
-				Type = LogType.Log,
-				Message = $"Sending file {e.LogMessage} to channel #{e.Channel.Name} ({e.Channel.Guild.Name})"
-			});
-			return await e.Channel.SendFileAsync(e.FilePath);
-		}
+        public async Task<DiscordMessage> SendFile(object sender, SendFileEventArgs e)
+        {
+            Log(sender, new LogEventArgs
+            {
+                Type = LogType.Log,
+                Message = $"Sending file {e.LogMessage} to channel #{e.Channel.Name} ({e.Channel.Guild.Name})"
+            });
+            return await e.Channel.SendFileAsync(e.FilePath);
+        }
 
-		public async Task<DiscordMessage> SendException(object sender, SendExceptionEventArgs e) {
-			Log(sender, new LogEventArgs {
-				Type = LogType.Error,
-				Message = $"{e.LogExceptionType}\n{e.Exception}"
-			});
-			string messageHeader = $"A {e.LogExceptionType} occurred. Alert the authorities!\n```\n";
-			string messageFooter = "\n```";
-			string exceptionString = e.Exception.ToString();
-			if (exceptionString.Length + messageHeader.Length + messageFooter.Length > 2000) {
-				int oldLength = exceptionString.Length;
-				exceptionString = exceptionString.Substring(0, 2000 - messageHeader.Length - messageFooter.Length);
-				Log(sender, new LogEventArgs {
-					Type = LogType.Warning,
-					Message = $"Last message was {oldLength} characters long, truncated to {exceptionString.Length}"
-				});
-			}
-			return await e.Channel.SendMessageAsync(messageHeader + exceptionString + messageFooter);
-		}
+        public async Task<DiscordMessage> SendException(object sender, SendExceptionEventArgs e)
+        {
+            Log(sender, new LogEventArgs
+            {
+                Type = LogType.Error,
+                Message = $"{e.LogExceptionType}\n{e.Exception}"
+            });
+            string messageHeader = $"A {e.LogExceptionType} occurred. Alert the authorities!\n```\n";
+            string messageFooter = "\n```";
+            string exceptionString = e.Exception.ToString();
+            if (exceptionString.Length + messageHeader.Length + messageFooter.Length > 2000)
+            {
+                int oldLength = exceptionString.Length;
+                exceptionString = exceptionString.Substring(0, 2000 - messageHeader.Length - messageFooter.Length);
+                Log(sender, new LogEventArgs
+                {
+                    Type = LogType.Warning,
+                    Message = $"Last message was {oldLength} characters long, truncated to {exceptionString.Length}"
+                });
+            }
+            return await e.Channel.SendMessageAsync(messageHeader + exceptionString + messageFooter);
+        }
 
-		public void Log(object sender, LogEventArgs e) {
-			string typeString = Enum.GetName(typeof(LogType), e.Type);
-			string logMessage = $"[{typeString}] ({DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}) [{sender?.GetType().FullName ?? "null"}] | {e.Message}";
-			Console.WriteLine(logMessage);
-			if (!Directory.Exists("log")) Directory.CreateDirectory("log");
-			File.AppendAllText(LogFile, logMessage + "\n");
-		}
-		public string ReadConfig(object o, string configHeader, string configKey) {
-			return Config.ReadString(o, configHeader, configKey);
-		}
+        public void Log(object sender, LogEventArgs e)
+        {
+            string typeString = Enum.GetName(typeof(LogType), e.Type);
+            string logMessage = $"[{typeString}] ({DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}) [{sender?.GetType().FullName ?? "null"}] | {e.Message}";
+            Console.WriteLine(logMessage);
+            if (!Directory.Exists("log")) Directory.CreateDirectory("log");
+            File.AppendAllText(LogFile, logMessage + "\n");
+        }
+        public string ReadConfig(object o, string configHeader, string configKey)
+        {
+            return Config.ReadString(o, configHeader, configKey);
+        }
 
-		public bool DoesKeyExist(object o, string configHeader, string configKey) {
-			return Config.DoesKeyExist(o, configHeader, configKey);
-		}
+        public bool DoesKeyExist(object o, string configHeader, string configKey)
+        {
+            return Config.DoesKeyExist(o, configHeader, configKey);
+        }
 
-		public void WriteConfig(object o, string configHeader, string configKey, string configValue) {
-			Config.WriteString(o, configHeader, configKey, configValue);
-		}
+        public void WriteConfig(object o, string configHeader, string configKey, string configValue)
+        {
+            Config.WriteString(o, configHeader, configKey, configValue);
+        }
 
-		public void AddMessageListener(object sender, ulong guildId, IMessageListener messageListener) {
-			if (!GuildMessageListeners.ContainsKey(guildId)) {
-				GuildMessageListeners.Add(guildId, new List<IMessageListener> { messageListener });
-			} else {
-				GuildMessageListeners[guildId].Add(messageListener);
-			}
-		}
+        public void AddMessageListener(object sender, ulong guildId, IMessageListener messageListener)
+        {
+            if (!GuildMessageListeners.ContainsKey(guildId))
+            {
+                GuildMessageListeners.Add(guildId, new List<IMessageListener> { messageListener });
+            }
+            else
+            {
+                GuildMessageListeners[guildId].Add(messageListener);
+            }
+        }
 
-		public void RemoveMessageListener(object sender, ulong guildId, IMessageListener messageListener) {
-			if (GuildMessageListeners.ContainsKey(guildId)) {
-				GuildMessageListeners[guildId].Remove(messageListener);
-			}
-			if (messageListener is IDisposable disposable) {
-				disposable.Dispose();
-			}
-		}
+        public void RemoveMessageListener(object sender, ulong guildId, IMessageListener messageListener)
+        {
+            if (GuildMessageListeners.ContainsKey(guildId))
+            {
+                GuildMessageListeners[guildId].Remove(messageListener);
+            }
+            if (messageListener is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+        }
 
-		/// <summary>
-		/// Returns and instance of a command given the guild ID given the type.
-		/// Returns null if the command could not be found.
-		/// </summary>
-		/// <param name="sender"></param>
-		/// <param name="guildId"></param>
-		/// <returns></returns>
-		public T GetCommand<T>(object sender, ulong guildId) where T : CommandBase {
-			if (GuildCommands.ContainsKey(guildId)) {
-				return GuildCommands[guildId].First(c => c.Value is T).Value as T;
-			}
-			return null;
-		}
+        /// <summary>
+        /// Returns and instance of a command given the guild ID given the type.
+        /// Returns null if the command could not be found.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="guildId"></param>
+        /// <returns></returns>
+        public T GetCommand<T>(object sender, ulong guildId) where T : CommandBase
+        {
+            if (GuildCommands.ContainsKey(guildId))
+            {
+                return GuildCommands[guildId].First(c => c.Value is T).Value as T;
+            }
+            return null;
+        }
 
-		public string GetHelpCommandTerm(object o, ulong guildId) {
-			return GetCommand<Help>(this, guildId).Term;
-		}
+        public string GetHelpCommandTerm(object o, ulong guildId)
+        {
+            return GetCommand<Help>(this, guildId).Term;
+        }
 
-		public string GetCommandInstanceDataPath(object sender, CommandBase command) {
-			if (!Directory.Exists(Path.Combine(Path.Combine("data", command.GuildId.ToString()), command.Name))) {
-				Directory.CreateDirectory(Path.Combine(Path.Combine("data", command.GuildId.ToString()), command.Name));
-			}
-			return Path.Combine(Path.Combine("data", command.GuildId.ToString()), command.Name);
-		}
+        public string GetCommandInstanceDataPath(object sender, CommandBase command)
+        {
+            if (!Directory.Exists(Path.Combine(Path.Combine("data", command.GuildId.ToString()), command.Name)))
+            {
+                Directory.CreateDirectory(Path.Combine(Path.Combine("data", command.GuildId.ToString()), command.Name));
+            }
+            return Path.Combine(Path.Combine("data", command.GuildId.ToString()), command.Name);
+        }
 
-		public string GetCommandCommonDataPath(object sender, CommandBase command) {
-			if (!Directory.Exists(Path.Combine(Path.Combine("data", "common"), command.Name))) {
-				Directory.CreateDirectory(Path.Combine(Path.Combine("data", "common"), command.Name));
-			}
-			return Path.Combine(Path.Combine("data", "common"), command.Name);
-		}
+        public string GetCommandCommonDataPath(object sender, CommandBase command)
+        {
+            if (!Directory.Exists(Path.Combine(Path.Combine("data", "common"), command.Name)))
+            {
+                Directory.CreateDirectory(Path.Combine(Path.Combine("data", "common"), command.Name));
+            }
+            return Path.Combine(Path.Combine("data", "common"), command.Name);
+        }
 
-		public async Task<bool> IsUserAdmin(object o, DiscordGuild guild, DiscordChannel channel, DiscordUser user) {
-			return GetCommand<Admin>(this, guild.Id).IsUserAdmin(user) || (await guild.GetMemberAsync(user.Id)).PermissionsIn(channel).HasFlag(Permissions.Administrator);
-		}
+        public async Task<bool> IsUserAdmin(object o, DiscordGuild guild, DiscordChannel channel, DiscordUser user)
+        {
+            return GetCommand<Admin>(this, guild.Id).IsUserAdmin(user) || (await guild.GetMemberAsync(user.Id)).PermissionsIn(channel).HasFlag(Permissions.Administrator);
+        }
 
-		public async Task<DiscordChannel> GetChannel(object o, ulong channelId) {
-			return await DiscordClient.GetChannelAsync(channelId);
-		}
+        public async Task<DiscordChannel> GetChannel(object o, ulong channelId)
+        {
+            return await DiscordClient.GetChannelAsync(channelId);
+        }
 
-		#endregion
+        #endregion
 
-		public async Task<bool> AddCommand(object _, ulong guildId, string commandClassName) {
-			var commandType = LoadedCommands[commandClassName];
-			try {
-				var commandInstance = Activator.CreateInstance(commandType, new object[] { guildId, this }) as CommandBase;
-				if (await commandInstance.Startup()) {
-					GuildCommands[guildId].Add(commandInstance.Term, commandInstance);
-					Log(this, new LogEventArgs {
-						Type = LogType.Log,
-						Message = $"Successfully loaded external module {commandInstance.Name} ({commandInstance.Term}) for guild {guildId}"
-					});
-					return true;
-				} else {
-					Log(this, new LogEventArgs {
-						Type = LogType.Error,
-						Message = $"Could not load module {commandInstance.Name} ({commandInstance.Term}), startup failed"
-					});
-				}
-			} catch (Exception exc) {
-				Log(this, new LogEventArgs {
-					Type = LogType.Error,
-					Message = $"Could not load module {commandType.FullName}, instantiation failed and exception thrown\n{exc}"
-				});
-			}
-			return false;
-		}
+        public async Task<bool> AddCommand(object _, ulong guildId, string commandClassName)
+        {
+            var commandType = LoadedCommands[commandClassName];
+            try
+            {
+                var commandInstance = Activator.CreateInstance(commandType, new object[] { guildId, this }) as CommandBase;
+                if (await commandInstance.Startup())
+                {
+                    GuildCommands[guildId].Add(commandInstance.Term, commandInstance);
+                    Log(this, new LogEventArgs
+                    {
+                        Type = LogType.Log,
+                        Message = $"Successfully loaded external module {commandInstance.Name} ({commandInstance.Term}) for guild {guildId}"
+                    });
+                    return true;
+                }
+                else
+                {
+                    Log(this, new LogEventArgs
+                    {
+                        Type = LogType.Error,
+                        Message = $"Could not load module {commandInstance.Name} ({commandInstance.Term}), startup failed"
+                    });
+                }
+            }
+            catch (Exception exc)
+            {
+                Log(this, new LogEventArgs
+                {
+                    Type = LogType.Error,
+                    Message = $"Could not load module {commandType.FullName}, instantiation failed and exception thrown\n{exc}"
+                });
+            }
+            return false;
+        }
 
-		public async Task RemoveCommand(object o, ulong guildId, string classTerm) {
-			var command = GuildCommands[guildId][classTerm];
-			int messageListenerCount = 0;
-			foreach (var messageListener in GuildMessageListeners[guildId].Where(ml => ml.Command == command)) {
-				RemoveMessageListener(o, guildId, messageListener);
-				++messageListenerCount;
-			}
-			GuildCommands[guildId].Remove(classTerm);
-			if (command is IDisposable disposable) {
-				disposable.Dispose();
-			}
-			Log(this, new LogEventArgs {
-				Type = LogType.Log,
-				Message = $"Successfully unloaded module {command.GetType().FullName} and {messageListenerCount} message listener{(messageListenerCount == 1 ? "" : "s")}"
-			});
-			await Task.Delay(0);
-		}
+        public async Task RemoveCommand(object o, ulong guildId, string classTerm)
+        {
+            var command = GuildCommands[guildId][classTerm];
+            int messageListenerCount = 0;
+            foreach (var messageListener in GuildMessageListeners[guildId].Where(ml => ml.Command == command))
+            {
+                RemoveMessageListener(o, guildId, messageListener);
+                ++messageListenerCount;
+            }
+            GuildCommands[guildId].Remove(classTerm);
+            if (command is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+            Log(this, new LogEventArgs
+            {
+                Type = LogType.Log,
+                Message = $"Successfully unloaded module {command.GetType().FullName} and {messageListenerCount} message listener{(messageListenerCount == 1 ? "" : "s")}"
+            });
+            await Task.Delay(0);
+        }
 
-		public void RenameCommand(object o, ulong guildId, string commandTerm, string newTerm) {
-			var command = GuildCommands[guildId][commandTerm];
-			GuildCommands[guildId].Remove(commandTerm);
-			command.Term = newTerm;
-			GuildCommands[guildId].Add(newTerm, command);
-			Log(this, new LogEventArgs {
-				Type = LogType.Log,
-				Message = $"Successfully renamed module {command.GetType().FullName} from {commandTerm} to {newTerm}"
-			});
-		}
+        public void RenameCommand(object o, ulong guildId, string commandTerm, string newTerm)
+        {
+            var command = GuildCommands[guildId][commandTerm];
+            GuildCommands[guildId].Remove(commandTerm);
+            command.Term = newTerm;
+            GuildCommands[guildId].Add(newTerm, command);
+            Log(this, new LogEventArgs
+            {
+                Type = LogType.Log,
+                Message = $"Successfully renamed module {command.GetType().FullName} from {commandTerm} to {newTerm}"
+            });
+        }
 
-		private void LoadCommands() {
-			var dlls = Directory.GetFiles(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)).ToList().FindAll(s => Path.GetExtension(s) == ".dll");
-			dlls.RemoveAll(s => Path.GetFileName(s) == "BlendoBot.dll" || Path.GetFileName(s) == "BlendoBotLib.dll");
+        private void LoadCommands()
+        {
+            var dlls = Directory.GetFiles(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)).ToList().FindAll(s => Path.GetExtension(s) == ".dll");
+            dlls.RemoveAll(s => Path.GetFileName(s) == "BlendoBot.dll" || Path.GetFileName(s) == "BlendoBotLib.dll");
 
-			foreach (string dll in dlls) {
-				var assembly = Assembly.LoadFrom(dll);
-				var types = assembly.ExportedTypes.ToList().FindAll(t => t.IsSubclassOf(typeof(CommandBase)));
-				foreach (var type in types) {
-					LoadedCommands.Add(type.FullName, type);
-					Log(this, new LogEventArgs {
-						Type = LogType.Log,
-						Message = $"Detected command {type.FullName}"
-					});
-				}
-			}
-		}
+            foreach (string dll in dlls)
+            {
+                var assembly = Assembly.LoadFrom(dll);
+                var types = assembly.ExportedTypes.ToList().FindAll(t => t.IsSubclassOf(typeof(CommandBase)));
+                foreach (var type in types)
+                {
+                    LoadedCommands.Add(type.FullName, type);
+                    Log(this, new LogEventArgs
+                    {
+                        Type = LogType.Log,
+                        Message = $"Detected command {type.FullName}"
+                    });
+                }
+            }
+        }
 
-		private async Task InstantiateCommandsForGuild(ulong guildId) {
-			if (GuildCommands.ContainsKey(guildId)) {
-				return;
-			} else {
-				GuildCommands.Add(guildId, new Dictionary<string, CommandBase>());
-			}
-			if (GuildMessageListeners.ContainsKey(guildId)) {
-				GuildMessageListeners[guildId].Clear();
-			} else {
-				GuildMessageListeners.Add(guildId, new List<IMessageListener>());
-			}
+        private async Task InstantiateCommandsForGuild(ulong guildId)
+        {
+            if (GuildCommands.ContainsKey(guildId))
+            {
+                return;
+            }
+            else
+            {
+                GuildCommands.Add(guildId, new Dictionary<string, CommandBase>());
+            }
+            if (GuildMessageListeners.ContainsKey(guildId))
+            {
+                GuildMessageListeners[guildId].Clear();
+            }
+            else
+            {
+                GuildMessageListeners.Add(guildId, new List<IMessageListener>());
+            }
 
-			var adminCommand = new Admin(guildId, this);
-			var systemCommands = new CommandBase[] { adminCommand, new Help(guildId, this), new About(guildId, this) };
+            var adminCommand = new Admin(guildId, this);
+            var systemCommands = new CommandBase[] { adminCommand, new Help(guildId, this) };
 
-			foreach (var command in systemCommands) {
-				await command.Startup();
-			}
+            foreach (var command in systemCommands)
+            {
+                await command.Startup();
+            }
 
-			foreach (var command in systemCommands) {
-				string term = adminCommand.RenameCommandTermFromDatabase(command);
-				GuildCommands[guildId].Add(term, command);
-				Log(this, new LogEventArgs {
-					Type = LogType.Log,
-					Message = $"Successfully loaded internal module {command.Name} ({term}) for guild {guildId}"
-				});
-			}
+            foreach (var command in systemCommands)
+            {
+                string term = adminCommand.RenameCommandTermFromDatabase(command);
+                GuildCommands[guildId].Add(term, command);
+                Log(this, new LogEventArgs
+                {
+                    Type = LogType.Log,
+                    Message = $"Successfully loaded internal module {command.Name} ({term}) for guild {guildId}"
+                });
+            }
 
-			foreach (var commandType in LoadedCommands.Values) {
-				if (!adminCommand.IsCommandNameDisabled(commandType.FullName)) {
-					try {
-						var commandInstance = Activator.CreateInstance(commandType, new object[] { guildId, this }) as CommandBase;
-						if (await commandInstance.Startup()) {
-							commandInstance.Term = adminCommand.RenameCommandTermFromDatabase(commandInstance);
-							GuildCommands[guildId].Add(commandInstance.Term, commandInstance);
-							Log(this, new LogEventArgs {
-								Type = LogType.Log,
-								Message = $"Successfully loaded external module {commandInstance.Name} ({commandInstance.Term}) for guild {guildId}"
-							});
-						} else {
-							Log(this, new LogEventArgs {
-								Type = LogType.Error,
-								Message = $"Could not load module {commandInstance.Name}, startup failed"
-							});
-						}
-					} catch (Exception exc) {
-						Log(this, new LogEventArgs {
-							Type = LogType.Error,
-							Message = $"Could not load module {commandType.FullName}, instantiation failed and exception thrown\n{exc}"
-						});
-					}
-				} else {
-					Log(this, new LogEventArgs {
-						Type = LogType.Log,
-						Message = $"Module {commandType.FullName} is disabled and will not be instatiated"
-					});
-				}
-			}
+            foreach (var commandType in LoadedCommands.Values)
+            {
+                if (!adminCommand.IsCommandNameDisabled(commandType.FullName))
+                {
+                    try
+                    {
+                        var commandInstance = Activator.CreateInstance(commandType, new object[] { guildId, this }) as CommandBase;
+                        if (await commandInstance.Startup())
+                        {
+                            commandInstance.Term = adminCommand.RenameCommandTermFromDatabase(commandInstance);
+                            GuildCommands[guildId].Add(commandInstance.Term, commandInstance);
+                            Log(this, new LogEventArgs
+                            {
+                                Type = LogType.Log,
+                                Message = $"Successfully loaded external module {commandInstance.Name} ({commandInstance.Term}) for guild {guildId}"
+                            });
+                        }
+                        else
+                        {
+                            Log(this, new LogEventArgs
+                            {
+                                Type = LogType.Error,
+                                Message = $"Could not load module {commandInstance.Name}, startup failed"
+                            });
+                        }
+                    }
+                    catch (Exception exc)
+                    {
+                        Log(this, new LogEventArgs
+                        {
+                            Type = LogType.Error,
+                            Message = $"Could not load module {commandType.FullName}, instantiation failed and exception thrown\n{exc}"
+                        });
+                    }
+                }
+                else
+                {
+                    Log(this, new LogEventArgs
+                    {
+                        Type = LogType.Log,
+                        Message = $"Module {commandType.FullName} is disabled and will not be instatiated"
+                    });
+                }
+            }
 
-			Log(this, new LogEventArgs {
-				Type = LogType.Log,
-				Message = $"All modules have finished loading for guild {guildId.ToString()}"
-			});
-		}
+            Log(this, new LogEventArgs
+            {
+                Type = LogType.Log,
+                Message = $"All modules have finished loading for guild {guildId.ToString()}"
+            });
+        }
 
-		[Obsolete]
-		private static bool IsAlphabetical(char c) {
-			// TODO remove
-			return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
-		}
-		private DiscordClient DiscordClient { get; set; }
-		private string ConfigPath { get; }
-		public Config Config { get; private set; }
-		private string LogFile { get; set; }
-		public DateTime StartTime { get; private set; }
+        [Obsolete]
+        private static bool IsAlphabetical(char c)
+        {
+            // TODO remove
+            return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+        }
+        private DiscordClient DiscordClient { get; set; }
+        private string ConfigPath { get; }
+        public Config Config { get; private set; }
+        private string LogFile { get; set; }
+        public DateTime StartTime { get; private set; }
 
-		private Dictionary<string, Type> LoadedCommands { get; set; }
-		private Dictionary<ulong, Dictionary<string, CommandBase>> GuildCommands { get; set; }
-		private Dictionary<ulong, List<IMessageListener>> GuildMessageListeners { get; set; }
+        private Dictionary<string, Type> LoadedCommands { get; set; }
+        private Dictionary<ulong, Dictionary<string, CommandBase>> GuildCommands { get; set; }
+        private Dictionary<ulong, List<IMessageListener>> GuildMessageListeners { get; set; }
 
-	}
+    }
 }

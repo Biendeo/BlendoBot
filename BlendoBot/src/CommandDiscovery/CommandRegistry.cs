@@ -24,7 +24,29 @@ namespace BlendoBot.CommandDiscovery
             this.logger = (ILogger<CommandRegistry>)this.serviceProvider.GetService(typeof(ILogger<CommandRegistry>));
         }
 
-        internal bool TryGetCommandInstance(
+        public async Task ExecuteForAsync(
+            Type commandType,
+            MessageCreateEventArgs e,
+            Func<Exception, Task> onException)
+        {
+            if (!this.TryGetCommandInstance(commandType, e.Guild.Id, out var cmd))
+            {
+                var msg = $"Command type {commandType.Name} was requested, but not found in the command registry";
+                this.logger.LogError(msg);
+                await onException(new NotImplementedException(msg));
+            }
+
+            try
+            {
+                await cmd.OnMessage(e);
+            }
+            catch (Exception ex)
+            {
+                await onException(ex);
+            }
+        }
+
+        public bool TryGetCommandInstance(
             Type commandType,
             ulong guildId,
             [NotNullWhen(returnValue: true)] out ICommand instance)
@@ -82,28 +104,6 @@ namespace BlendoBot.CommandDiscovery
                     this.logger.LogError("Enum variant of CommandLifetime not handled. This should never happen!");
                     instance = null!;
                     return false;
-            }
-        }
-
-        public async Task ExecuteForAsync(
-            Type commandType,
-            MessageCreateEventArgs e,
-            Func<Exception, Task> onException)
-        {
-            if (!this.TryGetCommandInstance(commandType, e.Guild.Id, out var cmd))
-            {
-                var msg = $"Command type {commandType.Name} was requested, but not found in the command registry";
-                this.logger.LogError(msg);
-                await onException(new NotImplementedException(msg));
-            }
-
-            try
-            {
-                await cmd.OnMessage(e);
-            }
-            catch (Exception ex)
-            {
-                await onException(ex);
             }
         }
 
