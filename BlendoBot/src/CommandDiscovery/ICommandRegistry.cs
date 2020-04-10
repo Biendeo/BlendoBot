@@ -5,7 +5,7 @@ namespace BlendoBot.CommandDiscovery
     using System.Threading.Tasks;
     using DSharpPlus.EventArgs;
 
-    public interface ICommandRegistry
+    internal interface ICommandRegistry
     {
         Task ExecuteForAsync(
             Type commandType,

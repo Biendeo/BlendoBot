@@ -31,7 +31,7 @@ namespace BlendoBotLib.DataStore
             var fullpath = Path.ChangeExtension(Path.Join(this.path, typeof(TConsumer).Name, path), "json");
             this.logger.LogInformation("Writing to {}", fullpath);
             Directory.CreateDirectory(Directory.GetParent(fullpath).ToString());
-            using (var ostream = File.OpenWrite(fullpath))
+            using (var ostream = new FileStream(fullpath, FileMode.Create))
             {
                 await JsonSerializer.SerializeAsync(ostream, value);
             }

@@ -2,9 +2,8 @@ namespace BlendoBot.CommandDiscovery
 {
     using System;
     using BlendoBotLib;
-    using Microsoft.Extensions.Logging;
 
-    public interface ICommandRegistryBuilder
+    internal interface ICommandRegistryBuilder
     {
         ICommandRegistry Build(IServiceProvider serviceProvider);
 

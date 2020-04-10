@@ -43,16 +43,19 @@ namespace BlendoBot {
 					var commandRegistryConfig = config.GetSection("CommandRegistry").Get<CommandRouterConfig>();
 
 					// Configure external services to be injected
+					AdminV3.ConfigureServices(hostContext, services);
 					AutoCorrect.AutoCorrectCommand.ConfigureServices(hostContext, services);
 
 					// Command registry and commands
 					var commandRegistryBuilder = new CommandRegistryBuilder(services)
+						.RegisterGuildScoped<AdminV3>()
 						.RegisterSingleton<AutoCorrect.AutoCorrectCommand>();
 					services.AddSingleton<ICommandRegistryBuilder>(commandRegistryBuilder);
 
-					// Command router factory
+					// Command router factory and manager
 					CommandRouterFactory.ConfigureServices(hostContext, services);
 					services.AddSingleton<ICommandRouterFactory, CommandRouterFactory>();
+					services.AddSingleton<ICommandRouterManager, CommandRouterManager>();
 
 					// Discord client service
 					var discordClient = new DiscordClient(new DiscordConfiguration
@@ -101,16 +104,6 @@ namespace BlendoBot {
 
 			StartTime = DateTime.Now;
 			LogFile = Path.Join("log", $"{StartTime.ToString("yyyyMMddHHmmss")}.log");
-
-			DiscordClient.Ready += DiscordReady;
-			DiscordClient.MessageCreated += DiscordMessageCreated;
-			DiscordClient.GuildCreated += DiscordGuildCreated;
-			DiscordClient.GuildAvailable += DiscordGuildAvailable;
-
-			//? These are for debugging in the short-term.
-			DiscordClient.ClientErrored += DiscordClientErrored;
-			DiscordClient.SocketClosed += DiscordSocketClosed;
-			DiscordClient.SocketErrored += DiscordSocketErrored;
 
 			LoadCommands();
 
@@ -280,102 +273,6 @@ namespace BlendoBot {
 
 		public async Task<DiscordChannel> GetChannel(object o, ulong channelId) {
 			return await DiscordClient.GetChannelAsync(channelId);
-		}
-
-		#endregion
-
-		#region Discord Client Methods
-
-		private async Task DiscordReady(ReadyEventArgs e) {
-			if (Config.ActivityType.HasValue) {
-				await DiscordClient.UpdateStatusAsync(new DiscordActivity(Config.ActivityName, Config.ActivityType.Value), UserStatus.Online, DateTime.Now);
-			}
-			Log(this, new LogEventArgs {
-				Type = LogType.Log,
-				Message = $"{Config.Name} ({Config.Version}) is connected to Discord!"
-			});
-		}
-
-		private async Task DiscordMessageCreated(MessageCreateEventArgs e) {
-			await Task.Delay(0);
-			// The rule is: don't react to my own messages, and commands need to be triggered with a
-			// ? character.
-			if (!e.Author.IsCurrent && !e.Author.IsBot) {
-				string commandTerm = e.Message.Content.Split(' ')[0].ToLower();
-				if (GuildCommands[e.Guild.Id].ContainsKey(commandTerm)) {
-					try {
-						await GuildCommands[e.Guild.Id][commandTerm].OnMessage(e);
-					} catch (Exception exc) {
-						// This should hopefully make it such that the bot never crashes (although it hasn't stopped it).
-						await SendException(this, new SendExceptionEventArgs {
-							Exception = exc,
-							Channel = e.Channel,
-							LogExceptionType = "GenericExceptionNotCaught"
-						});
-					}
-				} else {
-					var adminCommand = GetCommand<Admin>(this, e.Guild.Id);
-					if (adminCommand.IsUnknownCommandEnabled && commandTerm.StartsWith(adminCommand.UnknownCommandPrefix)) {
-						await SendMessage(this, new SendMessageEventArgs {
-							Message = $"I didn't know what you meant by that, {e.Author.Username}. Use {"?help".Code()} to see what I can do!",
-							Channel = e.Channel,
-							LogMessage = "UnknownMessage"
-						});
-					}
-				}
-				foreach (var listener in GuildMessageListeners[e.Guild.Id]) {
-					await listener.OnMessage(e);
-				}
-			}
-		}
-
-		private async Task DiscordGuildCreated(GuildCreateEventArgs e) {
-			Log(this, new LogEventArgs {
-				Type = LogType.Log,
-				Message = $"Guild created: {e.Guild.Name} ({e.Guild.Id})"
-			});
-
-			await Task.Delay(0);
-		}
-		private async Task DiscordGuildAvailable(GuildCreateEventArgs e) {
-			Log(this, new LogEventArgs {
-				Type = LogType.Log,
-				Message = $"Guild available: {e.Guild.Name} ({e.Guild.Id})"
-			});
-
-			await InstantiateCommandsForGuild(e.Guild.Id);
-
-			await Task.Delay(0);
-		}
-
-		private async Task DiscordClientErrored(ClientErrorEventArgs e) {
-			Log(this, new LogEventArgs {
-				Type = LogType.Error,
-				Message = $"ClientErrored triggered: {e.Exception}"
-			});
-
-			await Task.Delay(0);
-		}
-
-		private async Task DiscordSocketClosed(SocketCloseEventArgs e) {
-			Log(this, new LogEventArgs {
-				Type = LogType.Error,
-				Message = $"SocketClosed triggered: {e.CloseCode} - {e.CloseMessage}"
-			});
-
-			await Task.Delay(0);
-		}
-
-		private async Task DiscordSocketErrored(SocketErrorEventArgs e) {
-			Log(this, new LogEventArgs {
-				Type = LogType.Error,
-				Message = $"SocketErrored triggered: {e.Exception}"
-			});
-
-			//HACK: This should try and reconnect should something wrong happen.
-			await DiscordClient.ConnectAsync();
-
-			await Task.Delay(0);
 		}
 
 		#endregion

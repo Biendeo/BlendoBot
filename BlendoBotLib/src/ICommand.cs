@@ -9,11 +9,11 @@ namespace BlendoBotLib
 
         string Description { get; }
 
-        string Usage { get; }
-
         string Author { get; }
 
         string Version { get; }
+
+        string GetUsage(string term);
 
         Task OnMessage(MessageCreateEventArgs e);
     }

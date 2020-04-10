@@ -18,6 +18,8 @@ namespace BlendoBotLib.Interfaces
 
         Task<DiscordMessage> SendException(object sender, SendExceptionEventArgs e);
 
+        Task<DiscordUser> GetUser(ulong id);
+
         event AsyncEventHandler<ReadyEventArgs> Ready;
 
         event AsyncEventHandler<MessageCreateEventArgs> MessageCreated;

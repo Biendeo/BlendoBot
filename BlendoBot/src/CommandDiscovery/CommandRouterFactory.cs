@@ -13,7 +13,7 @@ namespace BlendoBot.CommandDiscovery
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
 
-    public class CommandRouterFactory : ICommandRouterFactory
+    internal class CommandRouterFactory : ICommandRouterFactory
     {
         public CommandRouterFactory(
             ILoggerFactory loggerFactory,
@@ -58,7 +58,9 @@ namespace BlendoBot.CommandDiscovery
             }
 
             var router = new CommandRouter(
+                guildId,
                 this.loggerFactory.CreateLogger<CommandRouter>(),
+                this.dataStore,
                 config,
                 commandTypes
             );

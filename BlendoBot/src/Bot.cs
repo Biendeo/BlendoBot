@@ -1,7 +1,6 @@
 namespace BlendoBot
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using BlendoBot.CommandDiscovery;
@@ -13,16 +12,16 @@ namespace BlendoBot
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
 
-    public class Bot : BackgroundService
+    internal class Bot : BackgroundService
     {
         public Bot(
             BlendoBotConfig botConfig,
             ICommandRegistryBuilder registryBuilder,
             ICommandRouterFactory commandRouterFactory,
+            ICommandRouterManager commandRouterManager,
             IDiscordClient discordClientService,
             ILogger<Bot> logger,
-            IServiceProvider serviceProvider
-        )
+            IServiceProvider serviceProvider)
         {
             this.botConfig = botConfig;
             this.discordClientService = discordClientService;
@@ -32,7 +31,7 @@ namespace BlendoBot
             this.commandRegistry = registryBuilder.Build(serviceProvider);
 
             // Command routers are tied to guilds. Build them on guild available event
-            this.commandRouters = new Dictionary<ulong, ICommandRouter>();
+            this.commandRouterManager = commandRouterManager;
             this.commandRouterFactory = commandRouterFactory;
         }
 
@@ -97,7 +96,7 @@ namespace BlendoBot
 
                 // Get the router for the current guild.
                 // Router is responsible for translating the term to a command
-                if (!this.commandRouters.TryGetValue(e.Guild.Id, out var router))
+                if (!this.commandRouterManager.TryGetRouter(e.Guild.Id, out var router))
                 {
                     this.logger.LogError("Command router for guild {} not found", e.Guild.Id);
                     await this.discordClientService.SendMessage(this, new SendMessageEventArgs
@@ -149,7 +148,10 @@ namespace BlendoBot
             // Create a command router for the newly available guild
             var guildId = e.Guild.Id;
             var router = await this.commandRouterFactory.CreateForGuild(guildId, this.commandRegistry.RegisteredCommandTypes);
-            this.commandRouters.Add(guildId, router);
+            if (!this.commandRouterManager.TryAddRouter(guildId, router))
+            {
+                this.logger.LogCritical("Unable to add command router for guild {}", guildId);
+            }
             await Task.CompletedTask;
         }
 
@@ -179,7 +181,7 @@ namespace BlendoBot
 
         private ICommandRegistry commandRegistry;
 
-        private Dictionary<ulong, ICommandRouter> commandRouters;
+        private ICommandRouterManager commandRouterManager;
 
         private ICommandRouterFactory commandRouterFactory;
 

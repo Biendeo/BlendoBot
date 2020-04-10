@@ -1,6 +1,6 @@
 namespace BlendoBot.CommandDiscovery
 {
-    public enum CommandLifetime
+    internal enum CommandLifetime
     {
         Singleton,
         GuildScoped,

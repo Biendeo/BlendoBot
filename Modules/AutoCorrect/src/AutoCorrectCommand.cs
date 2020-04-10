@@ -25,7 +25,6 @@ namespace AutoCorrect
 
         public string Name => "AutoCorrect";
         public string Description => "Performs autocorrect on a message";
-        public string Usage => $"Usage: {"?ac <message>".Code()}";
         public string Author => "mozzarella";
         public string Version => "0.0.2";
 
@@ -38,6 +37,8 @@ namespace AutoCorrect
             services.AddSingleton<GrammarBotConfig?>(grammarBotConfig);
             services.AddHttpClient<IAutoCorrectProvider, GrammarBotAutoCorrectProvider>();
         }
+
+        public string GetUsage(string term) => $"Usage: {"{term} <message>".Code()}";
 
         public async Task OnMessage(MessageCreateEventArgs e)
         {

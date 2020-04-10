@@ -5,7 +5,7 @@ namespace BlendoBot.CommandDiscovery
     using BlendoBotLib;
     using Microsoft.Extensions.DependencyInjection;
 
-    public class CommandRegistryBuilder : ICommandRegistryBuilder
+    internal class CommandRegistryBuilder : ICommandRegistryBuilder
     {
         public CommandRegistryBuilder(IServiceCollection services)
         {

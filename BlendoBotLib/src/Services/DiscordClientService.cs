@@ -54,6 +54,11 @@ namespace BlendoBotLib.Services
             return await e.Channel.SendMessageAsync(messageHeader + exceptionString + messageFooter);
         }
 
+        public async Task<DiscordUser> GetUser(ulong id)
+        {
+            return await this.client.GetUserAsync(id);
+        }
+
         public Task ConnectAsync(DiscordActivity? activity = null, UserStatus? status = null, DateTimeOffset? idleSince = null)
         {
             this.logger.LogInformation("Connecting");

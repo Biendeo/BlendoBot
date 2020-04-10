@@ -3,17 +3,20 @@ namespace BlendoBot.CommandDiscovery
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
+    using System.Reflection;
     using System.Threading.Tasks;
+    using BlendoBot.Commands;
     using BlendoBotLib;
     using DSharpPlus.EventArgs;
+    using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
 
     public class CommandRegistry : ICommandRegistry
     {
-        public CommandRegistry(
+        internal CommandRegistry(
             IServiceProvider serviceProvider,
-            IDictionary<Type, CommandLifetime> lifetimes
-        )
+            IDictionary<Type, CommandLifetime> lifetimes)
         {
             this.lifetimes = new Dictionary<Type, CommandLifetime>(lifetimes);
             this.guildScopedCommandInstances = new ConcurrentDictionary<ulong, ConcurrentDictionary<Type, ICommand>>();
@@ -21,45 +24,77 @@ namespace BlendoBot.CommandDiscovery
             this.logger = (ILogger<CommandRegistry>)this.serviceProvider.GetService(typeof(ILogger<CommandRegistry>));
         }
 
-        public async Task ExecuteForAsync(
+        internal bool TryGetCommandInstance(
             Type commandType,
-            MessageCreateEventArgs e,
-            Func<Exception, Task> onException
-        )
+            ulong guildId,
+            [NotNullWhen(returnValue: true)] out ICommand instance)
         {
-            ICommand? cmd = null;
+            if (!this.lifetimes.ContainsKey(commandType))
+            {
+                instance = null!;
+                return false;
+            }
+
             switch (this.lifetimes[commandType])
             {
                 case CommandLifetime.Transient:
                     // Instantiate a new command object
-                    cmd = (ICommand)this.serviceProvider.GetService(commandType);
-                    break;
+                    instance = (ICommand)this.serviceProvider.GetService(commandType);
+                    return true;
 
                 case CommandLifetime.GuildScoped:
                     // Get previously instantiated command object for that guild,
                     // otherwise request a new one from service provider
                     var guildInstances = this.guildScopedCommandInstances.GetOrAdd(
-                        e.Guild.Id,
+                        guildId,
                         _ => new ConcurrentDictionary<Type, ICommand>()
                     );
-                    cmd = guildInstances.GetOrAdd(
+                    instance = guildInstances.GetOrAdd(
                         commandType,
-                        (ICommand)this.serviceProvider.GetService(commandType)
+                        type =>
+                        {
+                            // Use ActivatorUtilites.CreateInstance to inject a runtime-defined
+                            // parameters into the constructor e.g. guild id
+                            var parameters = new List<object> { new Guild { Id = guildId } };
+                            if (type.GetCustomAttribute(typeof(PrivilegedCommandAttribute)) != null)
+                            {
+                                // Inject relevant command discovery objects for privileged commands e.g. Admin
+                                parameters.Add((ICommandRegistry)this);
+                                var commandRouterManager = this.serviceProvider.GetService<ICommandRouterManager>();
+                                if (commandRouterManager.TryGetRouter(guildId, out var router))
+                                {
+                                    parameters.Add((ICommandRouter)router);
+                                }
+                            }
+                            return (ICommand)ActivatorUtilities.CreateInstance(this.serviceProvider, type, parameters.ToArray());
+                        }
                     );
-                    break;
+                    return true;
 
                 case CommandLifetime.Singleton:
                     // CommandRegistryBuilder registers commands with a singleton lifetime as
                     // singleton in the DI framework directly. We can just request the service.
-                    cmd = (ICommand)this.serviceProvider.GetService(commandType);
-                    break;
+                    instance = (ICommand)this.serviceProvider.GetService(commandType);
+                    return true;
 
                 default:
                     // This should never happen
-                    var msg = "Enum variant of CommandLifetime not handled. This should never happen!";
-                    this.logger.LogError(msg);
-                    await onException(new NotImplementedException(msg));
-                    return;
+                    this.logger.LogError("Enum variant of CommandLifetime not handled. This should never happen!");
+                    instance = null!;
+                    return false;
+            }
+        }
+
+        public async Task ExecuteForAsync(
+            Type commandType,
+            MessageCreateEventArgs e,
+            Func<Exception, Task> onException)
+        {
+            if (!this.TryGetCommandInstance(commandType, e.Guild.Id, out var cmd))
+            {
+                var msg = $"Command type {commandType.Name} was requested, but not found in the command registry";
+                this.logger.LogError(msg);
+                await onException(new NotImplementedException(msg));
             }
 
             try
