@@ -26,7 +26,7 @@ namespace WheelOfFortune
 
         private DiscordChannel? currentChannel;
         private List<DiscordUser> eliminatedUsers;
-        private Puzzle currentPuzzle;
+        private Puzzle? currentPuzzle;
         private DiscordMessage? lastWinningMessage;
 
         private SemaphoreSlim semaphore;
@@ -73,7 +73,7 @@ namespace WheelOfFortune
         public async Task HandleMessageListener(MessageCreateEventArgs e)
         {
             await semaphore.WaitAsync();
-            if (currentChannel != null && e.Channel == currentChannel)
+            if (currentChannel != null && e.Channel == currentChannel && currentPuzzle != null)
             {
                 if (!eliminatedUsers.Contains(e.Author))
                 {
@@ -126,12 +126,16 @@ namespace WheelOfFortune
                         LogMessage = "WheelOfFortuneNullPuzzles"
                     });
                 }
-                await Task.Factory.StartNew(() => StartGame(e.Channel));
+
+#pragma warning disable CS4014
+                // Continue in background
+                Task.Run(() => StartGame(e.Channel, e.Guild.Id));
+#pragma warning restore CS4014
             }
             semaphore.Release();
         }
 
-        private async Task StartGame(DiscordChannel channel)
+        private async Task StartGame(DiscordChannel channel, ulong guildId)
         {
             var message = await this.discordClient.SendMessage(this, new SendMessageEventArgs
             {
@@ -144,7 +148,17 @@ namespace WheelOfFortune
             currentChannel = channel;
             eliminatedUsers.Clear();
             var random = new Random();
-            currentPuzzle = puzzles[random.Next(0, puzzles.Count)];
+            if (puzzles is List<Puzzle>)
+            {
+                currentPuzzle = puzzles[random.Next(0, puzzles.Count)];
+            }
+            else
+            {
+                await message.ModifyAsync($"No puzzles to choose from!");
+                semaphore.Release();
+                return;
+            }
+
             semaphore.Release();
 
             for (int i = 5; i > 0; --i)
@@ -154,7 +168,7 @@ namespace WheelOfFortune
             }
 
             var messageListener = new WheelOfFortuneMessageListener(this);
-            this.messageListenerRepository.Add(messageListener);
+            this.messageListenerRepository.Add(guildId, messageListener);
 
             string revealedPuzzle = currentPuzzle.Phrase.ToUpper();
             for (char c = 'A'; c <= 'Z'; ++c)
@@ -197,7 +211,7 @@ namespace WheelOfFortune
             }
             else
             {
-                await message.ModifyAsync($"{$"{currentPuzzle.Category}\n\n{revealedPuzzle}".CodeBlock()}\n{lastWinningMessage.Author.Mention} got the correct answer {currentPuzzle.Phrase.ToUpper().Code()}");
+                await message.ModifyAsync($"{$"{currentPuzzle.Category}\n\n{revealedPuzzle}".CodeBlock()}\n{lastWinningMessage?.Author.Mention ?? "<null>"} got the correct answer {currentPuzzle.Phrase.ToUpper().Code()}");
             }
 
             currentChannel = null;
@@ -205,7 +219,7 @@ namespace WheelOfFortune
             currentPuzzle = null;
             semaphore.Release();
 
-            this.messageListenerRepository.Remove(messageListener);
+            this.messageListenerRepository.Remove(guildId, messageListener);
         }
 
         public void Dispose()

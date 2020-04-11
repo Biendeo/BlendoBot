@@ -17,7 +17,7 @@ namespace WheelOfFortune
 
         public async Task<T> ReadAsync<T>(string path)
         {
-            if (!typeof(T).IsAssignableFrom(typeof(IList<Puzzle>)))
+            if (!typeof(IList<Puzzle>).IsAssignableFrom(typeof(T)))
             {
                 var ex = new NotImplementedException();
                 this.logger.LogCritical(
@@ -25,6 +25,7 @@ namespace WheelOfFortune
                     "{} can only read types compatible with {}",
                     this.GetType().Name,
                     typeof(IList<Puzzle>).Name);
+                throw ex;
             }
 
             var fullpath = Path.Join("data", typeof(WheelOfFortune).Name, path);
@@ -35,13 +36,14 @@ namespace WheelOfFortune
                 var puzzles = new List<Puzzle>();
                 while (!reader.EndOfStream)
                 {
-                    string line = await reader.ReadLineAsync();
-                    var split = line.Split(";");
-                    puzzles.Add(new Puzzle
+                    if ((await reader.ReadLineAsync())?.Split(";") is string[] split)
                     {
-                        Category = split[0],
-                        Phrase = split[1]
-                    });
+                        puzzles.Add(new Puzzle
+                        {
+                            Category = split[0],
+                            Phrase = split[1]
+                        });
+                    }
                 }
 
                 return (T)(object)puzzles;

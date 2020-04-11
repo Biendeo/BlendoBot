@@ -2,8 +2,8 @@ namespace BlendoBotLib.Interfaces
 {
     public interface IMessageListenerRepository
     {
-        void Add(IMessageListener listener);
+        void Add(ulong guildId, IMessageListener listener);
 
-        void Remove(IMessageListener listener);
+        void Remove(ulong guildId, IMessageListener listener);
     }
 }

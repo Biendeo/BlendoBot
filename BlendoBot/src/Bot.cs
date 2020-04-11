@@ -20,8 +20,8 @@ namespace BlendoBot
             ICommandRegistryBuilder registryBuilder,
             ICommandRouterFactory commandRouterFactory,
             ICommandRouterManager commandRouterManager,
-            IMessageListenerEnumerable messageListeners,
             IDiscordClient discordClientService,
+            IMessageListenerEnumerable messageListeners,
             ILogger<Bot> logger,
             IServiceProvider serviceProvider)
         {
@@ -86,7 +86,7 @@ namespace BlendoBot
             }
 
             // Start tasks for dynamic message listeners in the meantime
-            var listenersTask = Task.WhenAll(this.messageListeners.Select(l => l.OnMessage(e)));
+            var listenersTask = Task.WhenAll(this.messageListeners.ForGuild(e.Guild.Id).Select(l => l.OnMessage(e)));
 
             // Commands need to be triggered with a '?' character, followed by a letter
             // i.e. no "??"

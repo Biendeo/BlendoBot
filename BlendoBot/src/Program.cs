@@ -45,7 +45,6 @@ namespace BlendoBot
                     // Bind config sections
                     var config = hostContext.Configuration;
                     var blendoBotConfig = config.GetSection("BlendoBot").Get<BlendoBotConfig>();
-                    var commandRegistryConfig = config.GetSection("CommandRegistry").Get<CommandRouterConfig>();
 
                     // Configure external services to be injected
                     AdminV3.ConfigureServices(hostContext, services);
@@ -67,7 +66,7 @@ namespace BlendoBot
                     services.AddSingleton<ICommandRouterFactory, CommandRouterFactory>();
                     services.AddSingleton<ICommandRouterManager, CommandRouterManager>();
 
-                    // Dynamic message listeners
+                    // Dynamic message listeners //TODO guild scoping
                     services.AddSingleton<MessageListenerRepository>();
                     services.AddTransient<IMessageListenerRepository>(sp => sp.GetRequiredService<MessageListenerRepository>());
                     services.AddTransient<IMessageListenerEnumerable>(sp => sp.GetRequiredService<MessageListenerRepository>());
@@ -86,6 +85,12 @@ namespace BlendoBot
                     services.AddHostedService<Bot>();
                 })
                 .UseConsoleLifetime();
+
+
+
+
+
+
 
         public Program(string configPath)
         {
