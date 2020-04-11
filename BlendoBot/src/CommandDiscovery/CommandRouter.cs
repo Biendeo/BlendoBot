@@ -3,8 +3,10 @@ namespace BlendoBot.CommandDiscovery
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reflection;
     using System.Threading.Tasks;
     using BlendoBot.ConfigSchemas;
+    using BlendoBotLib;
     using BlendoBotLib.Interfaces;
     using Microsoft.Extensions.Logging;
 
@@ -27,15 +29,32 @@ namespace BlendoBot.CommandDiscovery
                 commandTypes,
                 c => c.Command,
                 t => t.Name,
-                (c, t) =>
+                (c, t) => new
                 {
-                    return new
+                    CommandType = t,
+                    Term = c.Term,
+                    Enabled = c.Enabled
+                }).ToList();
+
+            // Handle defaults
+            foreach (Type commandType in commandTypes.Where(t => !config.Commands.Select(c => c.Command).Contains(t.Name)))
+            {
+                if (commandType.GetCustomAttribute<CommandDefaultsAttribute>() is CommandDefaultsAttribute defaults)
+                {
+                    this.logger.LogInformation(
+                        "Using defaults(term = {}, enabled = {}) for command type {} for guild {}",
+                        defaults.DefaultTerm,
+                        defaults.EnabledByDefault,
+                        commandType.Name,
+                        guildId);
+                    joined.Add(new
                     {
-                        CommandType = t,
-                        Term = c.Term,
-                        Enabled = c.Enabled
-                    };
-                });
+                        CommandType = commandType,
+                        Term = defaults.DefaultTerm,
+                        Enabled = defaults.EnabledByDefault
+                    });
+                }
+            }
 
             foreach (var o in joined)
             {

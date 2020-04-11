@@ -151,10 +151,17 @@ namespace BlendoBot
 
             // Create a command router for the newly available guild
             var guildId = e.Guild.Id;
-            var router = await this.commandRouterFactory.CreateForGuild(guildId, this.commandRegistry.RegisteredCommandTypes);
-            if (!this.commandRouterManager.TryAddRouter(guildId, router))
+            try
             {
-                this.logger.LogCritical("Unable to add command router for guild {}", guildId);
+                var router = await this.commandRouterFactory.CreateForGuild(guildId, this.commandRegistry.RegisteredCommandTypes);
+                if (!this.commandRouterManager.TryAddRouter(guildId, router))
+                {
+                    this.logger.LogCritical("Unable to add command router for guild {}", guildId);
+                }
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogCritical(ex, "Exception occurred when building command router for guild {}", guildId);
             }
             await Task.CompletedTask;
         }
