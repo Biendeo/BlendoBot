@@ -1,6 +1,7 @@
 namespace BlendoBot
 {
     using System;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using BlendoBot.CommandDiscovery;
@@ -19,12 +20,14 @@ namespace BlendoBot
             ICommandRegistryBuilder registryBuilder,
             ICommandRouterFactory commandRouterFactory,
             ICommandRouterManager commandRouterManager,
+            IMessageListenerEnumerable messageListeners,
             IDiscordClient discordClientService,
             ILogger<Bot> logger,
             IServiceProvider serviceProvider)
         {
             this.botConfig = botConfig;
             this.discordClientService = discordClientService;
+            this.messageListeners = messageListeners;
             this.logger = logger;
 
             // Build the command registry
@@ -82,11 +85,8 @@ namespace BlendoBot
                 return;
             }
 
-            // TODO dynamic runtime listeners
-            // Run these in a separate task?
-            // foreach (var listener in something)
-            // {
-            // }
+            // Start tasks for dynamic message listeners in the meantime
+            var listenersTask = Task.WhenAll(this.messageListeners.Select(l => l.OnMessage(e)));
 
             // Commands need to be triggered with a '?' character, followed by a letter
             // i.e. no "??"
@@ -105,34 +105,38 @@ namespace BlendoBot
                         Channel = e.Channel,
                         LogMessage = "CommandRouterNotFound"
                     });
-                    return;
-                }
-
-                // Attempt to map the term to a command
-                if (router!.TryTranslateTerm(term, out Type commandType))
-                {
-                    await this.commandRegistry.ExecuteForAsync(
-                        commandType,
-                        e,
-                        onException: ex =>
-                            this.discordClientService.SendException(this, new SendExceptionEventArgs
-                            {
-                                Exception = ex,
-                                Channel = e.Channel,
-                                LogExceptionType = "GenericExceptionNotCaught"
-                            })
-                    );
                 }
                 else
                 {
-                    await this.discordClientService.SendMessage(this, new SendMessageEventArgs
+                    // Attempt to map the term to a command
+                    if (router!.TryTranslateTerm(term, out Type commandType))
                     {
-                        Message = $"I didn't know what you meant by that, {e.Author.Username}. Use {"?help".Code()} to see what I can do!",
-                        Channel = e.Channel,
-                        LogMessage = "UnknownMessage"
-                    });
-                };
+                        await this.commandRegistry.ExecuteForAsync(
+                            commandType,
+                            e,
+                            onException: ex =>
+                                this.discordClientService.SendException(this, new SendExceptionEventArgs
+                                {
+                                    Exception = ex,
+                                    Channel = e.Channel,
+                                    LogExceptionType = "GenericExceptionNotCaught"
+                                })
+                        );
+                    }
+                    else
+                    {
+                        await this.discordClientService.SendMessage(this, new SendMessageEventArgs
+                        {
+                            Message = $"I didn't know what you meant by that, {e.Author.Username}. Use {"?help".Code()} to see what I can do!",
+                            Channel = e.Channel,
+                            LogMessage = "UnknownMessage"
+                        });
+                    };
+                }
             }
+
+            // Await dynamic message listeners
+            await listenersTask;
         }
 
         private async Task DiscordGuildCreated(GuildCreateEventArgs e)
@@ -177,16 +181,18 @@ namespace BlendoBot
 
         #endregion
 
-        private BlendoBotConfig botConfig;
+        private readonly BlendoBotConfig botConfig;
 
-        private ICommandRegistry commandRegistry;
+        private readonly ICommandRegistry commandRegistry;
 
-        private ICommandRouterManager commandRouterManager;
+        private readonly ICommandRouterManager commandRouterManager;
 
-        private ICommandRouterFactory commandRouterFactory;
+        private readonly IMessageListenerEnumerable messageListeners;
 
-        private IDiscordClient discordClientService;
+        private readonly ICommandRouterFactory commandRouterFactory;
 
-        private ILogger<Bot> logger;
+        private readonly IDiscordClient discordClientService;
+
+        private readonly ILogger<Bot> logger;
     }
 }

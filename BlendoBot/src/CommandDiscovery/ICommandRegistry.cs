@@ -4,7 +4,7 @@ namespace BlendoBot.CommandDiscovery
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Threading.Tasks;
-    using BlendoBotLib;
+    using BlendoBotLib.Interfaces;
     using DSharpPlus.EventArgs;
 
     internal interface ICommandRegistry

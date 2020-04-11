@@ -4,10 +4,12 @@ namespace BlendoBot.CommandDiscovery
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
+    using System.Linq;
     using System.Reflection;
     using System.Threading.Tasks;
     using BlendoBot.Commands;
     using BlendoBotLib;
+    using BlendoBotLib.Interfaces;
     using DSharpPlus.EventArgs;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
@@ -75,20 +77,50 @@ namespace BlendoBot.CommandDiscovery
                         commandType,
                         type =>
                         {
-                            // Use ActivatorUtilites.CreateInstance to inject a runtime-defined
+                            // Use ActivatorUtilites.CreateInstance to inject runtime-defined
                             // parameters into the constructor e.g. guild id
-                            var parameters = new List<object> { new Guild { Id = guildId } };
-                            if (type.GetCustomAttribute(typeof(PrivilegedCommandAttribute)) != null)
+                            var parameters = new HashSet<object>();
+
+                            // HACK ActivatorUtilites.CreateInstance expects all passed parameters
+                            // to be used. So we do some reflection to look at constructors to fill
+                            // the right parameters
+                            var ctors = type.GetConstructors();
+                            if (ctors.Length != 1)
                             {
-                                // Inject relevant command discovery objects for privileged commands e.g. Admin
-                                parameters.Add((ICommandRegistry)this);
-                                var commandRouterManager = this.serviceProvider.GetService<ICommandRouterManager>();
-                                if (commandRouterManager.TryGetRouter(guildId, out var router))
+                                throw new InvalidOperationException();
+                            }
+
+                            bool isPrivilegedCommand = type.GetCustomAttribute(typeof(PrivilegedCommandAttribute)) != null;
+                            foreach (var param in ctors[0].GetParameters())
+                            {
+                                Type paramType = param.ParameterType;
+                                if (paramType == typeof(Guild))
                                 {
-                                    parameters.Add((ICommandRouter)router);
+                                    parameters.Add(new Guild { Id = guildId });
+                                }
+                                else if (isPrivilegedCommand && paramType == typeof(ICommandRegistry))
+                                {
+                                    parameters.Add((ICommandRegistry)this);
+                                }
+                                else if (isPrivilegedCommand && paramType == typeof(ICommandRouter))
+                                {
+                                    var commandRouterManager = this.serviceProvider.GetService<ICommandRouterManager>();
+                                    if (commandRouterManager.TryGetRouter(guildId, out var router))
+                                    {
+                                        parameters.Add(router);
+                                    }
                                 }
                             }
-                            return (ICommand)ActivatorUtilities.CreateInstance(this.serviceProvider, type, parameters.ToArray());
+
+                            if (parameters.Count == 0)
+                            {
+                                return (ICommand)ActivatorUtilities.CreateInstance(this.serviceProvider, type);
+                            }
+                            else
+                            {
+                                return (ICommand)ActivatorUtilities.CreateInstance(this.serviceProvider, type, parameters.ToArray());
+                            }
+
                         }
                     );
                     return true;

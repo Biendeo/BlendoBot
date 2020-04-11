@@ -4,7 +4,6 @@ using BlendoBot.Commands.Admin;
 using BlendoBot.ConfigSchemas;
 using BlendoBotLib;
 using BlendoBotLib.Interfaces;
-using BlendoBotLib.Services;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using Microsoft.Extensions.Configuration;
@@ -37,6 +36,10 @@ namespace BlendoBot
                 {
                     logging.AddConsole();
                 })
+                .UseDefaultServiceProvider((hostContext, options) =>
+                {
+                    options.ValidateOnBuild = true;
+                })
                 .ConfigureServices((hostContext, services) =>
                 {
                     // Bind config sections
@@ -47,6 +50,7 @@ namespace BlendoBot
                     // Configure external services to be injected
                     AdminV3.ConfigureServices(hostContext, services);
                     AutoCorrect.AutoCorrectCommand.ConfigureServices(hostContext, services);
+                    WheelOfFortune.WheelOfFortune.ConfigureServices(hostContext, services);
 
                     // Command registry and commands
                     var commandRegistryBuilder = new CommandRegistryBuilder(services)
@@ -54,13 +58,19 @@ namespace BlendoBot
                         .RegisterGuildScoped<AdminV3>()
                         .RegisterSingleton<AutoCorrect.AutoCorrectCommand>()
 						.RegisterGuildScoped<Help>()
-						.RegisterSingleton<Roll.Roll>();
+						.RegisterSingleton<Roll.Roll>()
+                        .RegisterGuildScoped<WheelOfFortune.WheelOfFortune>();
                     services.AddSingleton<ICommandRegistryBuilder>(commandRegistryBuilder);
 
                     // Command router factory and manager
                     CommandRouterFactory.ConfigureServices(hostContext, services);
                     services.AddSingleton<ICommandRouterFactory, CommandRouterFactory>();
                     services.AddSingleton<ICommandRouterManager, CommandRouterManager>();
+
+                    // Dynamic message listeners
+                    services.AddSingleton<MessageListenerRepository>();
+                    services.AddTransient<IMessageListenerRepository>(sp => sp.GetRequiredService<MessageListenerRepository>());
+                    services.AddTransient<IMessageListenerEnumerable>(sp => sp.GetRequiredService<MessageListenerRepository>());
 
                     // Discord client service
                     var discordClient = new DiscordClient(new DiscordConfiguration
@@ -368,24 +378,25 @@ namespace BlendoBot
 
         public async Task RemoveCommand(object o, ulong guildId, string classTerm)
         {
-            var command = GuildCommands[guildId][classTerm];
-            int messageListenerCount = 0;
-            foreach (var messageListener in GuildMessageListeners[guildId].Where(ml => ml.Command == command))
-            {
-                RemoveMessageListener(o, guildId, messageListener);
-                ++messageListenerCount;
-            }
-            GuildCommands[guildId].Remove(classTerm);
-            if (command is IDisposable disposable)
-            {
-                disposable.Dispose();
-            }
-            Log(this, new LogEventArgs
-            {
-                Type = LogType.Log,
-                Message = $"Successfully unloaded module {command.GetType().FullName} and {messageListenerCount} message listener{(messageListenerCount == 1 ? "" : "s")}"
-            });
-            await Task.Delay(0);
+            await Task.CompletedTask;
+            // var command = GuildCommands[guildId][classTerm];
+            // int messageListenerCount = 0;
+            // foreach (var messageListener in GuildMessageListeners[guildId].Where(ml => ml.Command == command))
+            // {
+            //     RemoveMessageListener(o, guildId, messageListener);
+            //     ++messageListenerCount;
+            // }
+            // GuildCommands[guildId].Remove(classTerm);
+            // if (command is IDisposable disposable)
+            // {
+            //     disposable.Dispose();
+            // }
+            // Log(this, new LogEventArgs
+            // {
+            //     Type = LogType.Log,
+            //     Message = $"Successfully unloaded module {command.GetType().FullName} and {messageListenerCount} message listener{(messageListenerCount == 1 ? "" : "s")}"
+            // });
+            // await Task.Delay(0);
         }
 
         public void RenameCommand(object o, ulong guildId, string commandTerm, string newTerm)

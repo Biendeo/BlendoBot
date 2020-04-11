@@ -18,14 +18,14 @@
         public About(
 			Guild guild,
             BlendoBotConfig botConfig,
-			ICommandRouter commandRouter,
 			ICommandRegistry commandRegistry,
+			ICommandRouter commandRouter,
             IDiscordClient discordClient)
         {
 			this.guildId = guild.Id;
             this.botConfig = botConfig;
-            this.commandRouter = commandRouter;
             this.commandRegistry = commandRegistry;
+            this.commandRouter = commandRouter;
             this.discordClient = discordClient;
             this.startTime = DateTimeOffset.UtcNow;
         }

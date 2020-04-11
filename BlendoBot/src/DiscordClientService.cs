@@ -1,7 +1,6 @@
-namespace BlendoBotLib.Services
+namespace BlendoBot
 {
     using System;
-    using System.Globalization;
     using System.Threading.Tasks;
     using BlendoBotLib;
     using BlendoBotLib.Interfaces;

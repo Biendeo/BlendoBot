@@ -1,7 +1,7 @@
 namespace BlendoBot.CommandDiscovery
 {
     using System;
-    using BlendoBotLib;
+    using BlendoBotLib.Interfaces;
 
     internal interface ICommandRegistryBuilder
     {

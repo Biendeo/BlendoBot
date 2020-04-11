@@ -1,4 +1,4 @@
-namespace BlendoBotLib
+namespace BlendoBotLib.Interfaces
 {
     using System.Threading.Tasks;
     using DSharpPlus.EventArgs;
