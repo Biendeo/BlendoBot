@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 
 namespace WheelOfFortune
 {
+    [CommandDefaults(defaultTerm: "wof")]
     public class WheelOfFortune : ICommand, IDisposable
     {
         public string Name => "Wheel Of Fortune";

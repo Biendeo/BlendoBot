@@ -11,6 +11,7 @@ namespace AutoCorrect
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
 
+    [CommandDefaults(defaultTerm: "ac")]
     public class AutoCorrectCommand : ICommand
     {
         public AutoCorrectCommand(

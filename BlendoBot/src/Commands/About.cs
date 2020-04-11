@@ -13,6 +13,7 @@
     /// The about command, which simply prints out the <see cref="CommandProps.Description"/> property of a <see cref="ICommand"/>, or on its own details about the bot.
     /// </summary>
 	[PrivilegedCommand]
+    [CommandDefaults(defaultTerm: "about", enabled: true)]
     internal class About : ICommand
     {
         public About(

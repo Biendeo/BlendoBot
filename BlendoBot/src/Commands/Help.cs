@@ -11,6 +11,7 @@
     /// The help command, which simply prints out the <see cref="CommandProps.Usage"/> property of a <see cref="ICommand"/>, or
     /// </summary>
 	[PrivilegedCommand]
+    [CommandDefaults(defaultTerm: "help", enabled: true)]
     internal class Help : ICommand
     {
         public string Name => "Help";

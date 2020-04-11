@@ -15,6 +15,7 @@ namespace BlendoBot.Commands.Admin
     using Microsoft.Extensions.Logging;
 
     [PrivilegedCommand]
+    [CommandDefaults(defaultTerm: "admin", enabled: true)]
     internal class AdminV3 : ICommand
     {
         public string Name => "Admin";

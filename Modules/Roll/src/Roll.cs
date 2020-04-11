@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Roll {
+	[CommandDefaults(defaultTerm: "roll")]
 	public class Roll : ICommand {
 		public Roll(
 			IDiscordClient discordClient)
