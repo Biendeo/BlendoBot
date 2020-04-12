@@ -1,5 +1,5 @@
-﻿using BlendoBotLib;
-using Microsoft.CSharp.RuntimeBinder;
+﻿using Microsoft.CSharp.RuntimeBinder;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -8,7 +8,6 @@ using System.Drawing;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
 
@@ -26,39 +25,32 @@ namespace OverwatchLeague.Data {
 		public ReadOnlyCollection<Week> Weeks => weeks.AsReadOnly();
 		private readonly Timer fullUpdateTimer;
 
-		private readonly IBotMethods botMethods;
+		private readonly ILogger<Database> logger;
+        private readonly ILoggerFactory loggerFactory;
 
-		public Database(IBotMethods botMethods) {
+        public Database(ILogger<Database> logger, ILoggerFactory loggerFactory) {
 			teams = new List<Team>();
 			maps = new List<Map>();
 			gameModes = new List<GameMode>();
 			matches = new List<Match>();
 			weeks = new List<Week>();
 
-			this.botMethods = botMethods;
+			this.logger = logger;
+            this.loggerFactory = loggerFactory;
 
-			// The next time to update should always
-			fullUpdateTimer = new Timer((NextFullUpdate() - DateTime.UtcNow).TotalMilliseconds);
+            // The next time to update should always
+            fullUpdateTimer = new Timer((NextFullUpdate() - DateTime.UtcNow).TotalMilliseconds);
 			fullUpdateTimer.Elapsed += FullUpdateTimer_Elapsed;
 			fullUpdateTimer.Enabled = true;
 		}
 
 		private async void FullUpdateTimer_Elapsed(object sender, ElapsedEventArgs e) {
 			try {
-				botMethods.Log(this, new LogEventArgs {
-					Type = LogType.Log,
-					Message = $"OverwatchLeague is performing a full update."
-				});
+				this.logger.LogInformation("OverwatchLeague is performing a full update.");
 				await ReloadDatabase();
-				botMethods.Log(this, new LogEventArgs {
-					Type = LogType.Log,
-					Message = $"OverwatchLeague will fully update again at {NextFullUpdate().ToString("yyyy-MM-dd HH:mm:ss")}"
-				});
+				this.logger.LogInformation("OverwatchLeague will fully update again at {}", NextFullUpdate().ToString("yyyy-MM-dd HH:mm:ss"));
 			} catch (WebException exc) {
-				botMethods.Log(this, new LogEventArgs {
-					Type = LogType.Error,
-					Message = $"OverwatchLeague failed to update, trying again at {NextFullUpdate().ToString("yyyy-MM-dd HH:mm:ss")}\n{exc}"
-				});
+				this.logger.LogError(exc, "OverwatchLeague failed to update, trying again at {}", NextFullUpdate().ToString("yyyy-MM-dd HH:mm:ss"));
 			}
 			fullUpdateTimer.Interval = (NextFullUpdate() - DateTime.UtcNow).TotalMilliseconds;
 		}
@@ -80,10 +72,7 @@ namespace OverwatchLeague.Data {
 		}
 
 		private async Task LoadTeams() {
-			botMethods.Log(this, new LogEventArgs {
-				Type = LogType.Log,
-				Message = $"OverwatchLeague is requesting teams..."
-			});
+			this.logger.LogInformation("OverwatchLeague is requesting teams...");
 
 			//? BEGIN TESTING
 			using var httpClient = new HttpClient();
@@ -117,10 +106,7 @@ namespace OverwatchLeague.Data {
 		}
 
 		private async Task LoadMapsAndModes() {
-			botMethods.Log(this, new LogEventArgs {
-				Type = LogType.Log,
-				Message = $"OverwatchLeague is requesting maps..."
-			});
+			this.logger.LogInformation("OverwatchLeague is requesting maps...");
 			using var wc = new WebClient();
 			string mapsJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/maps");
 			dynamic mapsJson = JsonConvert.DeserializeObject(mapsJsonString);
@@ -153,10 +139,7 @@ namespace OverwatchLeague.Data {
 
 		private async Task LoadMatches() {
 			//TODO: This may be irrelevent if the new endpoint delivers all the appropriate information.
-			botMethods.Log(this, new LogEventArgs {
-				Type = LogType.Log,
-				Message = $"OverwatchLeague is requesting matches..."
-			});
+			this.logger.LogInformation("OverwatchLeague is requesting matches...");
 			using var wc = new WebClient();
 			string matchesJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/matches");
 			dynamic matchesJson = JsonConvert.DeserializeObject(matchesJsonString);
@@ -179,7 +162,7 @@ namespace OverwatchLeague.Data {
 					actualEndTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.actualEndTime);
 				}
 
-				Match m = new Match(botMethods, id, homeTeam, awayTeam, homeScore, awayScore, status, startTime, endTime, actualStartTime, actualEndTime);
+				Match m = new Match(this.loggerFactory.CreateLogger<Match>(), this, id, homeTeam, awayTeam, homeScore, awayScore, status, startTime, endTime, actualStartTime, actualEndTime);
 				matches.Add(m);
 				if (homeTeam != null) {
 					homeTeam.AddMatch(m);
@@ -219,10 +202,7 @@ namespace OverwatchLeague.Data {
 			using var httpClient = new HttpClient();
 			//TODO: Hard-coded week count, if there was a non-paginated version that'd be nice.
 			foreach (int page in Enumerable.Range(1, 27)) {
-				botMethods.Log(this, new LogEventArgs {
-					Type = LogType.Log,
-					Message = $"OverwatchLeague is requesting the schedule for week {page}"
-				});
+				this.logger.LogInformation("OverwatchLeague is requesting the schedule for week {}", page);
 				var uri = new Uri($"https://wzavfvwgfk.execute-api.us-east-2.amazonaws.com/production/owl/paginator/schedule?stage=regular_season&page={page}&season=2020&locale=en-us");
 				string referer = "https://overwatchleague.com/en-us/schedule";
 				using var getMessage = new HttpRequestMessage {
@@ -262,7 +242,7 @@ namespace OverwatchLeague.Data {
 						DateTime endTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.endDate);
 						//TODO: Get the actual start and end times (do they not exist anymore?).
 						// Maps are added only when requested since they must be gotten on a per-match basis.
-						var m = new Match(botMethods, matchId, homeTeam, awayTeam, homeScore, awayScore, status, startTime, endTime, null, null);
+						var m = new Match(this.loggerFactory.CreateLogger<Match>(), this, matchId, homeTeam, awayTeam, homeScore, awayScore, status, startTime, endTime, null, null);
 						m.SetEvent(e);
 						matches.Add(m);
 						homeTeam.AddMatch(m);

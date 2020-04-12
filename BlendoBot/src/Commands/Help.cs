@@ -4,6 +4,7 @@
     using BlendoBotLib;
     using BlendoBotLib.Interfaces;
     using DSharpPlus.EventArgs;
+    using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
 
@@ -44,7 +45,7 @@
                 // commands are available.
                 sb.AppendLine($"Use {$"{e.Message.Content} [command]".Code()} for specific help.");
                 sb.AppendLine("List of available commands:");
-                foreach (var term in this.commandRouter.GetEnabledTerms())
+                foreach (var term in this.commandRouter.GetEnabledTerms().OrderBy(term => term))
                 {
                     sb.AppendLine(term.Code());
                 }

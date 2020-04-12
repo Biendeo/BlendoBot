@@ -8,15 +8,18 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
+using UserTimeZone;
 
 namespace RemindMe {
 	public class RemindMe : CommandBase {
-		public RemindMe(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
+		public RemindMe(ulong guildId, IBotMethods botMethods, IUserTimeZoneProvider timeZoneProvider) : base(guildId, botMethods) {
+			this.timeZoneProvider = timeZoneProvider;
+		}
 
 		public override string DefaultTerm => "?remind";
 		public override string Name => "Remind Me";
 		public override string Description => "Reminds you about something later on! Please note that I currently do not remember messages if I am restarted.";
-		public override string Usage => $"Usage:\n{$"{Term} at [date and/or time] to [message]".Code()} {"(this reminds you at a certain point in time)".Italics()}\n{$"{Term} in [timespan] to [message]".Code()} {"(this reminds you after a certain interval)".Italics()}\n\n{"Valid date formats".Bold()}\n{"dd/mm/yyyy".Code()} ({"e.g. 1/03/2020".Italics()})\n{"dd/mm/yy".Code()} ({"e.g. 20/05/19".Italics()})\n{"dd/mm".Code()} ({"e.g. 30/11 (the year is implied)".Italics()})\n\n{"Valid time formats".Bold()}\n{"hh:mm:ss".Code()} ({"e.g. 13:40:00".Italics()})\n{"hh:mm".Code()} ({"e.g. 21:12".Italics()})\n{"All times are in 24-hour time!".Bold()}\n\n{"Valid timespan formats".Bold()}\n{"hh:mm:ss".Code()} ({"e.g. 1:20:00".Italics()})\n{"mm:ss".Code()} ({"e.g. 00:01".Italics()})\n\nFor {"{Term} at".Code()}, you may choose to either write either a date, a time, or both! Some examples:\n{"{Term} at 1/01/2020".Code()}\n{"{Term} at 12:00:00".Code()}\n{"{Term} at 1/01/2020 12:00:00".Code()}\n{"{Term} at 12:00:00 1/01/2020".Code()}\n\nPlease note that all date/time strings are interpreted as UTC time unless you have set a {BotMethods.GetCommand<UserTimeZone.UserTimeZone>(this, GuildId).Term.Code()}.\nThe output is always formatted as {TimeFormatString.Code()}";
+		public override string Usage => $"Usage:\n{$"{Term} at [date and/or time] to [message]".Code()} {"(this reminds you at a certain point in time)".Italics()}\n{$"{Term} in [timespan] to [message]".Code()} {"(this reminds you after a certain interval)".Italics()}\n\n{"Valid date formats".Bold()}\n{"dd/mm/yyyy".Code()} ({"e.g. 1/03/2020".Italics()})\n{"dd/mm/yy".Code()} ({"e.g. 20/05/19".Italics()})\n{"dd/mm".Code()} ({"e.g. 30/11 (the year is implied)".Italics()})\n\n{"Valid time formats".Bold()}\n{"hh:mm:ss".Code()} ({"e.g. 13:40:00".Italics()})\n{"hh:mm".Code()} ({"e.g. 21:12".Italics()})\n{"All times are in 24-hour time!".Bold()}\n\n{"Valid timespan formats".Bold()}\n{"hh:mm:ss".Code()} ({"e.g. 1:20:00".Italics()})\n{"mm:ss".Code()} ({"e.g. 00:01".Italics()})\n\nFor {"{Term} at".Code()}, you may choose to either write either a date, a time, or both! Some examples:\n{"{Term} at 1/01/2020".Code()}\n{"{Term} at 12:00:00".Code()}\n{"{Term} at 1/01/2020 12:00:00".Code()}\n{"{Term} at 12:00:00 1/01/2020".Code()}\n\nPlease note that all date/time strings are interpreted as UTC time unless you have set a custom time zone.\nThe output is always formatted as {TimeFormatString.Code()}";
 		public override string Author => "Biendeo";
 		public override string Version => "0.1.3";
 
@@ -25,8 +28,9 @@ namespace RemindMe {
 
 		private List<Reminder> OutstandingReminders;
 		private Timer DailyReminderCheck;
+        private readonly IUserTimeZoneProvider timeZoneProvider;
 
-		public override async Task<bool> Startup() {
+        public override async Task<bool> Startup() {
 			OutstandingReminders = new List<Reminder>();
 			if (File.Exists(DatabasePath)) {
 				OutstandingReminders = JsonConvert.DeserializeObject<List<Reminder>>(File.ReadAllText(DatabasePath));
@@ -88,7 +92,7 @@ namespace RemindMe {
 		public override async Task OnMessage(MessageCreateEventArgs e) {
 			// Try and decipher the output.
 			string[] splitMessage = e.Message.Content.Split(' ');
-			TimeZoneInfo userTimeZone = UserTimeZone.UserTimeZone.GetUserTimeZone(this, e.Author);
+			TimeZoneInfo userTimeZone = await this.timeZoneProvider.GetTimeZone(e.Guild.Id, e.Author.Id);
 
 			// Try and look for the "to" index.
 			int toIndex = 0;
@@ -211,7 +215,7 @@ namespace RemindMe {
 			}
 			if (foundTime < DateTime.UtcNow) {
 				await BotMethods.SendMessage(this, new SendMessageEventArgs {
-					Message = $"The time you input was parsed as {TimeZoneInfo.ConvertTime(foundTime, userTimeZone).ToString(TimeFormatString)} {UserTimeZone.UserTimeZone.ToShortString(userTimeZone)}, which is in the past! Make your time a little more specific!",
+					Message = $"The time you input was parsed as {TimeZoneInfo.ConvertTime(foundTime, userTimeZone).ToString(TimeFormatString)} {userTimeZone.ToShortString()}, which is in the past! Make your time a little more specific!",
 					Channel = e.Channel,
 					LogMessage = "ReminderErrorPastTime"
 				});
@@ -227,7 +231,7 @@ namespace RemindMe {
 			SaveReminders();
 
 			await BotMethods.SendMessage(this, new SendMessageEventArgs {
-				Message = $"Okay, I'll tell you this message at {TimeZoneInfo.ConvertTime(foundTime, userTimeZone).ToString(TimeFormatString)} {UserTimeZone.UserTimeZone.ToShortString(userTimeZone)}",
+				Message = $"Okay, I'll tell you this message at {TimeZoneInfo.ConvertTime(foundTime, userTimeZone).ToString(TimeFormatString)} {userTimeZone.ToShortString()}",
 				Channel = e.Channel,
 				LogMessage = "ReminderConfirm"
 			});

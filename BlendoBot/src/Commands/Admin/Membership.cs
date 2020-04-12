@@ -25,7 +25,7 @@ namespace BlendoBot.Commands.Admin
             this.dataStore = dataStore;
 
             var sw = Stopwatch.StartNew();
-            this.logger.LogInformation("Load admin membership for guild {}.", guildId);
+            this.logger.LogInformation("Loading admin membership for guild {}", guildId);
 
             try
             {

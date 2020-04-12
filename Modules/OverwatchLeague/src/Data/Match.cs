@@ -1,11 +1,10 @@
-﻿using BlendoBotLib;
+﻿using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
 
@@ -29,9 +28,10 @@ namespace OverwatchLeague.Data {
 		public Event Event { get; private set; }
 		private readonly Timer updateTimer;
 
-		private readonly IBotMethods botMethods;
+		private readonly ILogger<Match> logger;
+        private readonly Database db;
 
-		public Match(IBotMethods botMethods, int id, Team homeTeam, Team awayTeam, int homeScore, int awayScore, string status, DateTime startTime, DateTime endTime, DateTime? actualStartTime, DateTime? actualEndTime) {
+        public Match(ILogger<Match> logger, Database db, int id, Team homeTeam, Team awayTeam, int homeScore, int awayScore, string status, DateTime startTime, DateTime endTime, DateTime? actualStartTime, DateTime? actualEndTime) {
 			Id = id;
 			HomeTeam = homeTeam;
 			AwayTeam = awayTeam;
@@ -45,9 +45,9 @@ namespace OverwatchLeague.Data {
 
 			games = new List<MatchGame>();
 
-			this.botMethods = botMethods;
-
-			updateTimer = new Timer();
+			this.logger = logger;
+            this.db = db;
+            updateTimer = new Timer();
 			updateTimer.Elapsed += UpdateTimer_Elapsed;
 
 			// No point attempting to update the map if it won't start within 24 hours, since the whole
@@ -68,16 +68,13 @@ namespace OverwatchLeague.Data {
 
 		private async void UpdateTimer_Elapsed(object sender, ElapsedEventArgs e) {
 			try {
-				botMethods.Log(this, new LogEventArgs {
-					Type = LogType.Log,
-					Message = $"OverwatchLeague is performing a match-based update for match id {Id}"
-				});
+				this.logger.LogInformation("OverwatchLeague is performing a match-based update for match id {}", Id);
 				if (DateTime.UtcNow < StartTime) {
 					updateTimer.Interval = (StartTime - DateTime.UtcNow).TotalMilliseconds;
-					botMethods.Log(this, new LogEventArgs {
-						Type = LogType.Log,
-						Message = $"OverwatchLeague updated match {Id}, but will wait until it starts at {StartTime.ToString("yyyy-MM-dd HH:mm:ss")} before updating again"
-					});
+					this.logger.LogInformation(
+						"OverwatchLeague updated match {}, but will wait until it starts at {} before updating again",
+						Id,
+						StartTime.ToString("yyyy-MM-dd HH:mm:ss"));
 					return;
 				} else {
 					updateTimer.Interval = 1000 * 15;
@@ -85,22 +82,13 @@ namespace OverwatchLeague.Data {
 					await UpdateMatch();
 
 					if (Status == MatchStatus.Concluded) {
-						botMethods.Log(this, new LogEventArgs {
-							Type = LogType.Log,
-							Message = $"OverwatchLeague has finished updating match id {Id}"
-						});
+						this.logger.LogInformation("OverwatchLeague has finished updating match id {}", Id);
 						updateTimer.Enabled = false;
 					}
-					botMethods.Log(this, new LogEventArgs {
-						Type = LogType.Log,
-						Message = $"OverwatchLeague updated match id {Id} and will update again in 15 seconds"
-					});
+					this.logger.LogInformation("OverwatchLeague updated match id {} and will update again in 15 seconds", Id);
 				}
 			} catch (WebException exc) {
-				botMethods.Log(this, new LogEventArgs {
-					Type = LogType.Error,
-					Message = $"OverwatchLeague tried updating match id {Id} but failed due to a WebException\n{exc}"
-				});
+				this.logger.LogError(exc, "OverwatchLeague tried updating match id {} but failed due to a WebException", Id);
 			}
 		}
 
@@ -111,12 +99,12 @@ namespace OverwatchLeague.Data {
 
 				if (HomeTeam == null && matchJson.competitors[0] != null) {
 					int teamId = matchJson.competitors[0].id;
-					HomeTeam = (from c in OverwatchLeague.Database.Teams where c.Id == teamId select c).First();
+					HomeTeam = (from c in this.db.Teams where c.Id == teamId select c).First();
 				}
 
 				if (AwayTeam == null && matchJson.competitors[1] != null) {
 					int teamId = matchJson.competitors[1].id;
-					AwayTeam = (from c in OverwatchLeague.Database.Teams where c.Id == teamId select c).First();
+					AwayTeam = (from c in this.db.Teams where c.Id == teamId select c).First();
 				}
 
 				if (matchJson["scores"] != null) {
@@ -152,7 +140,7 @@ namespace OverwatchLeague.Data {
 							mapGuid = Convert.ToUInt64(game.attributes.mapGuid.Value, 16);
 						}
 						string gameStatus = game.status;
-						Map map = (from c in OverwatchLeague.Database.Maps where c.Guid == mapGuid select c).First();
+						Map map = (from c in this.db.Maps where c.Guid == mapGuid select c).First();
 
 						g = new MatchGame(gameId, gameNumber, gameHomePoints, gameAwayPoints, this, map, gameStatus);
 
@@ -174,7 +162,7 @@ namespace OverwatchLeague.Data {
 							if (game["attributes"]["mapGuid"] != null) {
 								mapGuid = Convert.ToUInt64(game.attributes.mapGuid.Value, 16);
 							}
-							Map map = (from c in OverwatchLeague.Database.Maps where c.Guid == mapGuid select c).First();
+							Map map = (from c in this.db.Maps where c.Guid == mapGuid select c).First();
 							g.SetMap(map);
 							if (map != null) {
 								map.AddGame(g);

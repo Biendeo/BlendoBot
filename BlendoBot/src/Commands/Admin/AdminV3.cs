@@ -282,7 +282,7 @@ namespace BlendoBot.Commands.Admin
                     else
                     {
                         sb.AppendLine("Currently disabled commands:");
-                        foreach (var disabledTerm in disabledCommandTerms)
+                        foreach (var disabledTerm in disabledCommandTerms.OrderBy(term => term))
                         {
                             sb.AppendLine(disabledTerm.Code());
                         }

@@ -49,6 +49,7 @@ namespace BlendoBot
                     // Configure external services to be injected
                     AdminV3.ConfigureServices(hostContext, services);
                     AutoCorrect.AutoCorrectCommand.ConfigureServices(hostContext, services);
+                    UserTimeZone.UserTimeZone.ConfigureServices(hostContext, services);
                     WheelOfFortune.WheelOfFortune.ConfigureServices(hostContext, services);
 
                     // Command registry and commands
@@ -57,7 +58,9 @@ namespace BlendoBot
                         .RegisterGuildScoped<AdminV3>()
                         .RegisterSingleton<AutoCorrect.AutoCorrectCommand>()
 						.RegisterGuildScoped<Help>()
+                        .RegisterSingleton<OverwatchLeague.OverwatchLeague>()
 						.RegisterSingleton<Roll.Roll>()
+                        .RegisterTransient<UserTimeZone.UserTimeZone>()
                         .RegisterGuildScoped<WheelOfFortune.WheelOfFortune>();
                     services.AddSingleton<ICommandRegistryBuilder>(commandRegistryBuilder);
 
@@ -66,7 +69,7 @@ namespace BlendoBot
                     services.AddSingleton<ICommandRouterFactory, CommandRouterFactory>();
                     services.AddSingleton<ICommandRouterManager, CommandRouterManager>();
 
-                    // Dynamic message listeners //TODO guild scoping
+                    // Dynamic message listeners
                     services.AddSingleton<MessageListenerRepository>();
                     services.AddTransient<IMessageListenerRepository>(sp => sp.GetRequiredService<MessageListenerRepository>());
                     services.AddTransient<IMessageListenerEnumerable>(sp => sp.GetRequiredService<MessageListenerRepository>());
