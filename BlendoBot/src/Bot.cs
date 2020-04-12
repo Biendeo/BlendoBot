@@ -142,7 +142,10 @@ namespace BlendoBot
             // Await dynamic message listeners
             await listenersTask;
 
-            this.logger.LogInformation("DiscordMessageCreated event handler completed in {}ms", sw.Elapsed.TotalMilliseconds);
+            if (sw.Elapsed > TimeSpan.FromSeconds(5))
+            {
+                this.logger.LogWarning("DiscordMessageCreated event handler completed in {}ms", sw.Elapsed.TotalMilliseconds);
+            }
         }
 
         private async Task DiscordGuildCreated(GuildCreateEventArgs e)

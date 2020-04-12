@@ -1,18 +1,19 @@
 ﻿using BlendoBotLib;
+using BlendoBotLib.Interfaces;
 using DSharpPlus.EventArgs;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace DecimalSpiral {
-	public class DecimalSpiral : CommandBase {
-		public DecimalSpiral(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
+	[CommandDefaults(defaultTerm: "ds")]
+	public class DecimalSpiral : ICommand {
+        private readonly IDiscordClient discordClient;
 
-		public override string DefaultTerm => "?ds";
-		public override string Name => "Decimal Spiral";
-		public override string Description => "Makes a pretty spiral.";
-		public override string Usage => $"Usage: {$"{Term} [size]".Code()} {"".Italics()}\nThe size must be an odd number between 5 and 43!";
-		public override string Author => "Biendeo";
-		public override string Version => "0.1.0";
+        public string Name => "Decimal Spiral";
+		public string Description => "Makes a pretty spiral.";
+		public string GetUsage(string term) => $"Usage: {$"{term} [size]".Code()} {"".Italics()}\nThe size must be an odd number between 5 and 43!";
+		public string Author => "Biendeo";
+		public string Version => "0.5.0";
 
 		private enum Direction {
 			Up,
@@ -20,6 +21,11 @@ namespace DecimalSpiral {
 			Down,
 			Left
 		};
+
+		public DecimalSpiral(IDiscordClient discordClient)
+		{
+            this.discordClient = discordClient;
+        }
 
 		private string CreateSpiral(int size) {
 			char[] spiral = Enumerable.Repeat(' ', size * (size + 1)).ToArray();
@@ -78,16 +84,11 @@ namespace DecimalSpiral {
 			return new string(spiral);
 		}
 
-		public override async Task<bool> Startup() {
-			await Task.Delay(0);
-			return true;
-		}
-
-		public override async Task OnMessage(MessageCreateEventArgs e) {
+		public async Task OnMessage(MessageCreateEventArgs e) {
 			string[] splitInput = e.Message.Content.Split(' ');
 
 			if (splitInput.Length != 2) {
-				await BotMethods.SendMessage(this, new SendMessageEventArgs {
+				await this.discordClient.SendMessage(this, new SendMessageEventArgs {
 					Message = $"You must specify two arguments to {"?ds".Code()}",
 					Channel = e.Channel,
 					LogMessage = "DecimalSpiralErrorIncorrectNumArgs"
@@ -96,7 +97,7 @@ namespace DecimalSpiral {
 			}
 
 			if (!int.TryParse(splitInput[1], out int size)) {
-				await BotMethods.SendMessage(this, new SendMessageEventArgs {
+				await this.discordClient.SendMessage(this, new SendMessageEventArgs {
 					Message = $"The argument is not a number!",
 					Channel = e.Channel,
 					LogMessage = "DecimalSpiralErrorNonNumericValue"
@@ -105,7 +106,7 @@ namespace DecimalSpiral {
 			}
 
 			if (size < 5 || size > 43 || size % 2 == 0) {
-				await BotMethods.SendMessage(this, new SendMessageEventArgs {
+				await this.discordClient.SendMessage(this, new SendMessageEventArgs {
 					Message = $"The argument must be between 5 and 43 inclusive and be odd!",
 					Channel = e.Channel,
 					LogMessage = "DecimalSpiralErrorIncorrectValue"
@@ -113,13 +114,11 @@ namespace DecimalSpiral {
 				return;
 			}
 
-			await BotMethods.SendMessage(this, new SendMessageEventArgs {
+			await this.discordClient.SendMessage(this, new SendMessageEventArgs {
 				Message = $"\n{CreateSpiral(size)}".CodeBlock(),
 				Channel = e.Channel,
 				LogMessage = "DecimalSpiralSuccess"
 			});
-
-			await Task.Delay(0);
 		}
 	}
 }
