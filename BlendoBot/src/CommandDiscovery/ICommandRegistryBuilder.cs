@@ -7,9 +7,9 @@ namespace BlendoBot.CommandDiscovery
     {
         ICommandRegistry Build(IServiceProvider serviceProvider);
 
-        ICommandRegistryBuilder RegisterGuildScoped<T>() where T : class, ICommand;
+        ICommandRegistryBuilder RegisterGuildScoped<T>(InstantiationBehaviour behaviour = InstantiationBehaviour.Lazy) where T : class, ICommand;
 
-        ICommandRegistryBuilder RegisterSingleton<T>() where T : class, ICommand;
+        ICommandRegistryBuilder RegisterSingleton<T>(InstantiationBehaviour behaviour = InstantiationBehaviour.Lazy) where T : class, ICommand;
 
         ICommandRegistryBuilder RegisterTransient<T>() where T : class, ICommand;
     }

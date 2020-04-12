@@ -58,6 +58,11 @@ namespace BlendoBot
             return await this.client.GetUserAsync(id);
         }
 
+        public async Task<DiscordChannel> GetChannel(ulong id)
+        {
+            return await this.client.GetChannelAsync(id);
+        }
+
         public Task ConnectAsync(DiscordActivity? activity = null, UserStatus? status = null, DateTimeOffset? idleSince = null)
         {
             this.logger.LogInformation("Connecting");

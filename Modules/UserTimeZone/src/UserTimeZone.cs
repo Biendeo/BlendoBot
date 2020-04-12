@@ -6,7 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -37,8 +36,8 @@ namespace UserTimeZone {
 		{
 			services.AddSingleton<IUserTimeZoneProvider, UserTimeZoneProvider>();
 			services.AddSingleton<
-				IDataStore<UserTimeZoneProvider, Dictionary<string, TimeZoneInfo>>,
-				JsonFileDataStore<UserTimeZoneProvider, Dictionary<string, TimeZoneInfo>>>();
+				IDataStore<UserTimeZoneProvider, List<UserTimeZoneSchema>>,
+				JsonFileDataStore<UserTimeZoneProvider, List<UserTimeZoneSchema>>>();
 		}
 
 		public async Task OnMessage(MessageCreateEventArgs e) {

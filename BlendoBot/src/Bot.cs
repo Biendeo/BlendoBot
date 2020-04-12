@@ -1,6 +1,8 @@
 namespace BlendoBot
 {
     using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -85,6 +87,8 @@ namespace BlendoBot
                 return;
             }
 
+            var sw = Stopwatch.StartNew();
+
             // Start tasks for dynamic message listeners in the meantime
             var listenersTask = Task.WhenAll(this.messageListeners.ForGuild(e.Guild.Id).Select(l => l.OnMessage(e)));
 
@@ -137,6 +141,8 @@ namespace BlendoBot
 
             // Await dynamic message listeners
             await listenersTask;
+
+            this.logger.LogInformation("DiscordMessageCreated event handler completed in {}ms", sw.Elapsed.TotalMilliseconds);
         }
 
         private async Task DiscordGuildCreated(GuildCreateEventArgs e)
@@ -149,12 +155,28 @@ namespace BlendoBot
         {
             this.logger.LogInformation($"Guild available: {e.Guild.Name} ({e.Guild.Id})");
 
+            var sw = Stopwatch.StartNew();
+
             // Create a command router for the newly available guild
             var guildId = e.Guild.Id;
             try
             {
                 var router = await this.commandRouterFactory.CreateForGuild(guildId, this.commandRegistry.RegisteredCommandTypes);
-                if (!this.commandRouterManager.TryAddRouter(guildId, router))
+                if (this.commandRouterManager.TryAddRouter(guildId, router))
+                {
+                    // Eager load eligible command types, except for those that are disabled
+                    var disabledCommandTypes = new HashSet<Type>();
+                    foreach (var term in router.GetDisabledTerms())
+                    {
+                        if (router.TryTranslateTerm(term, out Type type, includeIgnored: true))
+                        {
+                            disabledCommandTypes.Add(type);
+                        }
+                    }
+
+                    await this.commandRegistry.EagerLoadCommandInstances(guildId, disabledCommandTypes);
+                }
+                else
                 {
                     this.logger.LogCritical("Unable to add command router for guild {}", guildId);
                 }
@@ -163,7 +185,8 @@ namespace BlendoBot
             {
                 this.logger.LogCritical(ex, "Exception occurred when building command router for guild {}", guildId);
             }
-            await Task.CompletedTask;
+
+            this.logger.LogInformation("DiscordGuildAvailable event handler completed in {}ms", sw.Elapsed.TotalMilliseconds);
         }
 
         private async Task DiscordClientErrored(ClientErrorEventArgs e)

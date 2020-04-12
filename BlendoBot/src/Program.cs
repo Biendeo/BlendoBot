@@ -49,16 +49,18 @@ namespace BlendoBot
                     // Configure external services to be injected
                     AdminV3.ConfigureServices(hostContext, services);
                     AutoCorrect.AutoCorrectCommand.ConfigureServices(hostContext, services);
+                    RemindMe.RemindMe.ConfigureServices(hostContext, services);
                     UserTimeZone.UserTimeZone.ConfigureServices(hostContext, services);
                     WheelOfFortune.WheelOfFortune.ConfigureServices(hostContext, services);
 
                     // Command registry and commands
                     var commandRegistryBuilder = new CommandRegistryBuilder(services)
                         .RegisterGuildScoped<About>()
-                        .RegisterGuildScoped<AdminV3>()
+                        .RegisterGuildScoped<AdminV3>(InstantiationBehaviour.Eager)
                         .RegisterSingleton<AutoCorrect.AutoCorrectCommand>()
 						.RegisterGuildScoped<Help>()
-                        .RegisterSingleton<OverwatchLeague.OverwatchLeague>()
+                        .RegisterSingleton<OverwatchLeague.OverwatchLeague>(InstantiationBehaviour.Eager)
+                        .RegisterGuildScoped<RemindMe.RemindMe>(InstantiationBehaviour.Eager)
 						.RegisterSingleton<Roll.Roll>()
                         .RegisterTransient<UserTimeZone.UserTimeZone>()
                         .RegisterGuildScoped<WheelOfFortune.WheelOfFortune>();

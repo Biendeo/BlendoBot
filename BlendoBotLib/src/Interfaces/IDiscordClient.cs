@@ -20,6 +20,8 @@ namespace BlendoBotLib.Interfaces
 
         Task<DiscordUser> GetUser(ulong id);
 
+        Task<DiscordChannel> GetChannel(ulong id);
+
         event AsyncEventHandler<ReadyEventArgs> Ready;
 
         event AsyncEventHandler<MessageCreateEventArgs> MessageCreated;

@@ -17,6 +17,10 @@ namespace BlendoBot.CommandDiscovery
 
         bool TryGetCommandInstance(Type commandType, ulong guildId, [NotNullWhen(true)] out ICommand instance);
 
+        Task EagerLoadCommandInstances(ulong guildId);
+
+        Task EagerLoadCommandInstances(ulong guildId, ISet<Type> exceptFor);
+
         ISet<Type> RegisteredCommandTypes { get; }
     }
 }

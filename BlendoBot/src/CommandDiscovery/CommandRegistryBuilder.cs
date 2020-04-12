@@ -11,6 +11,7 @@ namespace BlendoBot.CommandDiscovery
         public CommandRegistryBuilder(IServiceCollection services)
         {
             this.services = services;
+            this.instantiationBehaviours = new Dictionary<Type, InstantiationBehaviour>();
             this.lifetimes = new Dictionary<Type, CommandLifetime>();
 
             // HACK CommandRegistry manually injects instances of Guild, ICommandRegistry, and ICommandRouter
@@ -24,23 +25,26 @@ namespace BlendoBot.CommandDiscovery
         {
             var registry = new CommandRegistry(
                 serviceProvider,
+                this.instantiationBehaviours,
                 this.lifetimes);
             return registry;
         }
 
-        public ICommandRegistryBuilder RegisterSingleton<T>() where T : class, ICommand
+        public ICommandRegistryBuilder RegisterSingleton<T>(InstantiationBehaviour behaviour = InstantiationBehaviour.Lazy) where T : class, ICommand
         {
             this.services.AddSingleton<T>();
             this.lifetimes[typeof(T)] = CommandLifetime.Singleton;
+            this.instantiationBehaviours[typeof(T)] = behaviour;
             return this;
         }
 
-        public ICommandRegistryBuilder RegisterGuildScoped<T>() where T : class, ICommand
+        public ICommandRegistryBuilder RegisterGuildScoped<T>(InstantiationBehaviour behaviour = InstantiationBehaviour.Lazy) where T : class, ICommand
         {
             // Here we register as transient.
             // Lifetime and instances are manually managed by CommandRegistry.
             this.services.AddTransient<T>();
             this.lifetimes[typeof(T)] = CommandLifetime.GuildScoped;
+            this.instantiationBehaviours[typeof(T)] = behaviour;
             return this;
         }
 
@@ -52,6 +56,8 @@ namespace BlendoBot.CommandDiscovery
         }
 
         private IServiceCollection services;
+
+        private Dictionary<Type, InstantiationBehaviour> instantiationBehaviours;
 
         private Dictionary<Type, CommandLifetime> lifetimes;
     }

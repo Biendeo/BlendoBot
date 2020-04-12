@@ -3,6 +3,7 @@ namespace BlendoBot.CommandDiscovery
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Reflection;
@@ -18,12 +19,18 @@ namespace BlendoBot.CommandDiscovery
     {
         internal CommandRegistry(
             IServiceProvider serviceProvider,
+            IDictionary<Type, InstantiationBehaviour> instantiationBehaviours,
             IDictionary<Type, CommandLifetime> lifetimes)
         {
             this.lifetimes = new Dictionary<Type, CommandLifetime>(lifetimes);
             this.guildScopedCommandInstances = new ConcurrentDictionary<ulong, ConcurrentDictionary<Type, ICommand>>();
             this.serviceProvider = serviceProvider;
             this.logger = (ILogger<CommandRegistry>)this.serviceProvider.GetService(typeof(ILogger<CommandRegistry>));
+
+            this.typesToEagerLoad = instantiationBehaviours
+                .Where(kvp => kvp.Value == InstantiationBehaviour.Eager)
+                .Select(kvp => kvp.Key)
+                .ToHashSet();
         }
 
         public async Task ExecuteForAsync(
@@ -139,14 +146,36 @@ namespace BlendoBot.CommandDiscovery
             }
         }
 
+        public Task EagerLoadCommandInstances(ulong guildId) => this.EagerLoadCommandInstances(guildId, new HashSet<Type>());
+
+        public async Task EagerLoadCommandInstances(ulong guildId, ISet<Type> exceptFor)
+        {
+            var typesToEagerLoad = this.typesToEagerLoad.Except(exceptFor).ToHashSet();
+
+            var sw = Stopwatch.StartNew();
+            this.logger.LogInformation(
+                "Eager-instantiating the following command types for guild {}: [{}]",
+                guildId,
+                string.Join(',', typesToEagerLoad.Select(t => t.Name)));
+
+            await Task.WhenAll(typesToEagerLoad.Select(t => Task.Run(() => this.TryGetCommandInstance(t, guildId, out _))));
+
+            this.logger.LogInformation(
+                "Eager-instantiating complete for guild {}, took {}ms",
+                guildId,
+                sw.Elapsed.TotalMilliseconds);
+        }
+
         public ISet<Type> RegisteredCommandTypes => new HashSet<Type>(this.lifetimes.Keys);
 
-        private IServiceProvider serviceProvider;
+        private readonly IServiceProvider serviceProvider;
 
-        private ILogger<CommandRegistry> logger;
+        private readonly ISet<Type> typesToEagerLoad;
+
+        private readonly ILogger<CommandRegistry> logger;
 
         private readonly Dictionary<Type, CommandLifetime> lifetimes;
 
-        private ConcurrentDictionary<ulong, ConcurrentDictionary<Type, ICommand>> guildScopedCommandInstances;
+        private readonly ConcurrentDictionary<ulong, ConcurrentDictionary<Type, ICommand>> guildScopedCommandInstances;
     }
 }
