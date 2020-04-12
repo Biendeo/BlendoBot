@@ -1,13 +1,12 @@
 namespace WheelOfFortune
 {
-    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Threading.Tasks;
     using BlendoBotLib.Interfaces;
     using Microsoft.Extensions.Logging;
 
-    public class PuzzlesTxtDataStore : IDataStore<WheelOfFortune>
+    public class PuzzlesTxtDataStore : IDataStore<WheelOfFortune, IList<Puzzle>>
     {
         public PuzzlesTxtDataStore(
             ILogger<PuzzlesTxtDataStore> logger)
@@ -15,19 +14,8 @@ namespace WheelOfFortune
             this.logger = logger;
         }
 
-        public async Task<T> ReadAsync<T>(string path)
+        public async Task<IList<Puzzle>> ReadAsync(string path)
         {
-            if (!typeof(IList<Puzzle>).IsAssignableFrom(typeof(T)))
-            {
-                var ex = new NotImplementedException();
-                this.logger.LogCritical(
-                    ex,
-                    "{} can only read types compatible with {}",
-                    this.GetType().Name,
-                    typeof(IList<Puzzle>).Name);
-                throw ex;
-            }
-
             var fullpath = Path.Join("data", typeof(WheelOfFortune).Name, path);
             this.logger.LogInformation("Reading from {}", fullpath);
             using (var istream = File.OpenRead(fullpath))
@@ -46,11 +34,11 @@ namespace WheelOfFortune
                     }
                 }
 
-                return (T)(object)puzzles;
+                return puzzles;
             }
         }
 
-        public Task WriteAsync<T>(string path, T value)
+        public Task WriteAsync(string path, IList<Puzzle> value)
         {
             throw new System.NotImplementedException();
         }

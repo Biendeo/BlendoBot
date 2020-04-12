@@ -6,27 +6,27 @@ namespace BlendoBotLib.DataStore
     using BlendoBotLib.Interfaces;
     using Microsoft.Extensions.Logging;
 
-    public class JsonFileDataStore<TConsumer> : IDataStore<TConsumer>
+    public class JsonFileDataStore<TConsumer, TData> : IDataStore<TConsumer, TData>
     {
         public JsonFileDataStore(
-            ILogger<JsonFileDataStore<TConsumer>> logger)
+            ILogger<JsonFileDataStore<TConsumer, TData>> logger)
         {
             this.logger = logger;
             this.path = "data";
         }
 
-        public async Task<T> ReadAsync<T>(string path)
+        public async Task<TData> ReadAsync(string path)
         {
             var fullpath = Path.ChangeExtension(Path.Join(this.path, typeof(TConsumer).Name, path), "json");
             this.logger.LogInformation("Reading from {}", fullpath);
             using (var istream = File.OpenRead(fullpath))
             {
-                var obj = await JsonSerializer.DeserializeAsync<T>(istream);
+                var obj = await JsonSerializer.DeserializeAsync<TData>(istream);
                 return obj;
             }
         }
 
-        public async Task WriteAsync<T>(string path, T value)
+        public async Task WriteAsync(string path, TData value)
         {
             var fullpath = Path.ChangeExtension(Path.Join(this.path, typeof(TConsumer).Name, path), "json");
             this.logger.LogInformation("Writing to {}", fullpath);
@@ -37,7 +37,7 @@ namespace BlendoBotLib.DataStore
             }
         }
 
-        private ILogger<JsonFileDataStore<TConsumer>> logger;
+        private ILogger<JsonFileDataStore<TConsumer, TData>> logger;
 
         private string path;
     }

@@ -18,7 +18,7 @@ namespace BlendoBot.CommandDiscovery
         public CommandRouterFactory(
             ILoggerFactory loggerFactory,
             ILogger<CommandRouterFactory> logger,
-            IInstancedDataStore<CommandRouter> dataStore)
+            IDataStore<CommandRouter, CommandRouterConfig> dataStore)
         {
             this.dataStore = dataStore;
             this.logger = logger;
@@ -28,49 +28,31 @@ namespace BlendoBot.CommandDiscovery
         public static void ConfigureServices(HostBuilderContext hostBuilderContext, IServiceCollection services)
         {
             services.AddSingleton<
-                IDataStore<CommandRouter>,
-                JsonFileDataStore<CommandRouter>>();
-            services.AddSingleton<
-                IInstancedDataStore<CommandRouter>,
-                GuildInstancedDataStore<CommandRouter>>();
+                IDataStore<CommandRouter, CommandRouterConfig>,
+                JsonFileDataStore<CommandRouter, CommandRouterConfig>>();
         }
 
-        public async Task<ICommandRouter> CreateForGuild(ulong guildId, ISet<Type> commandTypes)
+        public Task<ICommandRouter> CreateForGuild(ulong guildId, ISet<Type> commandTypes)
         {
             var sw = Stopwatch.StartNew();
             this.logger.LogInformation(
                 "Creating command router for guild {}. Supported command types: [{}]",
                 guildId,
                 string.Join(",", commandTypes.Select(t => t.Name)));
-            CommandRouterConfig config;
-            try
-            {
-                config = await this.dataStore.ReadAsync<CommandRouterConfig>(guildId, "config");
-            }
-            catch (Exception ex) when (ex is DirectoryNotFoundException || ex is FileNotFoundException)
-            {
-                this.logger.LogWarning("CommandRouterConfig not found for guild {}, creating empty config.", guildId);
-                config = new CommandRouterConfig
-                {
-                    Commands = new List<CommandConfig>()
-                };
-                await this.dataStore.WriteAsync(guildId, "config", config);
-            }
 
             var router = new CommandRouter(
                 guildId,
                 this.loggerFactory.CreateLogger<CommandRouter>(),
                 this.dataStore,
-                config,
                 commandTypes
             );
 
-            this.logger.LogInformation("Command router created for guild {} in {}ms", guildId, sw.Elapsed.TotalMilliseconds);
+            this.logger.LogInformation("Command router created for guild {}, took {}ms", guildId, sw.Elapsed.TotalMilliseconds);
 
-            return router;
+            return Task.FromResult((ICommandRouter)router);
         }
 
-        private IInstancedDataStore<CommandRouter> dataStore;
+        private IDataStore<CommandRouter, CommandRouterConfig> dataStore;
 
         private ILogger<CommandRouterFactory> logger;
 

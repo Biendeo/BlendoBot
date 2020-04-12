@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -23,7 +24,7 @@ namespace WheelOfFortune
         public string Author => "Biendeo";
         public string Version => "1.5.0";
 
-        private static List<Puzzle>? puzzles;
+        private static IList<Puzzle>? puzzles;
 
         private DiscordChannel? currentChannel;
         private List<DiscordUser> eliminatedUsers;
@@ -34,10 +35,10 @@ namespace WheelOfFortune
         private readonly IDiscordClient discordClient;
         private readonly ILogger<WheelOfFortune> logger;
         private readonly IMessageListenerRepository messageListenerRepository;
-        private readonly IDataStore<WheelOfFortune> dataStore;
+        private readonly IDataStore<WheelOfFortune, IList<Puzzle>> dataStore;
 
         public WheelOfFortune(
-            IDataStore<WheelOfFortune> dataStore,
+            IDataStore<WheelOfFortune, IList<Puzzle>> dataStore,
             IDiscordClient discordClient,
             IMessageListenerRepository messageListenerRepository,
             ILogger<WheelOfFortune> logger)
@@ -56,8 +57,9 @@ namespace WheelOfFortune
             {
                 try
                 {
-                    puzzles = this.dataStore.ReadAsync<List<Puzzle>>("puzzles.txt").Result;
-                    this.logger.LogInformation("Wheel Of Fortune loaded {} puzzles", puzzles.Count);
+                    var sw = Stopwatch.StartNew();
+                    puzzles = this.dataStore.ReadAsync("puzzles.txt").Result;
+                    this.logger.LogInformation("Wheel Of Fortune loaded {} puzzles, took {}ms", puzzles.Count, sw.Elapsed.TotalMilliseconds);
                 }
                 catch (Exception ex)
                 {
@@ -68,7 +70,7 @@ namespace WheelOfFortune
 
         public static void ConfigureServices(HostBuilderContext context, IServiceCollection services)
         {
-            services.AddSingleton<IDataStore<WheelOfFortune>, PuzzlesTxtDataStore>();
+            services.AddSingleton<IDataStore<WheelOfFortune, IList<Puzzle>>, PuzzlesTxtDataStore>();
         }
 
         public async Task HandleMessageListener(MessageCreateEventArgs e)

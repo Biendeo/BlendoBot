@@ -5,6 +5,7 @@ namespace BlendoBot.Commands.Admin
     using System.Text;
     using System.Threading.Tasks;
     using BlendoBot.CommandDiscovery;
+    using BlendoBot.Commands.Admin.DataSchemas;
     using BlendoBotLib;
     using BlendoBotLib.DataStore;
     using BlendoBotLib.Interfaces;
@@ -31,13 +32,12 @@ namespace BlendoBot.Commands.Admin
             ICommandRegistry commandRegistry,
             ICommandRouter commandRouter,
             IDiscordClient discordClient,
-            IInstancedDataStore<AdminV3> dataStore,
+            IDataStore<AdminV3, Administrators> dataStore,
             ILogger<AdminV3> logger,
             ILoggerFactory loggerFactory)
         {
             this.guildId = guild.Id;
 
-            this.dataStore = dataStore;
             this.discordClient = discordClient;
             this.logger = logger;
             this.membership = new Membership(
@@ -53,11 +53,8 @@ namespace BlendoBot.Commands.Admin
         public static void ConfigureServices(HostBuilderContext hostBuilderContext, IServiceCollection services)
         {
             services.AddSingleton<
-                IDataStore<AdminV3>,
-                JsonFileDataStore<AdminV3>>();
-            services.AddSingleton<
-                IInstancedDataStore<AdminV3>,
-                GuildInstancedDataStore<AdminV3>>();
+                IDataStore<AdminV3, Administrators>,
+                JsonFileDataStore<AdminV3, Administrators>>();
         }
 
         public string GetUsage(string term) => $"Usage:\n" +
@@ -326,8 +323,6 @@ namespace BlendoBot.Commands.Admin
         private Membership membership;
 
         private CommandManagement commandManagement;
-
-        private IInstancedDataStore<AdminV3> dataStore;
 
         private IDiscordClient discordClient;
     }

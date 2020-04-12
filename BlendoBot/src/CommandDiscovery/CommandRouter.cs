@@ -2,6 +2,7 @@ namespace BlendoBot.CommandDiscovery
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Reflection;
     using System.Threading.Tasks;
@@ -15,8 +16,7 @@ namespace BlendoBot.CommandDiscovery
         public CommandRouter(
             ulong guildId,
             ILogger<CommandRouter> logger,
-            IInstancedDataStore<CommandRouter> dataStore,
-            CommandRouterConfig config,
+            IDataStore<CommandRouter, CommandRouterConfig> dataStore,
             ISet<Type> commandTypes)
         {
             this.guildId = guildId;
@@ -24,6 +24,23 @@ namespace BlendoBot.CommandDiscovery
             this.dataStore = dataStore;
             this.commandMap = new Dictionary<string, Type>();
             this.disabledCommands = new HashSet<Type>();
+
+            // Read config from data store
+            CommandRouterConfig config;
+            try
+            {
+                config = this.dataStore.ReadAsync(this.dataStorePath).Result;
+            }
+            catch (Exception ex) when (ex is DirectoryNotFoundException || ex is FileNotFoundException)
+            {
+                this.logger.LogWarning("CommandRouterConfig not found for guild {}, creating empty config.", guildId);
+                config = new CommandRouterConfig
+                {
+                    Commands = new List<CommandConfig>()
+                };
+
+                this.dataStore.WriteAsync(this.dataStorePath, config).Wait();
+            }
 
             var joined = config.Commands.Join(
                 commandTypes,
@@ -93,14 +110,14 @@ namespace BlendoBot.CommandDiscovery
                 {
                     this.commandMap.Add(termTo, type);
                     this.commandMap.Remove(termFrom);
-                    await this.dataStore.WriteAsync(this.guildId, "config", this.ToConfig());
+                    await this.dataStore.WriteAsync(this.dataStorePath, this.ToConfig());
                     return termTo;
                 }
                 catch (Exception ex)
                 {
                     this.logger.LogError(ex, "Error occurred while remapping term {} to term {} for command type {} for guild {}. Restoring backup", termFrom, termTo, type.Name, this.guildId);
                     this.commandMap = backup;
-                    await this.dataStore.WriteAsync(this.guildId, "config", this.ToConfig());
+                    await this.dataStore.WriteAsync(this.dataStorePath, this.ToConfig());
                 }
             }
 
@@ -118,14 +135,14 @@ namespace BlendoBot.CommandDiscovery
                     try
                     {
                         this.disabledCommands.Remove(type);
-                        await this.dataStore.WriteAsync(this.guildId, "config", this.ToConfig());
+                        await this.dataStore.WriteAsync(this.dataStorePath, this.ToConfig());
                         return true;
                     }
                     catch (Exception ex)
                     {
                         this.logger.LogError(ex, "Error occurred while enabling command type {} for guild {}. Restoring backup.", type.Name, this.guildId);
                         this.disabledCommands = backup;
-                        await this.dataStore.WriteAsync(this.guildId, "config", this.ToConfig());
+                        await this.dataStore.WriteAsync(this.dataStorePath, this.ToConfig());
                     }
                 }
             }
@@ -144,14 +161,14 @@ namespace BlendoBot.CommandDiscovery
                     try
                     {
                         this.disabledCommands.Add(type);
-                        await this.dataStore.WriteAsync(this.guildId, "config", this.ToConfig());
+                        await this.dataStore.WriteAsync(this.dataStorePath, this.ToConfig());
                         return true;
                     }
                     catch (Exception ex)
                     {
                         this.logger.LogError(ex, "Error occurred while disabling command type {} for guild {}. Restoring backup", type.Name, this.guildId);
                         this.disabledCommands = backup;
-                        await this.dataStore.WriteAsync(this.guildId, "config", this.ToConfig());
+                        await this.dataStore.WriteAsync(this.dataStorePath, this.ToConfig());
                     }
                 }
             }
@@ -164,6 +181,8 @@ namespace BlendoBot.CommandDiscovery
 
         public ISet<string> GetEnabledTerms() =>
             this.commandMap.Keys.Except(this.GetDisabledTerms()).ToHashSet();
+
+        private string dataStorePath => Path.Join(this.guildId.ToString(), "config");
 
         private CommandRouterConfig ToConfig()
         {
@@ -184,7 +203,7 @@ namespace BlendoBot.CommandDiscovery
 
         private ILogger<CommandRouter> logger;
 
-        private readonly IInstancedDataStore<CommandRouter> dataStore;
+        private readonly IDataStore<CommandRouter, CommandRouterConfig> dataStore;
 
         private Dictionary<string, Type> commandMap;
 

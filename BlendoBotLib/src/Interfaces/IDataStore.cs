@@ -2,10 +2,10 @@ namespace BlendoBotLib.Interfaces
 {
     using System.Threading.Tasks;
 
-    public interface IDataStore<TConsumer>
+    public interface IDataStore<TConsumer, TData>
     {
-        Task<T> ReadAsync<T>(string path);
+        Task<TData> ReadAsync(string path);
 
-        Task WriteAsync<T>(string path, T value);
+        Task WriteAsync(string path, TData value);
     }
 }
