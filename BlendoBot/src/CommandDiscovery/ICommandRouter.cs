@@ -7,7 +7,7 @@ namespace BlendoBot.CommandDiscovery
 
     internal interface ICommandRouter
     {
-        bool TryTranslateTerm(string term, [NotNullWhen(returnValue: true)] out Type commandType, bool includeIgnored = false);
+        bool TryTranslateTerm(string term, [NotNullWhen(returnValue: true)] out Type commandType, bool includeDisabled = false);
 
         Task<string> RenameTerm(string termFrom, string termTo);
 

@@ -6,6 +6,7 @@ namespace BlendoBot.CommandDiscovery
     using System.Linq;
     using System.Reflection;
     using System.Threading.Tasks;
+    using BlendoBot.Commands;
     using BlendoBot.ConfigSchemas;
     using BlendoBotLib;
     using BlendoBotLib.Interfaces;
@@ -85,21 +86,21 @@ namespace BlendoBot.CommandDiscovery
             }
         }
 
-        public bool TryTranslateTerm(string term, out Type commandType, bool includeIgnored = false)
+        public bool TryTranslateTerm(string term, out Type commandType, bool includeDisabled = false)
         {
             #pragma warning disable CS8601
-            return this.commandMap.TryGetValue(term, out commandType) && (includeIgnored || !this.disabledCommands.Contains(commandType));
+            return this.commandMap.TryGetValue(term, out commandType) && (includeDisabled || !this.disabledCommands.Contains(commandType));
             #pragma warning restore CS8601 
         }
 
         public async Task<string> RenameTerm(string termFrom, string termTo)
         {
-            if (this.TryTranslateTerm(termFrom, out var type, includeIgnored: true))
+            if (this.TryTranslateTerm(termFrom, out var type, includeDisabled: true))
             {
-                if (this.TryTranslateTerm(termTo, out _, includeIgnored: true))
+                if (this.TryTranslateTerm(termTo, out _, includeDisabled: true))
                 {
                     int i = 1;
-                    for (; this.TryTranslateTerm($"{termTo}{i}", out _, includeIgnored: true); ++i);
+                    for (; this.TryTranslateTerm($"{termTo}{i}", out _, includeDisabled: true); ++i);
                     termTo = $"{termTo}{i}";
                 }
 
@@ -126,7 +127,7 @@ namespace BlendoBot.CommandDiscovery
 
         public async Task<bool> EnableTerm(string term)
         {
-            if (this.TryTranslateTerm(term, out var type, includeIgnored: true))
+            if (this.TryTranslateTerm(term, out var type, includeDisabled: true))
             {
                 if (this.disabledCommands.Contains(type))
                 {
@@ -152,8 +153,14 @@ namespace BlendoBot.CommandDiscovery
 
         public async Task<bool> DisableTerm(string term)
         {
-            if (this.TryTranslateTerm(term, out var type, includeIgnored: true))
+            if (this.TryTranslateTerm(term, out var type, includeDisabled: true))
             {
+                if (type.GetCustomAttribute<PrivilegedCommandAttribute>() != null)
+                {
+                    this.logger.LogInformation("Rejecting request to disable privileged command type {} for guild {}", type.Name, this.guildId);
+                    return false;
+                }
+
                 if (!this.disabledCommands.Contains(type))
                 {
                     this.logger.LogInformation("Disabling command type {} for guild {}", type.Name, this.guildId);

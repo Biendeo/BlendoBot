@@ -171,7 +171,7 @@ namespace BlendoBot
                     var disabledCommandTypes = new HashSet<Type>();
                     foreach (var term in router.GetDisabledTerms())
                     {
-                        if (router.TryTranslateTerm(term, out Type type, includeIgnored: true))
+                        if (router.TryTranslateTerm(term, out Type type, includeDisabled: true))
                         {
                             disabledCommandTypes.Add(type);
                         }
