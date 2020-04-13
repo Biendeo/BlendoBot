@@ -51,6 +51,7 @@ namespace BlendoBot
                     AdminV3.ConfigureServices(hostContext, services);
                     AutoCorrect.AutoCorrectCommand.ConfigureServices(hostContext, services);
                     CurrencyConverter.CurrencyConverter.ConfigureServices(hostContext, services);
+                    MrPing.MrPing.ConfigureServices(hostContext, services);
                     RemindMe.RemindMe.ConfigureServices(hostContext, services);
                     UserTimeZone.UserTimeZone.ConfigureServices(hostContext, services);
                     Weather.Weather.ConfigureServices(hostContext, services);
@@ -64,6 +65,7 @@ namespace BlendoBot
                         .RegisterTransient<CurrencyConverter.CurrencyConverter>()
                         .RegisterTransient<DecimalSpiral.DecimalSpiral>()
 						.RegisterGuildScoped<Help>()
+                        .RegisterGuildScoped<MrPing.MrPing>()
                         .RegisterSingleton<OverwatchLeague.OverwatchLeague>(InstantiationBehaviour.Eager)
                         .RegisterTransient<Regional.Regional>()
                         .RegisterGuildScoped<RemindMe.RemindMe>(InstantiationBehaviour.Eager)

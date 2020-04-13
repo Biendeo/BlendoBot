@@ -11,8 +11,6 @@ namespace MrPing {
 			this.mrPing = mrPing;
 		}
 
-		public CommandBase Command { get { return mrPing; } }
-
 		public async Task OnMessage(MessageCreateEventArgs e) {
 			if (mrPing.Database != null) {
 				if (e.MentionedUsers.Count == 1) {
