@@ -56,7 +56,7 @@ namespace MrPing {
 				JsonFileDataStore<MrPing, ServerStats>>();
 		}
 
-		public const int MaxPings = 1;
+		public const int MaxPings = 100;
         private readonly ulong guildId;
         private readonly IDiscordClient discordClient;
         private readonly ILogger<MrPing> logger;
