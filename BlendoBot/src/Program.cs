@@ -35,6 +35,7 @@ namespace BlendoBot
                 .ConfigureLogging(logging =>
                 {
                     logging.AddConsole();
+                    logging.AddFilter("OverwatchLeague", Microsoft.Extensions.Logging.LogLevel.Trace);
                 })
                 .UseDefaultServiceProvider((hostContext, options) =>
                 {
@@ -51,6 +52,7 @@ namespace BlendoBot
                     AutoCorrect.AutoCorrectCommand.ConfigureServices(hostContext, services);
                     RemindMe.RemindMe.ConfigureServices(hostContext, services);
                     UserTimeZone.UserTimeZone.ConfigureServices(hostContext, services);
+                    Weather.Weather.ConfigureServices(hostContext, services);
                     WheelOfFortune.WheelOfFortune.ConfigureServices(hostContext, services);
 
                     // Command registry and commands
@@ -65,6 +67,7 @@ namespace BlendoBot
                         .RegisterGuildScoped<RemindMe.RemindMe>(InstantiationBehaviour.Eager)
 						.RegisterSingleton<Roll.Roll>()
                         .RegisterTransient<UserTimeZone.UserTimeZone>()
+                        .RegisterTransient<Weather.Weather>()
                         .RegisterGuildScoped<WheelOfFortune.WheelOfFortune>();
                     services.AddSingleton<ICommandRegistryBuilder>(commandRegistryBuilder);
 

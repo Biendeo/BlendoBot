@@ -10,6 +10,7 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Net.Http;
 
 namespace OverwatchLeague {
 	[CommandDefaults(defaultTerm: "owl")]
@@ -18,6 +19,7 @@ namespace OverwatchLeague {
 			IDiscordClient discordClient,
 			ILogger<OverwatchLeague> logger,
 			ILoggerFactory loggerFactory,
+			IHttpClientFactory httpClientFactory,
 			IUserTimeZoneProvider timeZoneProvider)
 		{
             this.discordClient = discordClient;
@@ -26,7 +28,7 @@ namespace OverwatchLeague {
             this.db = new Lazy<Database>(
 				() =>
 				{
-					var db = new Database(loggerFactory.CreateLogger<Database>(), loggerFactory);
+					var db = new Database(loggerFactory.CreateLogger<Database>(), loggerFactory, httpClientFactory.CreateClient());
 					db.ReloadDatabase().Wait();
 					return db;
 				},
@@ -107,7 +109,7 @@ namespace OverwatchLeague {
 			if (!this.db.IsValueCreated)
 			{
 				await this.discordClient.SendMessage(this, new SendMessageEventArgs {
-					Message = "Overwatch League is still loading, please try again later!",
+					Message = "Overwatch League is still loading, please try again in a couple of seconds!",
 					Channel = e.Channel,
 					LogMessage = "OverwatchLeagueNotReady"
 				});
@@ -244,7 +246,7 @@ namespace OverwatchLeague {
 					} else if (splitMessage.Length > 2 && int.TryParse(splitMessage[2], out int week) && week > 0 && week <= 27) {
 						var sb = new StringBuilder();
 
-						Week relevantWeek = Database.Weeks.First(w => w.WeekNumber == week);
+						Week relevantWeek = Database.Weeks.Values.First(w => w.WeekNumber == week);
 
 						foreach (var weekEvent in relevantWeek.Events) {
 							sb.AppendLine(weekEvent.Title.Bold());

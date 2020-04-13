@@ -17,15 +17,17 @@ namespace OverwatchLeague.Data {
 			}
 		}
 
+		// HACK
 		public DateTime FirstStartTime {
 			get {
-				return matches.Min(m => m.StartTime);
+				return matches.Count == 0 ? DateTime.MaxValue : matches.Min(m => m.StartTime);
 			}
 		}
 
+		// HACK
 		public DateTime LastEndTime {
 			get {
-				return matches.Max(m => m.EndTime);
+				return matches.Count == 0 ? DateTime.MinValue : matches.Max(m => m.EndTime);
 			}
 		}
 

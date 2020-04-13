@@ -37,7 +37,6 @@ namespace BlendoBot.Commands.Admin
             ILoggerFactory loggerFactory)
         {
             this.guildId = guild.Id;
-
             this.discordClient = discordClient;
             this.logger = logger;
             this.membership = new Membership(
@@ -46,7 +45,9 @@ namespace BlendoBot.Commands.Admin
                 loggerFactory.CreateLogger<Membership>(),
                 dataStore);
             this.commandManagement = new CommandManagement(
+                guild,
                 commandRouter,
+                commandRegistry,
                 loggerFactory.CreateLogger<CommandManagement>());
         }
 
