@@ -50,6 +50,7 @@ namespace BlendoBot
                     // Configure external services to be injected
                     AdminV3.ConfigureServices(hostContext, services);
                     AutoCorrect.AutoCorrectCommand.ConfigureServices(hostContext, services);
+                    CurrencyConverter.CurrencyConverter.ConfigureServices(hostContext, services);
                     RemindMe.RemindMe.ConfigureServices(hostContext, services);
                     UserTimeZone.UserTimeZone.ConfigureServices(hostContext, services);
                     Weather.Weather.ConfigureServices(hostContext, services);
@@ -59,7 +60,8 @@ namespace BlendoBot
                     var commandRegistryBuilder = new CommandRegistryBuilder(services)
                         .RegisterGuildScoped<About>()
                         .RegisterGuildScoped<AdminV3>(InstantiationBehaviour.Eager)
-                        .RegisterSingleton<AutoCorrect.AutoCorrectCommand>()
+                        .RegisterTransient<AutoCorrect.AutoCorrectCommand>()
+                        .RegisterTransient<CurrencyConverter.CurrencyConverter>()
                         .RegisterTransient<DecimalSpiral.DecimalSpiral>()
 						.RegisterGuildScoped<Help>()
                         .RegisterSingleton<OverwatchLeague.OverwatchLeague>(InstantiationBehaviour.Eager)
