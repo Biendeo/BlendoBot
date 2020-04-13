@@ -2,8 +2,8 @@ using System.Collections.Generic;
 
 namespace AutoCorrect.Schemas
 {
-    // Lots of unused field warnings for schemas
-    #pragma warning disable 0649
+#pragma warning disable 0649
+#pragma warning disable CS8618
 
     internal class GrammarBotResponse
     {
@@ -41,4 +41,8 @@ namespace AutoCorrect.Schemas
     {
         public string value;
     }
+
+#pragma warning restore CS8618
+#pragma warning restore 0648
+
 }

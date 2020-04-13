@@ -1,4 +1,5 @@
 ﻿using BlendoBotLib;
+using BlendoBotLib.Interfaces;
 using DSharpPlus.EventArgs;
 using System.Threading.Tasks;
 
@@ -9,8 +10,6 @@ namespace MrPing {
 		public MrPingListener(MrPing mrPing) {
 			this.mrPing = mrPing;
 		}
-
-		public CommandBase Command { get { return mrPing; } }
 
 		public async Task OnMessage(MessageCreateEventArgs e) {
 			if (mrPing.Database != null) {

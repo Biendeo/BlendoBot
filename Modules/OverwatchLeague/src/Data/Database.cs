@@ -1,14 +1,15 @@
-﻿using BlendoBotLib;
-using Microsoft.CSharp.RuntimeBinder;
+﻿using Microsoft.CSharp.RuntimeBinder;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 
@@ -22,43 +23,38 @@ namespace OverwatchLeague.Data {
 		public ReadOnlyCollection<GameMode> GameModes => gameModes.AsReadOnly();
 		private readonly List<Match> matches;
 		public ReadOnlyCollection<Match> Matches => matches.AsReadOnly();
-		private readonly List<Week> weeks;
-		public ReadOnlyCollection<Week> Weeks => weeks.AsReadOnly();
-		private readonly Timer fullUpdateTimer;
+		private readonly Dictionary<int, Week> weeks;
+		public IReadOnlyDictionary<int, Week> Weeks => weeks;
+		private readonly System.Timers.Timer fullUpdateTimer;
 
-		private readonly IBotMethods botMethods;
+		private readonly HttpClient httpClient;
+		private readonly ILogger<Database> logger;
+        private readonly ILoggerFactory loggerFactory;
 
-		public Database(IBotMethods botMethods) {
+        public Database(ILogger<Database> logger, ILoggerFactory loggerFactory, HttpClient httpClient) {
 			teams = new List<Team>();
 			maps = new List<Map>();
 			gameModes = new List<GameMode>();
 			matches = new List<Match>();
-			weeks = new List<Week>();
+			weeks = new Dictionary<int, Week>();
 
-			this.botMethods = botMethods;
+			this.httpClient = httpClient;
+			this.logger = logger;
+            this.loggerFactory = loggerFactory;
 
-			// The next time to update should always
-			fullUpdateTimer = new Timer((NextFullUpdate() - DateTime.UtcNow).TotalMilliseconds);
+            // The next time to update should always
+            fullUpdateTimer = new System.Timers.Timer((NextFullUpdate() - DateTime.UtcNow).TotalMilliseconds);
 			fullUpdateTimer.Elapsed += FullUpdateTimer_Elapsed;
 			fullUpdateTimer.Enabled = true;
 		}
 
 		private async void FullUpdateTimer_Elapsed(object sender, ElapsedEventArgs e) {
 			try {
-				botMethods.Log(this, new LogEventArgs {
-					Type = LogType.Log,
-					Message = $"OverwatchLeague is performing a full update."
-				});
+				this.logger.LogInformation("OverwatchLeague is performing a full update.");
 				await ReloadDatabase();
-				botMethods.Log(this, new LogEventArgs {
-					Type = LogType.Log,
-					Message = $"OverwatchLeague will fully update again at {NextFullUpdate().ToString("yyyy-MM-dd HH:mm:ss")}"
-				});
+				this.logger.LogInformation("OverwatchLeague will fully update again at {}", NextFullUpdate().ToString("yyyy-MM-dd HH:mm:ss"));
 			} catch (WebException exc) {
-				botMethods.Log(this, new LogEventArgs {
-					Type = LogType.Error,
-					Message = $"OverwatchLeague failed to update, trying again at {NextFullUpdate().ToString("yyyy-MM-dd HH:mm:ss")}\n{exc}"
-				});
+				this.logger.LogError(exc, "OverwatchLeague failed to update, trying again at {}", NextFullUpdate().ToString("yyyy-MM-dd HH:mm:ss"));
 			}
 			fullUpdateTimer.Interval = (NextFullUpdate() - DateTime.UtcNow).TotalMilliseconds;
 		}
@@ -80,13 +76,9 @@ namespace OverwatchLeague.Data {
 		}
 
 		private async Task LoadTeams() {
-			botMethods.Log(this, new LogEventArgs {
-				Type = LogType.Log,
-				Message = $"OverwatchLeague is requesting teams..."
-			});
+			this.logger.LogInformation("OverwatchLeague is requesting teams...");
 
 			//? BEGIN TESTING
-			using var httpClient = new HttpClient();
 			var uri = new Uri("https://wzavfvwgfk.execute-api.us-east-2.amazonaws.com/production/owl/paginator/schedule?stage=regular_season&season=2020&locale=en-us");
 			string referer = "https://overwatchleague.com/en-us/schedule?stage=regular_season&week=2";
 			using var getMessage = new HttpRequestMessage {
@@ -117,10 +109,7 @@ namespace OverwatchLeague.Data {
 		}
 
 		private async Task LoadMapsAndModes() {
-			botMethods.Log(this, new LogEventArgs {
-				Type = LogType.Log,
-				Message = $"OverwatchLeague is requesting maps..."
-			});
+			this.logger.LogInformation("OverwatchLeague is requesting maps...");
 			using var wc = new WebClient();
 			string mapsJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/maps");
 			dynamic mapsJson = JsonConvert.DeserializeObject(mapsJsonString);
@@ -153,10 +142,7 @@ namespace OverwatchLeague.Data {
 
 		private async Task LoadMatches() {
 			//TODO: This may be irrelevent if the new endpoint delivers all the appropriate information.
-			botMethods.Log(this, new LogEventArgs {
-				Type = LogType.Log,
-				Message = $"OverwatchLeague is requesting matches..."
-			});
+			this.logger.LogInformation("OverwatchLeague is requesting matches...");
 			using var wc = new WebClient();
 			string matchesJsonString = await wc.DownloadStringTaskAsync("https://api.overwatchleague.com/matches");
 			dynamic matchesJson = JsonConvert.DeserializeObject(matchesJsonString);
@@ -179,7 +165,7 @@ namespace OverwatchLeague.Data {
 					actualEndTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.actualEndTime);
 				}
 
-				Match m = new Match(botMethods, id, homeTeam, awayTeam, homeScore, awayScore, status, startTime, endTime, actualStartTime, actualEndTime);
+				Match m = new Match(this.loggerFactory.CreateLogger<Match>(), this, id, homeTeam, awayTeam, homeScore, awayScore, status, startTime, endTime, actualStartTime, actualEndTime);
 				matches.Add(m);
 				if (homeTeam != null) {
 					homeTeam.AddMatch(m);
@@ -216,37 +202,62 @@ namespace OverwatchLeague.Data {
 		}
 
 		private async Task LoadSchedule() {
-			using var httpClient = new HttpClient();
+			var sw = Stopwatch.StartNew();
 			//TODO: Hard-coded week count, if there was a non-paginated version that'd be nice.
-			foreach (int page in Enumerable.Range(1, 27)) {
-				botMethods.Log(this, new LogEventArgs {
-					Type = LogType.Log,
-					Message = $"OverwatchLeague is requesting the schedule for week {page}"
-				});
+			var tasks = Enumerable.Range(1, 27).Select(page => Task.Run(async () => {
+				this.logger.LogInformation("OverwatchLeague is requesting the schedule for week {}", page);
 				var uri = new Uri($"https://wzavfvwgfk.execute-api.us-east-2.amazonaws.com/production/owl/paginator/schedule?stage=regular_season&page={page}&season=2020&locale=en-us");
 				string referer = "https://overwatchleague.com/en-us/schedule";
-				using var getMessage = new HttpRequestMessage {
-					Method = HttpMethod.Get,
-					RequestUri = uri
-				};
-				getMessage.Headers.Add("Referer", referer);
-				var getResponse = await httpClient.SendAsync(getMessage);
-				var getResponseString = await getResponse.Content.ReadAsStringAsync();
+				string getResponseString = string.Empty;
+				int attempt = 1;
+				do
+				{
+					var cts = new CancellationTokenSource();
+					cts.CancelAfter(TimeSpan.FromMilliseconds(1000)); // HTTP GET timeout
+					try
+					{
+						using (var getMessage = new HttpRequestMessage {
+							Method = HttpMethod.Get,
+							RequestUri = uri
+						})
+						{
+							getMessage.Headers.Add("Referer", referer);
+							var getResponse = await httpClient.SendAsync(getMessage, cts.Token);
+							getResponse.EnsureSuccessStatusCode();
+							getResponseString = await getResponse.Content.ReadAsStringAsync();
+							break;
+						}
+					}
+					catch (Exception ex)
+					{
+						this.logger.LogError(ex, "Exception thrown getting schedule for week {}", page);
+					}
+
+					TimeSpan retryDelay = TimeSpan.FromMilliseconds(500);
+					this.logger.LogWarning("Failed to get schedule for week {}, attempt {}, retrying in {}ms", page, attempt, retryDelay.TotalMilliseconds);
+					++attempt;
+					await Task.Delay(retryDelay);
+				} while (string.IsNullOrEmpty(getResponseString));
+
+				this.logger.LogTrace("Start deserialising response for week {}", page);
 				dynamic getResponseJson = JsonConvert.DeserializeObject(getResponseString);
 
 				int weekNumber = (int)getResponseJson.content.tableData.weekNumber.Value;
 				string weekName = getResponseJson.content.tableData.name;
 
+				this.logger.LogTrace("Start processing week {}", page);
 				var week = new Week(weekNumber, weekName);
 				foreach (var weekEvent in getResponseJson.content.tableData.events) {
 					string eventTitle = "Venue to be decided"; //TODO: Week 10 is the first event where this is the case; the website seems to not list a venue either.
 					try {
 						eventTitle = weekEvent.eventBanner.title;
 					} catch (RuntimeBinderException) { }
+					this.logger.LogTrace("Found weekEvent with title {} in week {}", eventTitle, page);
 					var e = new Event(eventTitle);
 					e.SetWeek(week);
 					week.AddEvent(e);
 
+					this.logger.LogTrace("OverwatchLeague is processing matches for weekEvent {}", eventTitle);
 					foreach (var match in weekEvent.matches) {
 						int matchId = (int)match.id;
 						var homeTeam = teams.Single(t => t.Id == (int)match.competitors[0].id.Value);
@@ -262,17 +273,29 @@ namespace OverwatchLeague.Data {
 						DateTime endTime = new DateTime(1970, 1, 1, 0, 0, 0).AddMilliseconds((double)match.endDate);
 						//TODO: Get the actual start and end times (do they not exist anymore?).
 						// Maps are added only when requested since they must be gotten on a per-match basis.
-						var m = new Match(botMethods, matchId, homeTeam, awayTeam, homeScore, awayScore, status, startTime, endTime, null, null);
+						var m = new Match(this.loggerFactory.CreateLogger<Match>(), this, matchId, homeTeam, awayTeam, homeScore, awayScore, status, startTime, endTime, null, null);
 						m.SetEvent(e);
 						matches.Add(m);
 						homeTeam.AddMatch(m);
 						awayTeam.AddMatch(m);
 						e.AddMatch(m);
 					}
+					this.logger.LogTrace("Processed {} matches for weekEvent {}", e.Matches.Count, eventTitle);
 				}
 
-				weeks.Add(week);
-			}
+				weeks[page - 1] = week;
+
+				this.logger.LogTrace("OverwatchLeague finished processing week {}", page);
+			})).ToList();
+
+			await Task.WhenAll(tasks);
+			this.logger.LogInformation("OverwatchLeague got all schedules in {}ms, now sorting {} matches", sw.Elapsed.TotalMilliseconds, matches.Count);
+
+			sw.Restart();
+
+			// Sort matches
+			matches.Sort();
+			this.logger.LogInformation("OverwatchLeague sorted {} matches in {}ms", matches.Count, sw.Elapsed.TotalMilliseconds);
 		}
 
 		public List<Standing> GetStandings() {
@@ -330,7 +353,7 @@ namespace OverwatchLeague.Data {
 		}
 
 		public Week GetCurrentWeek() {
-			return weeks.Find(w => w.LastEndTime > DateTime.Now);
+			return weeks.Values.FirstOrDefault(w => w.LastEndTime > DateTime.Now);
 		}
 
 		private static DateTime NextFullUpdate() {

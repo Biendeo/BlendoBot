@@ -1,21 +1,24 @@
-using System;
-using System.Net.Http;
-using System.Threading.Tasks;
-using AutoCorrect.Schemas;
-using BlendoBotLib;
-using Newtonsoft.Json;
-
-namespace AutoCorrect
+namespace AutoCorrect.GrammarBot
 {
+    using System;
+    using System.Net.Http;
+    using System.Threading.Tasks;
+    using AutoCorrect.Schemas;
+    using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
+
     public class GrammarBotAutoCorrectProvider : IAutoCorrectProvider
     {
         private const string endpoint = @"http://api.grammarbot.io/v2/check";
 
-        public GrammarBotAutoCorrectProvider(IBotMethods botMethods, string apiKey = null)
+        public GrammarBotAutoCorrectProvider(
+            HttpClient httpClient,
+            GrammarBotConfig? config,
+            ILogger<GrammarBotAutoCorrectProvider> logger)
         {
-            this.HttpClient = new HttpClient();
-            this.ApiKey = apiKey;
-            this.BotMethods = botMethods;
+            this.apiKey = config?.ApiKey;
+            this.httpClient = httpClient;
+            this.logger = logger;
         }
 
         public async Task<string> CorrectAsync(string input)
@@ -24,9 +27,9 @@ namespace AutoCorrect
             {
                 string escaped = Uri.EscapeDataString(input);
                 string uriString;
-                if (!string.IsNullOrEmpty(this.ApiKey))
+                if (!string.IsNullOrEmpty(this.apiKey))
                 {
-                    uriString = $"{endpoint}?api_key={this.ApiKey}&language=en-AU&text={escaped}";
+                    uriString = $"{endpoint}?api_key={this.apiKey}&language=en-AU&text={escaped}";
                 }
                 else
                 {
@@ -34,7 +37,7 @@ namespace AutoCorrect
                 }
 
                 var uri = new Uri(uriString);
-                var httpResponse = await this.HttpClient.GetAsync(uri).ConfigureAwait(false);
+                var httpResponse = await this.httpClient.GetAsync(uri).ConfigureAwait(false);
                 httpResponse.EnsureSuccessStatusCode();
 
                 string responseJson = await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -57,11 +60,7 @@ namespace AutoCorrect
             }
             catch (Exception ex)
             {
-                BotMethods.Log(this, new LogEventArgs
-                    {
-                        Type = LogType.Error,
-                        Message = $"Exception occurred in GrammarBotAutoCorrectProvider.CorrectAsync: {ex}"
-                    });
+                this.logger.LogError(ex, "Exception occurred in CorrectAsync");
                 return string.Empty;
             }
         }
@@ -76,14 +75,14 @@ namespace AutoCorrect
         {
             if (disposing)
             {
-                this.HttpClient?.Dispose();
+                this.httpClient?.Dispose();
             }
         }
 
-        private HttpClient HttpClient { get; }
+        private HttpClient httpClient;
 
-        private string ApiKey { get; }
+        private readonly string? apiKey;
 
-        private IBotMethods BotMethods { get; }
+        private ILogger<GrammarBotAutoCorrectProvider> logger;
     }
 }

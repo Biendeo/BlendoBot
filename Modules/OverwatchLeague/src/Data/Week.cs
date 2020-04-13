@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Text;
 
 namespace OverwatchLeague.Data {
 	public class Week {
@@ -13,9 +12,9 @@ namespace OverwatchLeague.Data {
 
 		public bool IsCurrent => events.Exists(e => e.IsCurrent);
 
-		public DateTime FirstStartTime => events.Min(e => e.FirstStartTime);
+		public DateTime FirstStartTime => events.Count == 0 ? DateTime.MaxValue : events.Min(e => e.FirstStartTime);
 
-		public DateTime LastEndTime => events.Max(e => e.LastEndTime);
+		public DateTime LastEndTime => events.Count == 0 ? DateTime.MinValue : events.Max(e => e.LastEndTime);
 
 		public Week(int weekNumber, string name) {
 			WeekNumber = weekNumber;

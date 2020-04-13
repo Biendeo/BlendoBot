@@ -1,58 +1,56 @@
-using System;
-using System.Threading.Tasks;
-using BlendoBotLib;
-using DSharpPlus.EventArgs;
+namespace AutoCorrect
+{
+    using System;
+    using System.Threading.Tasks;
+    using BlendoBotLib;
+    using BlendoBotLib.Interfaces;
+    using DSharpPlus.EventArgs;
+    using GrammarBot;
+    using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Hosting;
+    using Microsoft.Extensions.Logging;
 
-namespace AutoCorrect {
-    public class AutoCorrectCommand : CommandBase, IDisposable
+    [CommandDefaults(defaultTerm: "ac")]
+    public class AutoCorrectCommand : ICommand
     {
-        public AutoCorrectCommand(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
-
-        public override string DefaultTerm => "?ac";
-        public override string Name => "AutoCorrect";
-        public override string Description => "Performs autocorrect on a message";
-        public override string Usage => $"Usage: {$"{Term} <message>".Code()}";
-        public override string Author => "mozzarella";
-        public override string Version => "0.0.1";
-
-        private string ApiKey {
-            get {
-                string key = BotMethods.ReadConfig(this, Name, "ApiKey");
-                return key ?? string.Empty;
-            }
-        }
-
-        public void Dispose()
+        public AutoCorrectCommand(
+            ILogger<AutoCorrectCommand> logger,
+            IDiscordClient discordClient,
+            IAutoCorrectProvider autoCorrectProvider)
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
+            this.logger = logger;
+            this.discordClient = discordClient;
+            this.autoCorrectProvider = autoCorrectProvider;
         }
 
-        protected virtual void Dispose(bool disposing)
+        public string Name => "AutoCorrect";
+        public string Description => "Performs autocorrect on a message";
+        public string Author => "mozzarella";
+        public string Version => "0.0.2";
+
+        public static void ConfigureServices(HostBuilderContext hostContext, IServiceCollection services)
         {
-            if (disposing)
-            {
-                this.AutoCorrectProvider?.Dispose();
-            }
+            GrammarBotConfig? grammarBotConfig = hostContext.Configuration
+                .GetSection("AutoCorrect")
+                .GetSection("GrammarBot")
+                .Get<GrammarBotConfig>();
+            services.AddSingleton<GrammarBotConfig?>(grammarBotConfig);
+            services.AddHttpClient<IAutoCorrectProvider, GrammarBotAutoCorrectProvider>();
         }
 
-        public override async Task<bool> Startup()
-        {
-            // api key is optional, increases daily call limit from 100 to 250
-            this.AutoCorrectProvider = new GrammarBotAutoCorrectProvider(BotMethods, ApiKey);
-            return await Task.FromResult(true).ConfigureAwait(false);
-        }
+        public string GetUsage(string term) => $"Usage: {$"{term} <message>".Code()}";
 
-        public override async Task OnMessage(MessageCreateEventArgs e)
+        public async Task OnMessage(MessageCreateEventArgs e)
         {
             await e.Channel.TriggerTypingAsync().ConfigureAwait(false);
 
             string[] splitInput = e.Message.Content.Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
             if (splitInput.Length < 2)
             {
-                await BotMethods.SendMessage(this, new SendMessageEventArgs
+                await this.discordClient.SendMessage(this, new SendMessageEventArgs
                     {
-                        Message = $"Too few arguments specified to {Term.Code()}",
+                        Message = $"Too few arguments specified",
                         Channel = e.Channel,
                         LogMessage = "AutoCorrectTooFewArgs"
                     }).ConfigureAwait(false);
@@ -60,12 +58,12 @@ namespace AutoCorrect {
             }
 
             string inputMessage = splitInput[1];
-            string correctedMessage = await this.AutoCorrectProvider.CorrectAsync(inputMessage).ConfigureAwait(false);
+            string correctedMessage = await this.autoCorrectProvider.CorrectAsync(inputMessage).ConfigureAwait(false);
 
             if (string.IsNullOrEmpty(correctedMessage))
             {
                 // uh oh
-                await BotMethods.SendMessage(this, new SendMessageEventArgs
+                await this.discordClient.SendMessage(this, new SendMessageEventArgs
                     {
                         Message = $"Failed to autocorrect '{inputMessage}'",
                         Channel = e.Channel,
@@ -75,7 +73,7 @@ namespace AutoCorrect {
             }
 
             string commandOutput = $"'{inputMessage}' autocorrected to '{correctedMessage}'";
-            await BotMethods.SendMessage(this, new SendMessageEventArgs
+            await this.discordClient.SendMessage(this, new SendMessageEventArgs
                 {
                     Message = commandOutput,
                     Channel = e.Channel,
@@ -83,6 +81,10 @@ namespace AutoCorrect {
                 }).ConfigureAwait(false);
         }
 
-        private IAutoCorrectProvider AutoCorrectProvider { get; set; }
+        private ILogger<AutoCorrectCommand> logger;
+
+        private IDiscordClient discordClient;
+
+        private IAutoCorrectProvider autoCorrectProvider;
     }
 }

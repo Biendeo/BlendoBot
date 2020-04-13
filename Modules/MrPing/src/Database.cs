@@ -1,7 +1,8 @@
 ﻿using BlendoBotLib;
+using BlendoBotLib.Interfaces;
 using DSharpPlus.Entities;
+using Microsoft.Extensions.Logging;
 using MrPing.Data;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -10,26 +11,38 @@ using System.Threading.Tasks;
 
 namespace MrPing {
 	internal class Database {
-		public Database(MrPing mrPing, IBotMethods botMethods) {
+		public Database(
+			ulong guildId,
+			IDataStore<MrPing, List<Challenge>> challengeStore,
+			IDataStore<MrPing, ServerStats> statsStore,
+			IDiscordClient discordClient,
+			ILogger<Database> logger)
+		{
 			activeChallenges = new List<Challenge>();
 			stats = new ServerStats();
-			this.mrPing = mrPing;
-			this.botMethods = botMethods;
+            this.guildId = guildId;
+            this.challengeStore = challengeStore;
+            this.statsStore = statsStore;
+            this.discordClient = discordClient;
+            this.logger = logger;
 
-			LoadDatabase();
-		}
+            LoadDatabase().Wait();
+        }
 
 		private List<Challenge> activeChallenges;
 
 		private ServerStats stats;
 
-		private readonly MrPing mrPing;
-		private readonly IBotMethods botMethods;
+        private readonly ulong guildId;
+        private readonly IDataStore<MrPing, List<Challenge>> challengeStore;
+        private readonly IDataStore<MrPing, ServerStats> statsStore;
+        private readonly IDiscordClient discordClient;
+        private readonly ILogger<Database> logger;
 
-		public async Task PingUser(DiscordUser target, DiscordUser author, DiscordChannel channel) {
+        public async Task PingUser(DiscordUser target, DiscordUser author, DiscordChannel channel) {
 			PurgeFinishedChallenges();
-			Challenge challenge = activeChallenges.Find(c => c.Target == target);
-			if (challenge != null && !challenge.Completed && challenge.Channel == channel) {
+			Challenge challenge = activeChallenges.Find(c => c.TargetId == target.Id);
+			if (challenge != null && !challenge.Completed && challenge.ChannelId == channel.Id) {
 				challenge.AddPing(author);
 				stats.AddPing(target, author);
 				if (challenge.Completed) {
@@ -40,38 +53,38 @@ namespace MrPing {
 					sb.AppendLine($"{author.Username} got the last ping!");
 					sb.AppendLine("```");
 					sb.AppendLine("Biggest contributors:");
-					foreach (var contributor in challenge.SeenPings) {
+					foreach (var tuple in challenge.SeenPings) {
 						// Safety check to not print too much.
 						if (sb.Length > 1950) {
 							break;
 						}
-						sb.AppendLine($"{$"{contributor.Item1.Username}"} - {contributor.Item2} pings");
+						sb.AppendLine($"{$"{(await this.discordClient.GetUser(tuple.Item1)).Username}"} - {tuple.Item2} pings");
 					}
 					sb.AppendLine("```");
-					await botMethods.SendMessage(this, new SendMessageEventArgs {
+					await this.discordClient.SendMessage(this, new SendMessageEventArgs {
 						Message = sb.ToString(),
 						Channel = channel,
 						LogMessage = "MrPingCompletedChallenge"
 					});
 				}
 			}
-			WriteDatabase();
+			await WriteDatabase();
 		}
 
-		public void NewChallenge(DiscordUser target, DiscordUser author, int pingCount, DiscordChannel channel) {
+		public async Task NewChallenge(DiscordUser target, DiscordUser author, int pingCount, DiscordChannel channel) {
 			PurgeFinishedChallenges();
 			activeChallenges.Add(new Challenge(DateTime.Now, channel, author, target, pingCount));
 			stats.NewChallenge(target, author, pingCount);
-			WriteDatabase();
+			await WriteDatabase();
 		}
 
-		public string GetStatsMessage() {
-			return stats.GetStatsMessage();
+		public Task<string> GetStatsMessage() {
+			return stats.GetStatsMessage(this.discordClient);
 		}
 
-		public string GetActiveChallenges(DiscordChannel channel) {
+		public async Task<string> GetActiveChallenges(DiscordChannel channel) {
 			PurgeFinishedChallenges();
-			var releventChallenges = activeChallenges.FindAll(c => c.Channel == channel);
+			var releventChallenges = activeChallenges.FindAll(c => c.ChannelId == channel.Id);
 			if (releventChallenges.Count > 0) {
 				var sb = new StringBuilder();
 				sb.AppendLine("Current Mr Ping challenges:");
@@ -81,7 +94,8 @@ namespace MrPing {
 					if (sb.Length > 1900) {
 						break;
 					}
-					sb.AppendLine($"[{challenge.TimeRemaining.ToString(@"mm\:ss")}] {challenge.Target.Username} #{challenge.Target.Discriminator} ({challenge.TotalPings}/{challenge.TargetPings})");
+					var targetUser = await this.discordClient.GetUser(challenge.TargetId);
+					sb.AppendLine($"[{challenge.TimeRemaining.ToString(@"mm\:ss")}] {targetUser.Username} #{targetUser.Discriminator} ({challenge.TotalPings}/{challenge.TargetPings})");
 					++countedChallenges;
 				}
 				if (countedChallenges != releventChallenges.Count) {
@@ -98,18 +112,36 @@ namespace MrPing {
 			}
 		}
 
-		private void LoadDatabase() {
-			if (File.Exists(Path.Combine(mrPing.BotMethods.GetCommandInstanceDataPath(this, mrPing), "challenges.json"))) {
-				activeChallenges = JsonConvert.DeserializeObject<List<Challenge>>(File.ReadAllText(Path.Combine(mrPing.BotMethods.GetCommandInstanceDataPath(this, mrPing), "challenges.json")));
+		private async Task LoadDatabase() {
+			try
+			{
+				activeChallenges = await this.challengeStore.ReadAsync(this.challengesStorePath);
 			}
-			if (File.Exists(Path.Combine(mrPing.BotMethods.GetCommandInstanceDataPath(this, mrPing), "stats.json"))) {
-				stats = JsonConvert.DeserializeObject<ServerStats>(File.ReadAllText(Path.Combine(mrPing.BotMethods.GetCommandInstanceDataPath(this, mrPing), "stats.json")));
+			catch (Exception ex) when (ex is FileNotFoundException || ex is DirectoryNotFoundException)
+			{
+				this.logger.LogInformation("MrPing challenges not found from data store, creating new");
+				activeChallenges = new List<Challenge>();
+				await this.challengeStore.WriteAsync(this.challengesStorePath, activeChallenges);
+			}
+
+			try
+			{
+				stats = await this.statsStore.ReadAsync(this.statsStorePath);
+			}
+			catch (Exception ex) when (ex is FileNotFoundException || ex is DirectoryNotFoundException)
+			{
+				this.logger.LogInformation("MrPing stats not found from data store, creating new");
+				stats = new ServerStats();
+				await this.statsStore.WriteAsync(this.statsStorePath, stats);
 			}
 		}
 
-		private void WriteDatabase() {
-			File.WriteAllText(Path.Combine(mrPing.BotMethods.GetCommandInstanceDataPath(this, mrPing), "challenges.json"), JsonConvert.SerializeObject(activeChallenges));
-			File.WriteAllText(Path.Combine(mrPing.BotMethods.GetCommandInstanceDataPath(this, mrPing), "stats.json"), JsonConvert.SerializeObject(stats));
+		private async Task WriteDatabase() {
+			await this.challengeStore.WriteAsync(this.challengesStorePath, activeChallenges);
+			await this.statsStore.WriteAsync(this.statsStorePath, stats);
 		}
+
+		private string challengesStorePath => Path.Join(this.guildId.ToString(), "challenges");
+		private string statsStorePath => Path.Join(this.guildId.ToString(), "stats");
 	}
 }

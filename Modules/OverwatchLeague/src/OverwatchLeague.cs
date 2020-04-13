@@ -1,47 +1,59 @@
 ﻿using BlendoBotLib;
+using BlendoBotLib.Interfaces;
 using DSharpPlus.EventArgs;
+using Microsoft.Extensions.Logging;
 using OverwatchLeague.Data;
+using UserTimeZone;
 using System;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Net.Http;
 
 namespace OverwatchLeague {
-	public class OverwatchLeague : CommandBase {
-		public OverwatchLeague(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
+	[CommandDefaults(defaultTerm: "owl")]
+	public class OverwatchLeague : ICommand {
+		public OverwatchLeague(
+			IDiscordClient discordClient,
+			ILogger<OverwatchLeague> logger,
+			ILoggerFactory loggerFactory,
+			IHttpClientFactory httpClientFactory,
+			IUserTimeZoneProvider timeZoneProvider)
+		{
+            this.discordClient = discordClient;
+            this.logger = logger;
+			this.timeZoneProvider = timeZoneProvider;
+            this.db = new Lazy<Database>(
+				() =>
+				{
+					var db = new Database(loggerFactory.CreateLogger<Database>(), loggerFactory, httpClientFactory.CreateClient());
+					db.ReloadDatabase().Wait();
+					return db;
+				},
+				LazyThreadSafetyMode.ExecutionAndPublication
+			);
 
-		public override string DefaultTerm => "?owl";
-		public override string Name => "Overwatch League";
-		public override string Description => "Tells you up-to-date stats about the Overwatch League.";
-		public override string Usage => $"Usage:\n{$"{Term} live".Code()} {"(stats about the match that is currently on)".Italics()}\n{$"{Term} next".Code()} {"(stats about the next match that will be played)".Italics()}\n{$"{Term} match [match id]".Code()} {"(stats about the specified match (match IDs are the 5-digit numbers in square brackets in the schedule commands))".Italics()}\n{$"{Term} standings".Code()} {"(the overall standings of the league)".Italics()}\n{$"{Term} schedule".Code()} {"(shows times and scores for each match in the current or next week)".Italics()}\n{$"{Term} schedule [week]".Code()} {"(shows times and scores for each match in the given week)".Italics()}\n{$"{Term} schedule [abbreviated team name]".Code()} {"(shows times and scores for each match that a team plays)".Italics()}\nAll times are determined by the user's {BotMethods.GetCommand<UserTimeZone.UserTimeZone>(this, GuildId).Term.Code()} setting.";
-		public override string Author => "Biendeo";
-		public override string Version => "1.1.0";
+			// Start background task to start lazy loading the database
+			Task.Run(() => this.Database.ToString());
+        }
 
-		static internal Database Database;
+		public string Name => "Overwatch League";
+		public string Description => "Tells you up-to-date stats about the Overwatch League.";
+		public string GetUsage(string term) => $"Usage:\n{$"{term} live".Code()} {"(stats about the match that is currently on)".Italics()}\n{$"{term} next".Code()} {"(stats about the next match that will be played)".Italics()}\n{$"{term} match [match id]".Code()} {"(stats about the specified match (match IDs are the 5-digit numbers in square brackets in the schedule commands))".Italics()}\n{$"{term} standings".Code()} {"(the overall standings of the league)".Italics()}\n{$"{term} schedule".Code()} {"(shows times and scores for each match in the current or next week)".Italics()}\n{$"{term} schedule [week]".Code()} {"(shows times and scores for each match in the given week)".Italics()}\n{$"{term} schedule [abbreviated team name]".Code()} {"(shows times and scores for each match that a team plays)".Italics()}\nAll times are determined by the user's timezone setting.";
+		public string Author => "Biendeo";
+		public string Version => "1.5.0";
+
+		private Lazy<Database> db;
+		private Database Database => this.db.Value;
 		private const string TimeFormatStringLong = "d/MM/yyyy h:mm:ss tt";
 		private const string TimeFormatStringShort = "d/MM hh:mm tt";
+        private readonly IDiscordClient discordClient;
+        private readonly ILogger<OverwatchLeague> logger;
+		private readonly IUserTimeZoneProvider timeZoneProvider;
 
-		public override async Task<bool> Startup() {
-			//TODO: Double check that this doesn't return true immediately for all but one guild. Maybe await?
-			if (Database == null) {
-				//? Because the database is static, BotMethods here only is from the bot instance that first loaded
-				//? this. If any more bots exist in one program, this may not be great. It also means that if it were
-				//? to call anything other than logging, it would panic if the server didn't exist.
-				Database = new Database(BotMethods);
-				try {
-					await Database.ReloadDatabase();
-				} catch (Exception exc) {
-					Console.Error.WriteLine(exc);
-					Database = null;
-					return false;
-				}
-			}
-
-			return true;
-		}
-
-		private string GetMatchDetails(Match match, TimeZoneInfo timeZone) {
+        private string GetMatchDetails(Match match, TimeZoneInfo timeZone) {
 			var sb = new StringBuilder();
 
 			sb.Append("```");
@@ -52,18 +64,18 @@ namespace OverwatchLeague {
 			int currentAwayScore = match.AwayScore;
 
 			sb.AppendLine($"Match ID: {match.Id}");
-			sb.AppendLine($"Planned time: {TimeZoneInfo.ConvertTimeFromUtc(match.StartTime, timeZone).ToString(TimeFormatStringLong)} {UserTimeZone.UserTimeZone.ToShortString(timeZone)} - {TimeZoneInfo.ConvertTimeFromUtc(match.EndTime, timeZone).ToString(TimeFormatStringLong)} {UserTimeZone.UserTimeZone.ToShortString(timeZone)}");
+			sb.AppendLine($"Planned time: {TimeZoneInfo.ConvertTimeFromUtc(match.StartTime, timeZone).ToString(TimeFormatStringLong)} {timeZone.ToShortString()} - {TimeZoneInfo.ConvertTimeFromUtc(match.EndTime, timeZone).ToString(TimeFormatStringLong)} {timeZone.ToShortString()}");
 
 			if (match.ActualStartTime != null) {
 				sb.Append("Real time: ");
 				sb.Append(TimeZoneInfo.ConvertTimeFromUtc(match.ActualStartTime ?? default, timeZone).ToString(TimeFormatStringLong));
 				sb.Append(" ");
-				sb.Append(UserTimeZone.UserTimeZone.ToShortString(timeZone));
+				sb.Append(timeZone.ToShortString());
 				sb.Append(" - ");
 				if (match.ActualEndTime != null) {
 					sb.AppendLine(TimeZoneInfo.ConvertTimeFromUtc(match.ActualEndTime ?? default, timeZone).ToString(TimeFormatStringLong));
 					sb.Append(" ");
-					sb.Append(UserTimeZone.UserTimeZone.ToShortString(timeZone));
+					sb.Append(timeZone.ToShortString());
 				} else {
 					sb.AppendLine("???");
 				}
@@ -93,29 +105,36 @@ namespace OverwatchLeague {
 			return sb.ToString();
 		}
 
-		public override async Task OnMessage(MessageCreateEventArgs e) {
+		public async Task OnMessage(MessageCreateEventArgs e) {
+			if (!this.db.IsValueCreated)
+			{
+				await this.discordClient.SendMessage(this, new SendMessageEventArgs {
+					Message = "Overwatch League is still loading, please try again in a couple of seconds!",
+					Channel = e.Channel,
+					LogMessage = "OverwatchLeagueNotReady"
+				});
+				return;
+			}
+
 			// Try and decipher the output.
 			string[] splitMessage = e.Message.Content.Split(' ');
-			TimeZoneInfo userTimeZone = UserTimeZone.UserTimeZone.GetUserTimeZone(this, e.Author);
+			TimeZoneInfo userTimeZone = await this.timeZoneProvider.GetTimeZone(e.Guild.Id, e.Author.Id);
 
 			using (var wc = new WebClient()) {
 				if (splitMessage.Length > 1 && splitMessage[1] == "live") {
 					Match match = (from c in Database.Matches where c.EndTime > DateTime.UtcNow && c.StartTime < DateTime.UtcNow select c).FirstOrDefault();
 					if (match == null) {
-						await BotMethods.SendMessage(this, new SendMessageEventArgs {
+						await this.discordClient.SendMessage(this, new SendMessageEventArgs {
 							Message = "No match is currently live!",
 							Channel = e.Channel,
 							LogMessage = "OverwatchLeagueLiveNoMatch"
 						});
 					} else {
 						if (match.Games.Count == 0) {
-							BotMethods.Log(this, new LogEventArgs {
-								Message = $"Updating match {match.Id} on demand",
-								Type = LogType.Log,
-							});
+							this.logger.LogInformation("Updating match {} on demand", match.Id);
 							await match.UpdateMatch();
 						}
-						await BotMethods.SendMessage(this, new SendMessageEventArgs {
+						await this.discordClient.SendMessage(this, new SendMessageEventArgs {
 							Message = GetMatchDetails(match, userTimeZone),
 							Channel = e.Channel,
 							LogMessage = "OverwatchLeagueLive"
@@ -125,13 +144,13 @@ namespace OverwatchLeague {
 					Match match = (from c in Database.Matches where c.StartTime > DateTime.UtcNow select c).FirstOrDefault();
 
 					if (match == null) {
-						await BotMethods.SendMessage(this, new SendMessageEventArgs {
+						await this.discordClient.SendMessage(this, new SendMessageEventArgs {
 							Message = "There's no next match planned!",
 							Channel = e.Channel,
 							LogMessage = "OverwatchLeagueNextNoMatch"
 						});
 					} else {
-						await BotMethods.SendMessage(this, new SendMessageEventArgs {
+						await this.discordClient.SendMessage(this, new SendMessageEventArgs {
 							Message = GetMatchDetails(match, userTimeZone),
 							Channel = e.Channel,
 							LogMessage = "OverwatchLeagueNext"
@@ -141,27 +160,24 @@ namespace OverwatchLeague {
 					if (int.TryParse(splitMessage[2], out int matchId)) {
 						Match match = (from c in Database.Matches where c.Id == matchId select c).FirstOrDefault();
 						if (match == null) {
-							await BotMethods.SendMessage(this, new SendMessageEventArgs {
+							await this.discordClient.SendMessage(this, new SendMessageEventArgs {
 								Message = $"No match matches ID {matchId}!",
 								Channel = e.Channel,
 								LogMessage = "OverwatchLeagueMatchNoMatch"
 							});
 						} else {
 							if (match.Games.Count == 0) {
-								BotMethods.Log(this, new LogEventArgs {
-									Message = $"Updating match {match.Id} on demand",
-									Type = LogType.Log,
-								});
+								this.logger.LogInformation("Updating match {} on demand", match.Id);
 								await match.UpdateMatch();
 							}
-							await BotMethods.SendMessage(this, new SendMessageEventArgs {
+							await this.discordClient.SendMessage(this, new SendMessageEventArgs {
 								Message = GetMatchDetails(match, userTimeZone),
 								Channel = e.Channel,
 								LogMessage = "OverwatchLeagueMatch"
 							});
 						}
 					} else {
-						await BotMethods.SendMessage(this, new SendMessageEventArgs {
+						await this.discordClient.SendMessage(this, new SendMessageEventArgs {
 							Message = "Match ID is invalid!",
 							Channel = e.Channel,
 							LogMessage = "OverwatchLeagueMatchInvalidArgument"
@@ -181,7 +197,7 @@ namespace OverwatchLeague {
 
 					sb.Append("```");
 
-					await BotMethods.SendMessage(this, new SendMessageEventArgs {
+					await this.discordClient.SendMessage(this, new SendMessageEventArgs {
 						Message = sb.ToString(),
 						Channel = e.Channel,
 						LogMessage = "OverwatchLeagueStandings"
@@ -196,7 +212,7 @@ namespace OverwatchLeague {
 							sb.Append("```");
 
 							foreach (Match match in weekEvent.Matches) {
-								sb.Append($"[{match.Id.ToString().PadLeft(5, ' ')}] {TimeZoneInfo.ConvertTimeFromUtc(match.StartTime, userTimeZone).ToString(TimeFormatStringShort).PadLeft(15, ' ')} {UserTimeZone.UserTimeZone.ToShortString(userTimeZone)} - ");
+								sb.Append($"[{match.Id.ToString().PadLeft(5, ' ')}] {TimeZoneInfo.ConvertTimeFromUtc(match.StartTime, userTimeZone).ToString(TimeFormatStringShort).PadLeft(15, ' ')} {userTimeZone.ToShortString()} - ");
 								if (match.HomeTeam != null) {
 									sb.Append($"{match.HomeTeam.AbbreviatedName} vs. ");
 								} else {
@@ -221,7 +237,7 @@ namespace OverwatchLeague {
 						}
 
 
-						await BotMethods.SendMessage(this, new SendMessageEventArgs {
+						await this.discordClient.SendMessage(this, new SendMessageEventArgs {
 							Message = sb.ToString(),
 							Channel = e.Channel,
 							LogMessage = "OverwatchLeagueScheduleCurrent"
@@ -230,14 +246,14 @@ namespace OverwatchLeague {
 					} else if (splitMessage.Length > 2 && int.TryParse(splitMessage[2], out int week) && week > 0 && week <= 27) {
 						var sb = new StringBuilder();
 
-						Week relevantWeek = Database.Weeks.First(w => w.WeekNumber == week);
+						Week relevantWeek = Database.Weeks.Values.First(w => w.WeekNumber == week);
 
 						foreach (var weekEvent in relevantWeek.Events) {
 							sb.AppendLine(weekEvent.Title.Bold());
 							sb.Append("```");
 
 							foreach (Match match in weekEvent.Matches) {
-								sb.Append($"[{match.Id.ToString().PadLeft(5, ' ')}] {TimeZoneInfo.ConvertTimeFromUtc(match.StartTime, userTimeZone).ToString(TimeFormatStringShort).PadLeft(15, ' ')} {UserTimeZone.UserTimeZone.ToShortString(userTimeZone)} - ");
+								sb.Append($"[{match.Id.ToString().PadLeft(5, ' ')}] {TimeZoneInfo.ConvertTimeFromUtc(match.StartTime, userTimeZone).ToString(TimeFormatStringShort).PadLeft(15, ' ')} {userTimeZone.ToShortString()} - ");
 								if (match.HomeTeam != null) {
 									sb.Append($"{match.HomeTeam.AbbreviatedName} vs. ");
 								} else {
@@ -261,7 +277,7 @@ namespace OverwatchLeague {
 
 						}
 
-						await BotMethods.SendMessage(this, new SendMessageEventArgs {
+						await this.discordClient.SendMessage(this, new SendMessageEventArgs {
 							Message = sb.ToString(),
 							Channel = e.Channel,
 							LogMessage = "OverwatchLeagueScheduleWeek"
@@ -271,8 +287,9 @@ namespace OverwatchLeague {
 						Team team = (from c in Database.Teams where c.AbbreviatedName == teamName select c).FirstOrDefault();
 
 						if (team == null) {
-							await BotMethods.SendMessage(this, new SendMessageEventArgs {
-								Message = $"Invalid team code. Use {$"{Term} standings".Code()} to find your team's abbreviated name!",
+							await this.discordClient.SendMessage(this, new SendMessageEventArgs {
+								// TODO term
+								Message = $"Invalid team code. Use {$"?owl standings".Code()} to find your team's abbreviated name!",
 								Channel = e.Channel,
 								LogMessage = "OverwatchLeagueScheduleTeamInvalid"
 							});
@@ -283,7 +300,7 @@ namespace OverwatchLeague {
 
 							foreach (var match in team.Matches) {
 								if (match.HomeTeam == team) {
-									sb.Append($"[{match.Id.ToString().PadLeft(5, ' ')}] {TimeZoneInfo.ConvertTimeFromUtc(match.StartTime, userTimeZone).ToString(TimeFormatStringShort).PadLeft(15, ' ')} {UserTimeZone.UserTimeZone.ToShortString(userTimeZone)} - {match.HomeTeam.AbbreviatedName} vs. {match.AwayTeam.AbbreviatedName}");
+									sb.Append($"[{match.Id.ToString().PadLeft(5, ' ')}] {TimeZoneInfo.ConvertTimeFromUtc(match.StartTime, userTimeZone).ToString(TimeFormatStringShort).PadLeft(15, ' ')} {userTimeZone.ToShortString()} - {match.HomeTeam.AbbreviatedName} vs. {match.AwayTeam.AbbreviatedName}");
 									if (match.Status != MatchStatus.Pending) {
 										sb.Append($" ({match.HomeScore} - {match.AwayScore})");
 									}
@@ -291,7 +308,7 @@ namespace OverwatchLeague {
 										sb.Append($" ({(match.HomeScore > match.AwayScore ? 'W' : 'L')})");
 									}
 								} else {
-									sb.Append($"[{match.Id.ToString().PadLeft(5, ' ')}] {TimeZoneInfo.ConvertTimeFromUtc(match.StartTime, userTimeZone).ToString(TimeFormatStringShort).PadLeft(15, ' ')} {UserTimeZone.UserTimeZone.ToShortString(userTimeZone)} - {match.AwayTeam.AbbreviatedName} vs. {match.HomeTeam.AbbreviatedName}");
+									sb.Append($"[{match.Id.ToString().PadLeft(5, ' ')}] {TimeZoneInfo.ConvertTimeFromUtc(match.StartTime, userTimeZone).ToString(TimeFormatStringShort).PadLeft(15, ' ')} {userTimeZone.ToShortString()} - {match.AwayTeam.AbbreviatedName} vs. {match.HomeTeam.AbbreviatedName}");
 									if (match.Status != MatchStatus.Pending) {
 										sb.Append($" ({match.AwayScore} - {match.HomeScore})");
 									}
@@ -307,14 +324,14 @@ namespace OverwatchLeague {
 
 							sb.Append("```");
 
-							await BotMethods.SendMessage(this, new SendMessageEventArgs {
+							await this.discordClient.SendMessage(this, new SendMessageEventArgs {
 								Message = sb.ToString(),
 								Channel = e.Channel,
 								LogMessage = "OverwatchLeagueScheduleTeam"
 							});
 						}
 					} else {
-						await BotMethods.SendMessage(this, new SendMessageEventArgs {
+						await this.discordClient.SendMessage(this, new SendMessageEventArgs {
 							Message = $"Invalid usage of the schedule command!",
 							Channel = e.Channel,
 							LogMessage = "OverwatchLeagueScheduleInvalid"
@@ -322,14 +339,13 @@ namespace OverwatchLeague {
 						return;
 					}
 				} else {
-					await BotMethods.SendMessage(this, new SendMessageEventArgs {
-						Message = $"I couldn't determine what you wanted. Make sure your command is handled by {$"{BotMethods.GetHelpCommandTerm(this, GuildId)} owl".Code()}",
+					await this.discordClient.SendMessage(this, new SendMessageEventArgs {
+						Message = $"I couldn't determine what you wanted. Make sure your command is handled by {"?help owl".Code()}",
 						Channel = e.Channel,
 						LogMessage = "OverwatchLeagueUnknownCommand"
 					});
 				}
 			}
-			await Task.Delay(0);
 		}
 	}
 }

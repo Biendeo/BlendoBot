@@ -271,6 +271,7 @@ blendobot-usertimezone.json
 config.cfg
 mrping/
 data/
+appsettings.json
 
 # VS Code
 .vscode/*

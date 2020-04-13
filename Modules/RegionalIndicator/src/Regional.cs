@@ -1,20 +1,18 @@
 ﻿using BlendoBotLib;
+using BlendoBotLib.Interfaces;
 using DSharpPlus.EventArgs;
-using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BlendoBot.Commands {
-	public class Regional : CommandBase {
-		public Regional(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
-
-		public override string DefaultTerm => "?regional";
-		public override string Name => "Regional Indicator";
-		public override string Description => "Converts a message into lovely regional indicator text.";
-		public override string Usage => $"Usage: {$"{Term} [message]".Code()}";
-		public override string Author => "Biendeo";
-		public override string Version => "0.1.0";
+namespace Regional {
+	[CommandDefaults(defaultTerm: "regional")]
+	public class Regional : ICommand {
+		public string Name => "Regional Indicator";
+		public string Description => "Converts a message into lovely regional indicator text.";
+		public string GetUsage(string term) => $"Usage: {$"{term} [message]".Code()}";
+		public string Author => "Biendeo";
+		public string Version => "0.5.0";
 
 		private static readonly Dictionary<char, string> characterMappings = new Dictionary<char, string> {
 			{ 'a', ":regional_indicator_a:" },
@@ -61,17 +59,18 @@ namespace BlendoBot.Commands {
 			{ '+', ":heavy_plus_sign:" },
 			{ '-', ":heavy_minus_sign:" }
 		};
+        private readonly IDiscordClient discordClient;
 
-		public override async Task<bool> Startup() {
-			await Task.Delay(0);
-			return true;
-		}
+        public Regional(IDiscordClient discordClient)
+		{
+            this.discordClient = discordClient;
+        }
 
-		public override async Task OnMessage(MessageCreateEventArgs e) {
+		public async Task OnMessage(MessageCreateEventArgs e) {
 			// First covert the original message to lower-case, and remove the original command.
 			if (e.Message.Content.Length <= 10) {
-				await BotMethods.SendMessage(this, new SendMessageEventArgs {
-					Message = $"You must add something after the {Term.Code()}!",
+				await this.discordClient.SendMessage(this, new SendMessageEventArgs {
+					Message = $"You must specify a phrase to convert!",
 					Channel = e.Channel,
 					LogMessage = "RegionalErrorNoMessage"
 				});
@@ -88,19 +87,18 @@ namespace BlendoBot.Commands {
 				}
 			}
 			if (newString.Length <= 2000) {
-				await BotMethods.SendMessage(this, new SendMessageEventArgs {
+				await this.discordClient.SendMessage(this, new SendMessageEventArgs {
 					Message = newString.ToString(),
 					Channel = e.Channel,
 					LogMessage = "RegionalSuccess"
 				});
 			} else {
-				await BotMethods.SendMessage(this, new SendMessageEventArgs {
+				await this.discordClient.SendMessage(this, new SendMessageEventArgs {
 					Message = $"Regionalified message exceeds maximum character count by {newString.Length - 2000}. Shorten your message!",
 					Channel = e.Channel,
 					LogMessage = "RegionalErrorTooLong"
 				});
 			}
-			await Task.Delay(0);
 		}
 	}
 }
