@@ -73,7 +73,7 @@ namespace BlendoBot
         {
             this.logger.LogInformation(
                 "Updating status: activity={}, status={}, idleSince={}",
-                activity,
+                activity is null ? "<null>" : $"{activity.ActivityType} {activity.Name}",
                 status,
                 idleSince?.ToString("o"));
             return this.client.UpdateStatusAsync(activity, status, idleSince);
