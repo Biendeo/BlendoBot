@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
 
@@ -16,7 +17,7 @@ namespace RemindMe {
 		public override string DefaultTerm => "?remind";
 		public override string Name => "Remind Me";
 		public override string Description => "Reminds you about something later on! Please note that I currently do not remember messages if I am restarted.";
-		public override string Usage => $"Usage:\n{$"{Term} at [date and/or time] to [message]".Code()} {"(this reminds you at a certain point in time)".Italics()}\n{$"{Term} in [timespan] to [message]".Code()} {"(this reminds you after a certain interval)".Italics()}\n\n{"Valid date formats".Bold()}\n{"dd/mm/yyyy".Code()} ({"e.g. 1/03/2020".Italics()})\n{"dd/mm/yy".Code()} ({"e.g. 20/05/19".Italics()})\n{"dd/mm".Code()} ({"e.g. 30/11 (the year is implied)".Italics()})\n\n{"Valid time formats".Bold()}\n{"hh:mm:ss".Code()} ({"e.g. 13:40:00".Italics()})\n{"hh:mm".Code()} ({"e.g. 21:12".Italics()})\n{"All times are in 24-hour time!".Bold()}\n\n{"Valid timespan formats".Bold()}\n{"hh:mm:ss".Code()} ({"e.g. 1:20:00".Italics()})\n{"mm:ss".Code()} ({"e.g. 00:01".Italics()})\n\nFor {"{Term} at".Code()}, you may choose to either write either a date, a time, or both! Some examples:\n{"{Term} at 1/01/2020".Code()}\n{"{Term} at 12:00:00".Code()}\n{"{Term} at 1/01/2020 12:00:00".Code()}\n{"{Term} at 12:00:00 1/01/2020".Code()}\n\nPlease note that all date/time strings are interpreted as UTC time unless you have set a {BotMethods.GetCommand<UserTimeZone.UserTimeZone>(this, GuildId).Term.Code()}.\nThe output is always formatted as {TimeFormatString.Code()}";
+		public override string Usage => $"Usage:\n{$"{Term} at [date and/or time] to [message]".Code()} {"(this reminds you at a certain point in time)".Italics()}\n{$"{Term} in [timespan] to [message]".Code()} {"(this reminds you after a certain interval)".Italics()}\n\n{"Valid date formats".Bold()}\n{"dd/mm/yyyy".Code()} ({"e.g. 1/03/2020".Italics()})\n{"dd/mm/yy".Code()} ({"e.g. 20/05/19".Italics()})\n{"dd/mm".Code()} ({"e.g. 30/11 (the year is implied)".Italics()})\n\n{"Valid time formats".Bold()}\n{"hh:mm:ss".Code()} ({"e.g. 13:40:00".Italics()})\n{"hh:mm".Code()} ({"e.g. 21:12".Italics()})\n{"All times are in 24-hour time!".Bold()}\n\n{"Valid timespan formats".Bold()}\n{"hh:mm:ss".Code()} ({"e.g. 1:20:00".Italics()})\n{"mm:ss".Code()} ({"e.g. 00:01".Italics()})\n\nFor {$"{Term} at".Code()}, you may choose to either write either a date, a time, or both! Some examples:\n{$"{Term} at 1/01/2020".Code()}\n{$"{Term} at 12:00:00".Code()}\n{$"{Term} at 1/01/2020 12:00:00".Code()}\n{$"{Term} at 12:00:00 1/01/2020".Code()}\n\nPlease note that all date/time strings are interpreted as UTC time unless you have set a {BotMethods.GetCommand<UserTimeZone.UserTimeZone>(this, GuildId).Term.Code()}.\nThe output is always formatted as {TimeFormatString.Code()}";
 		public override string Author => "Biendeo";
 		public override string Version => "0.1.3";
 
@@ -25,6 +26,20 @@ namespace RemindMe {
 
 		private List<Reminder> OutstandingReminders;
 		private Timer DailyReminderCheck;
+
+		private Reminder AddRepeatReminder(Reminder r) {
+			if (r.IsRepeating) {
+				DateTime nextTime = r.Time;
+				while (nextTime <= DateTime.UtcNow) {
+					nextTime = nextTime.AddSeconds(r.Frequency);
+				}
+				var nextReminder = new Reminder(nextTime, r.Message, r.ChannelId, r.UserId, r.Frequency);
+				nextReminder.Activate(ReminderElapsed);
+				OutstandingReminders.Add(nextReminder);
+				return nextReminder;
+			}
+			return null;
+		}
 
 		public override async Task<bool> Startup() {
 			OutstandingReminders = new List<Reminder>();
@@ -45,6 +60,7 @@ namespace RemindMe {
 								Message = $"Tried doing a wakeup message {reminder.Message} which should've sent at {reminder.Time}, but a 403 was received! This tried to send to user {reminder.UserId} in channel {reminder.ChannelId}."
 							});
 						}
+						AddRepeatReminder(reminder);
 					} else {
 						reminder.Activate(ReminderElapsed);
 					}
@@ -71,8 +87,15 @@ namespace RemindMe {
 		}
 		private async void ReminderElapsed(object sender, ElapsedEventArgs e, Reminder r) {
 			var channel = await BotMethods.GetChannel(this, r.ChannelId);
+			var sb = new StringBuilder();
+			sb.AppendLine($"<@{r.UserId}> wanted to know this message now!");
+			sb.AppendLine(r.Message);
+			if (r.IsRepeating) {
+				var nextReminder = AddRepeatReminder(r);
+				sb.AppendLine($"This reminder will repeat on {nextReminder.Time}.");
+			}
 			await BotMethods.SendMessage(this, new SendMessageEventArgs {
-				Message = $"<@{r.UserId}> wanted to know this message now!\n{r.Message}",
+				Message = sb.ToString(),
 				Channel = channel,
 				LogMessage = "ReminderAlert"
 			});
@@ -90,10 +113,21 @@ namespace RemindMe {
 			string[] splitMessage = e.Message.Content.Split(' ');
 			TimeZoneInfo userTimeZone = UserTimeZone.UserTimeZone.GetUserTimeZone(this, e.Author);
 
+			// Try and look for the "every" index.
+			int everyIndex = 0;
+			while (everyIndex < splitMessage.Length && splitMessage[everyIndex].ToLower() != "every") {
+				++everyIndex;
+			}
+
 			// Try and look for the "to" index.
 			int toIndex = 0;
-			while (toIndex < splitMessage.Length && splitMessage[toIndex] != "to") {
+			while (toIndex < splitMessage.Length && splitMessage[toIndex].ToLower() != "to") {
 				++toIndex;
+			}
+
+			// If the every index exists after the to, then it's part of the message and shouldn't count.
+			if (everyIndex >= toIndex) {
+				everyIndex = -1;
 			}
 
 			if (toIndex == splitMessage.Length) {
@@ -114,7 +148,7 @@ namespace RemindMe {
 
 			// Now decipher the time.
 			DateTime foundTime = DateTime.UtcNow;
-			string[] writtenTime = splitMessage.Skip(2).Take(toIndex - 2).ToArray();
+			string[] writtenTime = splitMessage.Skip(2).Take((everyIndex > -1 ? everyIndex : toIndex) - 2).ToArray();
 			if (splitMessage[1] == "at") {
 				bool successfulFormat = true;
 				DateTime foundDate = DateTime.UtcNow.Add(userTimeZone.BaseUtcOffset).Date;
@@ -217,11 +251,59 @@ namespace RemindMe {
 				});
 				return;
 			}
+			// Handle the every portion.
+			ulong frequency = 0ul;
+			if (everyIndex > -1) {
+				// At this point it is guaranteed the every is before the to, which means there are at least two terms here.
+				bool successfulFormat = true;
+				bool quantityParsed = ulong.TryParse(splitMessage[everyIndex + 1], out frequency);
+				if (!quantityParsed) {
+					frequency = 1;
+				}
+				int scaleIndex = everyIndex + 1 + (quantityParsed ? 1 : 0);
+				string scaleText = splitMessage[scaleIndex].ToLower();
+				if (scaleText.EndsWith('s')) {
+					scaleText = scaleText[0..^1];
+				}
+				switch (scaleText) {
+					case "second":
+						break;
+					case "minute":
+						frequency *= 60ul;
+						break;
+					case "hour":
+						frequency *= 3600ul;
+						break;
+					case "day":
+						frequency *= 86400ul;
+						break;
+					default:
+						successfulFormat = false;
+						break;
+				}
+				if (frequency < 10ul) {
+					await BotMethods.SendMessage(this, new SendMessageEventArgs {
+						Message = $"The every frequency you input was less than 10 seconds! Please use a longer frequency!",
+						Channel = e.Channel,
+						LogMessage = "ReminderErrorInvalidEveryTooLow"
+					});
+					return;
+				}
+				if (!successfulFormat) {
+					await BotMethods.SendMessage(this, new SendMessageEventArgs {
+						Message = $"The every frequency you input could not be parsed! See {$"{BotMethods.GetHelpCommandTerm(this, GuildId)} remind".Code()} for how to format your repeat interval!",
+						Channel = e.Channel,
+						LogMessage = "ReminderErrorInvalidEvery"
+					});
+					return;
+				}
+			}
+
 			// Finally extract the message.
 			string message = string.Join(' ', splitMessage.Skip(toIndex + 1));
 
 			// Make the reminder.
-			var reminder = new Reminder(TimeZoneInfo.ConvertTimeToUtc(foundTime), message, e.Channel.Id, e.Author.Id);
+			var reminder = new Reminder(TimeZoneInfo.ConvertTimeToUtc(foundTime), message, e.Channel.Id, e.Author.Id, frequency);
 			reminder.Activate(ReminderElapsed);
 			OutstandingReminders.Add(reminder);
 			SaveReminders();

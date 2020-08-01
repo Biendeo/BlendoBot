@@ -1,6 +1,7 @@
 ﻿using DSharpPlus.Entities;
 using Newtonsoft.Json;
 using System;
+using System.Text.RegularExpressions;
 using System.Timers;
 
 namespace RemindMe {
@@ -10,19 +11,27 @@ namespace RemindMe {
 		public DateTime Time { get; set; }
 		[JsonProperty(Required = Required.Always)]
 		public string Message { get; set; }
+		/// <summary>
+		/// This just removes any Discord syntax on @ messages so that certain commands don't needlessly ping.
+		/// </summary>
+		public string SanitizedMessage => Regex.Replace(Message, @"<@!(\d+)>", m => $"@{m.Groups[1].Value}");
 		[JsonProperty(Required = Required.Always)]
 		public ulong ChannelId { get; set; }
 		[JsonProperty(Required = Required.Always)]
 		public ulong UserId { get; set; }
+		[JsonProperty(DefaultValueHandling = DefaultValueHandling.Populate)]
+		public ulong Frequency { get; set; } = 0ul;
+		public bool IsRepeating => Frequency > 0ul;
 		public Timer CallbackTimer { get; set; }
 
 		protected Reminder() {}
 
-		public Reminder(DateTime time, string message, ulong channelId, ulong userId) {
+		public Reminder(DateTime time, string message, ulong channelId, ulong userId, ulong frequency) {
 			Time = time;
 			Message = message;
 			ChannelId = channelId;
 			UserId = userId;
+			Frequency = frequency;
 			CallbackTimer = null;
 		}
 
