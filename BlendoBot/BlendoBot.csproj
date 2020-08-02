@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Salaros.ConfigParser" Version="0.3.3" />
+    <PackageReference Include="Salaros.ConfigParser" Version="0.3.4" />
   </ItemGroup>
 
   <ItemGroup>

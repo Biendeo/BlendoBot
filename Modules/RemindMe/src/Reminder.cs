@@ -1,7 +1,9 @@
-﻿using DSharpPlus.Entities;
+﻿using BlendoBotLib;
+using DSharpPlus.Entities;
 using Newtonsoft.Json;
 using System;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Timers;
 
 namespace RemindMe {
@@ -11,16 +13,15 @@ namespace RemindMe {
 		public DateTime Time { get; set; }
 		[JsonProperty(Required = Required.Always)]
 		public string Message { get; set; }
-		/// <summary>
-		/// This just removes any Discord syntax on @ messages so that certain commands don't needlessly ping.
-		/// </summary>
-		public string SanitizedMessage => Regex.Replace(Message, @"<@!(\d+)>", m => $"@{m.Groups[1].Value}");
 		[JsonProperty(Required = Required.Always)]
 		public ulong ChannelId { get; set; }
+		public DiscordChannel Channel { get; set; }
 		[JsonProperty(Required = Required.Always)]
 		public ulong UserId { get; set; }
+		public DiscordUser User { get; set; }
 		[JsonProperty(DefaultValueHandling = DefaultValueHandling.Populate)]
 		public ulong Frequency { get; set; } = 0ul;
+		public string FrequencyString => FrequencyToReadableString(Frequency);
 		public bool IsRepeating => Frequency > 0ul;
 		public Timer CallbackTimer { get; set; }
 
@@ -33,6 +34,13 @@ namespace RemindMe {
 			UserId = userId;
 			Frequency = frequency;
 			CallbackTimer = null;
+			Channel = null;
+			User = null;
+		}
+
+		public async Task UpdateCachedData(IBotMethods botMethods) {
+			Channel = await botMethods.GetChannel(this, ChannelId);
+			User = await botMethods.GetUser(this, UserId);
 		}
 
 		public void Activate(Action<object, ElapsedEventArgs, Reminder> action) {
@@ -46,7 +54,7 @@ namespace RemindMe {
 		}
 
 		public int CompareTo(Reminder other) {
-			return Time.CompareTo(other.Time);
+			return Time.CompareTo(other?.Time);
 		}
 		public void Dispose() {
 			Dispose(true);
@@ -103,6 +111,21 @@ namespace RemindMe {
 
 		public static bool operator >=(Reminder left, Reminder right) {
 			return left is null ? right is null : left.CompareTo(right) >= 0;
+		}
+
+		public static string FrequencyToReadableString(ulong frequency) {
+			if (frequency % 86400 == 0) {
+				ulong quantity = frequency / 86400;
+				return $"{quantity} day{(quantity == 1 ? string.Empty : "s")}";
+			} else if (frequency % 3600 == 0) {
+				ulong quantity = frequency / 3600;
+				return $"{quantity} hour{(quantity == 1 ? string.Empty : "s")}";
+			} else if (frequency % 60 == 0) {
+				ulong quantity = frequency / 60;
+				return $"{quantity} minute{(quantity == 1 ? string.Empty : "s")}";
+			} else {
+				return $"{frequency} second{(frequency == 1 ? string.Empty : "s")}";
+			}
 		}
 	}
 }
