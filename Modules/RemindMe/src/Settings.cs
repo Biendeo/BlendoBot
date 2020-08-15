@@ -1,13 +1,13 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Text;
 
 namespace RemindMe {
 	public class Settings {
-		[JsonProperty(Required = Required.Always)]
+		[Key]
+		public int SettingsId { get; set; }
 		public ulong MinimumRepeatTime { get; set; }
-		[JsonProperty(Required = Required.Always)]
 		public int MaximumRemindersPerPerson { get; set; }
 	}
 }

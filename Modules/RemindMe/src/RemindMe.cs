@@ -1,6 +1,7 @@
 ﻿using BlendoBotLib;
 using DSharpPlus.EventArgs;
 using DSharpPlus.Exceptions;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -11,115 +12,93 @@ using System.Threading.Tasks;
 using System.Timers;
 
 namespace RemindMe {
-	public class RemindMe : CommandBase {
+	public class RemindMe : CommandBase, IDisposable {
 		public RemindMe(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
 
 		public override string DefaultTerm => "?remind";
 		public override string Name => "Remind Me";
-		public override string Description => "Reminds you about something later on! Please note that I currently do not remember messages if I am restarted.";
-		public override string Usage => $"Usage:\n" +
-			$"{$"{Term} at [date and/or time] (every [repeat interval]) to [message]".Code()} {"(this reminds you at a certain point in time)".Italics()}\n" +
-			$"{$"{Term} in [timespan] (every [repeat interval]) to [message]".Code()} {"(this reminds you after a certain interval)".Italics()}\n" +
-			$"{$"{Term} list".Code()} {"(an interactive view of all of your reminders, and lets you delete reminders)".Italics()}\n" +
-			$"{$"{Term} admin list".Code()} {$"(same as {$"{Term} list".Code()} but for all reminders in the guild)".Italics()}\n" +
-			$"{$"{Term} admin minrepeattime [num]".Code()} {"(sets the minimum interval for repeat reminders (0 disables the repeat feature))".Italics()}\n" +
-			$"{$"{Term} admin maxreminders".Code()} {$"(sets the maximum number of reminders each user can set)".Italics()}\n\n" +
-			$"{"Valid date formats".Bold()}\n" +
-			$"{"dd/mm/yyyy".Code()} ({"e.g. 1/03/2020".Italics()})\n" +
-			$"{"dd/mm/yy".Code()} ({"e.g. 20/05/19".Italics()})\n" +
-			$"{"dd/mm".Code()} ({"e.g. 30/11 (the year is implied)".Italics()})\n\n" +
-			$"{"Valid time formats".Bold()}\n" +
-			$"{"hh:mm:ss".Code()} ({"e.g. 13:40:00".Italics()})\n" +
-			$"{"hh:mm".Code()} ({"e.g. 21:12".Italics()})\n" +
-			$"{"All times are in 24-hour time!".Bold()}\n\n" +
-			$"{"Valid timespan formats".Bold()}\n" +
-			$"{"hh:mm:ss".Code()} ({"e.g. 1:20:00".Italics()})\n" +
-			$"{"mm:ss".Code()} ({"e.g. 00:01".Italics()})\n\n" +
-			$"For {$"{Term} at".Code()}, you may choose to either write either a date, a time, or both! Some examples:\n" +
-			$"{$"{Term} at 1/01/2020".Code()}\n{$"{Term} at 12:00:00".Code()}\n" +
-			$"{$"{Term} at 1/01/2020 12:00:00".Code()}\n" +
-			$"{$"{Term} at 12:00:00 1/01/2020".Code()}\n\n" +
-			$"{"Valid repeat interval formats".Bold()}\n" +
-			$"{"(second(s) | minute(s) | hour(s) | day(s))".Code()} ({"e.g. every hour".Italics()})\n" +
-			$"{"x (second(s) | minute(s) | hour(s) | day(s))".Code()} ({"e.g. every 4 days".Italics()})\n\n" +
-			$"Some other examples:\n" +
-			$"{$"{Term} at 1/01/2020 every year to congratulate the new year".Code()}\n" +
-			$"{$"{Term} at 11:11:11 every 1 day to 11:11 ✨".Code()}\n\n" +
-			$"Please note that all date/time strings are interpreted as UTC time unless you have set a {BotMethods.GetCommand<UserTimeZone.UserTimeZone>(this, GuildId).Term.Code()}.\n" +
-			$"The output is always formatted as {TimeFormatString.Code()}.\n" + 
-			$"You can only have at most {Settings.MaximumRemindersPerPerson} reminders, and repeat reminders {(Settings.MinimumRepeatTime == 0ul ? "are current disabled" : $"must be at least every {Reminder.FrequencyToReadableString(Settings.MinimumRepeatTime)}")}.";
-		public override string Author => "Biendeo";
-		public override string Version => "0.2.0";
+		public override string Description => "Reminds you about something later on!";
+		public override string Usage {
+			get {
+				var sb = new StringBuilder();
+				var db = GetContext();
 
-		private string SettingsPath => Path.Combine(BotMethods.GetCommandInstanceDataPath(this, this), "blendobot-remindme-settings.json");
-		private string DatabasePath => Path.Combine(BotMethods.GetCommandInstanceDataPath(this, this), "blendobot-remindme-database.json");
+				sb.AppendLine("Usage:");
+				sb.AppendLine($"{$"{Term} at [date and/or time] (every [repeat interval]) to [message]".Code()} {"(this reminds you at a certain point in time)".Italics()}");
+				sb.AppendLine($"{$"{Term} in [timespan] (every [repeat interval]) to [message]".Code()} {"(this reminds you after a certain interval)".Italics()}");
+				sb.AppendLine($"{$"{Term} list".Code()} {"(an interactive view of all of your reminders, and lets you delete reminders)".Italics()}");
+				sb.AppendLine($"{$"{Term} admin list".Code()} {$"(same as {$"{Term} list".Code()} but for all reminders in the guild)".Italics()}");
+				sb.AppendLine($"{$"{Term} admin minrepeattime [num]".Code()} {"(sets the minimum interval for repeat reminders (0 disables the repeat feature))".Italics()}");
+				sb.AppendLine($"{$"{Term} admin maxreminders".Code()} {$"(sets the maximum number of reminders each user can set)".Italics()}");
+				sb.AppendLine();
+
+				sb.AppendLine("Valid date formats".Bold());
+				sb.AppendLine($"{"dd/mm/yyyy".Code()} ({"e.g. 1/03/2020".Italics()})");
+				sb.AppendLine($"{"dd/mm/yy".Code()} ({"e.g. 20/05/19".Italics()})");
+				sb.AppendLine($"{"dd/mm".Code()} ({"e.g. 30/11 (the year is implied)".Italics()})");
+				sb.AppendLine();
+
+				sb.AppendLine("Valid time formats".Bold());
+				sb.AppendLine($"{"hh:mm:ss".Code()} ({"e.g. 13:40:00".Italics()})");
+				sb.AppendLine($"{"hh:mm".Code()} ({"e.g. 00:01".Italics()})");
+				sb.AppendLine("All times are in 24-hour time!".Bold());
+				sb.AppendLine();
+
+				sb.AppendLine("Valid timespan formats".Bold());
+				sb.AppendLine($"{"hh:mm:ss".Code()} ({"e.g. 1:20:00".Italics()})");
+				sb.AppendLine($"{"mm:ss".Code()} ({"e.g. 00:01".Italics()})");
+				sb.AppendLine();
+
+				sb.AppendLine($"For {$"{Term} at".Code()}, you may choose to either write either a date, a time, or both! Some examples:");
+				sb.AppendLine($"{Term} at 1/01/2020".Code());
+				sb.AppendLine($"{Term} at 12:00:00".Code());
+				sb.AppendLine($"{Term} at 1/01/2020 12:00:00".Code());
+				sb.AppendLine($"{Term} at 12:00:00 1/01/2020".Code());
+				sb.AppendLine();
+
+				sb.AppendLine("Valid repeat interval formats".Bold());
+				sb.AppendLine($"{"(second(s) | minute(s) | hour(s) | day(s))".Code()} ({"e.g. every hour".Italics()})");
+				sb.AppendLine($"{"x (second(s) | minute(s) | hour(s) | day(s))".Code()} ({"e.g. every 4 days".Italics()})");
+				sb.AppendLine();
+
+				sb.AppendLine("Some other examples:");
+				sb.AppendLine($"{Term} at 1/01/2020 every year to congratulate the new year".Code());
+				sb.AppendLine($"{Term} at 11:11:11 every 1 day to 11:11 ✨".Code());
+				sb.AppendLine();
+
+				sb.AppendLine($"Please note that all date/time strings are interpreted as UTC time unless you have set a {BotMethods.GetCommand<UserTimeZone.UserTimeZone>(this, GuildId).Term.Code()}.");
+				sb.AppendLine($"The output is always formatted as {TimeFormatString.Code()}.");
+				sb.AppendLine($"You can only have at most {db.Settings.MaximumRemindersPerPerson} reminders, and repeat reminders {(db.Settings.MinimumRepeatTime == 0ul ? "are current disabled" : $"must be at least every {Reminder.FrequencyToReadableString(db.Settings.MinimumRepeatTime)}")}.");
+
+				return sb.ToString();
+			}
+		}
+		public override string Author => "Biendeo";
+		public override string Version => "0.3.0";
+
+		private string DatabasePath => Path.Combine(BotMethods.GetCommandInstanceDataPath(this, this), "blendobot-remindme-database.db");
 		internal const string TimeFormatString = "d/MM/yyyy h:mm:ss tt";
 
-		private List<Reminder> OutstandingReminders;
-		private Settings Settings;
+		private Dictionary<Reminder, Timer> ReminderTimers;
 		private Timer DailyReminderCheck;
 
-		private Reminder AddRepeatReminder(Reminder r) {
-			if (r.IsRepeating) {
-				DateTime nextTime = r.Time;
-				while (nextTime <= DateTime.UtcNow) {
-					nextTime = nextTime.AddSeconds(r.Frequency);
-				}
-				var nextReminder = new Reminder(nextTime, r.Message, r.Channel.Id, r.User.Id, r.Frequency) {
-					Channel = r.Channel,
-					User = r.User
-				};
-				nextReminder.Activate(ReminderElapsed);
-				OutstandingReminders.Add(nextReminder);
-				return nextReminder;
-			}
-			return null;
+		private ReminderDatabaseContext GetContext() {
+			var optionsBuilder = new DbContextOptionsBuilder<ReminderDatabaseContext>();
+			optionsBuilder.UseSqlite($"Data Source={DatabasePath}");
+			return new ReminderDatabaseContext(optionsBuilder.Options);
 		}
 
 		public override async Task<bool> Startup() {
-			if (File.Exists(SettingsPath)) {
-				Settings = JsonConvert.DeserializeObject<Settings>(File.ReadAllText(SettingsPath));
-			} else {
-				Settings = new Settings() {
-					MinimumRepeatTime = 300ul,
-					MaximumRemindersPerPerson = 20
-				};
-			}
-			OutstandingReminders = new List<Reminder>();
-			if (File.Exists(DatabasePath)) {
-				OutstandingReminders = JsonConvert.DeserializeObject<List<Reminder>>(File.ReadAllText(DatabasePath));
-				var repeatReminders = new List<Reminder>();
-				foreach (var reminder in OutstandingReminders) {
-					await reminder.UpdateCachedData(BotMethods);
-					if (reminder.Time < DateTime.UtcNow) {
-						var channel = await BotMethods.GetChannel(this, reminder.Channel.Id);
-						try {
-							await BotMethods.SendMessage(this, new SendMessageEventArgs {
-								Message = $"I just woke up and forgot to send {reminder.User.Mention} this alert on time!\n{reminder.Message}",
-								Channel = channel,
-								LogMessage = "ReminderLateAlert"
-							});
-						} catch (UnauthorizedException) {
-							BotMethods.Log(this, new LogEventArgs {
-								Type = LogType.Warning,
-								Message = $"Tried doing a wakeup message {reminder.Message} which should've sent at {reminder.Time}, but a 403 was received! This tried to send to user {reminder.User.Mention} in channel {reminder.Channel.Mention}."
-							});
-						}
-						repeatReminders.Add(reminder);
-					} else {
-						reminder.Activate(ReminderElapsed);
-					}
-				}
-				foreach (var reminder in repeatReminders) {
-					AddRepeatReminder(reminder);
-				}
-				OutstandingReminders.RemoveAll(r => r.Time < DateTime.UtcNow);
-				OutstandingReminders.Sort();
-				SaveReminders();
-			}
+			ReminderTimers = new Dictionary<Reminder, Timer>();
+			using var db = GetContext();
+			await db.Database.EnsureCreatedAsync();
+
+			await db.Reminders.Where(r => r.Time < DateTime.UtcNow).ForEachAsync(r => ReminderElapsed(r, true));
+
 			// Check every 12 hours to see if any dormant reminders can be activated. This is because the number of
 			// milliseconds to the reminder date may be too large otherwise. The reminders themselves will only activate
 			// if they are within 24 hours of the event, so this should be plenty.
+			await Task.Factory.StartNew(() => DailyReminderCheckElapsed(this, null));
 			DailyReminderCheck = new Timer(43_200_000.0);
 			DailyReminderCheck.Elapsed += DailyReminderCheckElapsed;
 			DailyReminderCheck.AutoReset = true;
@@ -127,35 +106,70 @@ namespace RemindMe {
 			return true;
 		}
 
-		private void DailyReminderCheckElapsed(object sender, ElapsedEventArgs e) {
-			OutstandingReminders.ForEach(r => {
-				r.Activate(ReminderElapsed);
-			});
-		}
-		private async void ReminderElapsed(object sender, ElapsedEventArgs e, Reminder r) {
-			TimeZoneInfo userTimeZone = UserTimeZone.UserTimeZone.GetUserTimeZone(this, r.User);
-			var sb = new StringBuilder();
-			sb.AppendLine($"{r.User.Mention} wanted to know this message now!");
-			sb.AppendLine(r.Message);
-			if (r.IsRepeating) {
-				var nextReminder = AddRepeatReminder(r);
-				sb.AppendLine($"This reminder will repeat on {TimeZoneInfo.ConvertTime(nextReminder.Time, userTimeZone).ToString(TimeFormatString)}.");
-			}
-			await BotMethods.SendMessage(this, new SendMessageEventArgs {
-				Message = sb.ToString(),
-				Channel = r.Channel,
-				LogMessage = "ReminderAlert"
-			});
-			DeleteReminder(r);
+		public void Dispose() {
+			Dispose(true);
+			GC.SuppressFinalize(this);
 		}
 
-		private void SaveReminders() {
-			File.WriteAllText(DatabasePath, JsonConvert.SerializeObject(OutstandingReminders));
+		protected virtual void Dispose(bool disposing) {
+			if (disposing) {
+				if (DailyReminderCheck != null) {
+					DailyReminderCheck.Dispose();
+				}
+			}
+		}
+
+		private async void DailyReminderCheckElapsed(object sender, ElapsedEventArgs e) {
+			using var db = GetContext();
+			await db.Reminders.Where(r => r.Time < DateTime.UtcNow.AddDays(1)).ForEachAsync(r => CheckAndAddReminderTimer(r));
+		}
+
+		private async void ReminderElapsed(Reminder r, bool sleptIn) {
+			lock (ReminderTimers) {
+				if (ReminderTimers.TryGetValue(r, out Timer timer)) {
+					timer.Stop();
+					timer.Dispose();
+					ReminderTimers.Remove(r);
+				}
+			}
+			await r.UpdateCachedData(BotMethods);
+			var sb = new StringBuilder();
+			if (!sleptIn) {
+				sb.AppendLine($"{r.User.Mention} wanted to know this message now!");
+			} else {
+				sb.AppendLine($"I just woke up and forgot to send {r.User.Mention} this alert on time!");
+			}
+			sb.AppendLine(r.Message);
+			if (r.IsRepeating) {
+				await UpdateReminderTime(r);
+				TimeZoneInfo userTimeZone = UserTimeZone.UserTimeZone.GetUserTimeZone(this, r.User);
+				sb.AppendLine($"This reminder will repeat on {TimeZoneInfo.ConvertTime(r.Time, userTimeZone).ToString(TimeFormatString)}.");
+				//TODO: Dependencies between modules because this fires before UserTimeZone is initialised on startup, resulting in UTC time on sleptIn.
+			}
+			try {
+				await BotMethods.SendMessage(this, new SendMessageEventArgs {
+					Message = sb.ToString(),
+					Channel = r.Channel,
+					LogMessage = "ReminderAlert"
+				});
+			} catch (UnauthorizedException) {
+				BotMethods.Log(this, new LogEventArgs {
+					Type = LogType.Warning,
+					Message = $"Tried sending a reminder message {r.Message} which should've sent at {r.Time}, but a 403 was received! This tried to send to user {r.User.Mention} in channel {r.Channel.Mention}."
+				});
+			}
+			if (!r.IsRepeating) {
+				await DeleteReminder(r);
+			} else {
+				CheckAndAddReminderTimer(r);
+			}
 		}
 
 		public override async Task OnMessage(MessageCreateEventArgs e) {
 			// Try and decipher the output.
 			string[] splitMessage = e.Message.Content.Split(' ');
+
+			using var db = GetContext();
 			
 			// The list functionality is separate.
 			if (splitMessage.Length >= 2 && splitMessage[1].ToLower() == "list") {
@@ -167,7 +181,7 @@ namespace RemindMe {
 			}
 
 			// If the user has too many reminders, don't let them make another.
-			if (OutstandingReminders.Where(r => r.User == e.Author).Count() >= Settings.MaximumRemindersPerPerson) {
+			if (db.Reminders.Where(r => r.UserId == e.Author.Id).Count() >= db.Settings.MaximumRemindersPerPerson) {
 				await BotMethods.SendMessage(this, new SendMessageEventArgs {
 					Message = $"You have too many outstanding reminders! Please use {Term} list to delete some.",
 					Channel = e.Channel,
@@ -196,7 +210,7 @@ namespace RemindMe {
 			}
 
 			// If the every index actually exists but the feature is disabled, users should know.
-			if (everyIndex > -1 && Settings.MinimumRepeatTime == 0ul) {
+			if (everyIndex > -1 && db.Settings.MinimumRepeatTime == 0ul) {
 				await BotMethods.SendMessage(this, new SendMessageEventArgs {
 					Message = "The \"every\" feature is disabled, please try again without that part of the reminder.",
 					Channel = e.Channel,
@@ -382,9 +396,9 @@ namespace RemindMe {
 				Channel = e.Channel,
 				User = e.Author
 			};
-			reminder.Activate(ReminderElapsed);
-			OutstandingReminders.Add(reminder);
-			SaveReminders();
+			CheckAndAddReminderTimer(reminder);
+			db.Reminders.Add(reminder);
+			await db.SaveChangesAsync();
 
 			await BotMethods.SendMessage(this, new SendMessageEventArgs {
 				Message = $"Okay, I'll tell you this message at {TimeZoneInfo.ConvertTime(foundTime, userTimeZone).ToString(TimeFormatString)} {UserTimeZone.UserTimeZone.ToShortString(userTimeZone)}",
@@ -394,25 +408,27 @@ namespace RemindMe {
 		}
 
 		private async Task SendListMessage(MessageCreateEventArgs e, bool isAdmin) {
+			var db = GetContext();
 			TimeZoneInfo userTimeZone = UserTimeZone.UserTimeZone.GetUserTimeZone(this, e.Author);
-			IEnumerable<Reminder> scopedReminders;
+			IQueryable<Reminder> scopedReminders;
 			if (isAdmin) {
-				scopedReminders = OutstandingReminders.OrderBy(r => r.Time);
+				scopedReminders = db.Reminders.OrderBy(r => r.Time);
 			} else {
-				scopedReminders = OutstandingReminders.Where(r => r.User == e.Author).OrderBy(r => r.Time);
+				scopedReminders = db.Reminders.Where(r => r.UserId == e.Author.Id).OrderBy(r => r.Time);
 			}
-			var listListener = new ReminderListListener(this, e.Channel, e.Author, scopedReminders, userTimeZone, isAdmin);
+			var listListener = new ReminderListListener(this, e.Channel, e.Author, scopedReminders, userTimeZone, isAdmin, db);
 			await listListener.CreateMessage();
 		}
 
 		private async Task SendAdminMessage(MessageCreateEventArgs e, string[] splitMessage) {
 			if (await BotMethods.IsUserAdmin(this, e.Guild, e.Channel, e.Author)) {
+				using var db = GetContext();
 				if (splitMessage.Length >= 3 && splitMessage[2].ToLower() == "list") {
 					await SendListMessage(e, true);
 				} else if (splitMessage.Length >= 4 && splitMessage[2].ToLower() == "minrepeattime") {
 					if (ulong.TryParse(splitMessage[3], out ulong minRepeatTime)) {
 						if (minRepeatTime == 0ul) {
-							Settings.MinimumRepeatTime = minRepeatTime;
+							db.Settings.MinimumRepeatTime = minRepeatTime;
 							await BotMethods.SendMessage(this, new SendMessageEventArgs {
 								Message = $"Repeat reminders are now disabled. New messages can't use the \"every\" feature.",
 								Channel = e.Channel,
@@ -425,7 +441,7 @@ namespace RemindMe {
 								LogMessage = "ReminderSetMinFrequencyOff"
 							});
 						} else {
-							Settings.MinimumRepeatTime = minRepeatTime;
+							db.Settings.MinimumRepeatTime = minRepeatTime;
 							await BotMethods.SendMessage(this, new SendMessageEventArgs {
 								Message = $"Repeat reminders are enabled and the minimum repeat interval is now {Reminder.FrequencyToReadableString(minRepeatTime)}.",
 								Channel = e.Channel,
@@ -442,7 +458,7 @@ namespace RemindMe {
 				} else if (splitMessage.Length >= 4 && splitMessage[2].ToLower() == "maxreminders") {
 					if (int.TryParse(splitMessage[3], out int maxReminders)) {
 						if (maxReminders > 0) {
-							Settings.MaximumRemindersPerPerson = maxReminders;
+							db.Settings.MaximumRemindersPerPerson = maxReminders;
 							await BotMethods.SendMessage(this, new SendMessageEventArgs {
 								Message = $"Maximum reminders per person is now {maxReminders}.",
 								Channel = e.Channel,
@@ -478,11 +494,40 @@ namespace RemindMe {
 			}
 		}
 
-		public void DeleteReminder(Reminder reminder) {
-			reminder.CallbackTimer.Stop();
-			OutstandingReminders.Remove(reminder);
-			reminder.Dispose();
-			SaveReminders();
+		private async Task UpdateReminderTime(Reminder reminder) {
+			using var db = GetContext();
+			reminder.UpdateReminderTime();
+			db.Reminders.Single(r => r.ReminderId == reminder.ReminderId).Time = reminder.Time;
+			await db.SaveChangesAsync();
+		}
+
+		public void CheckAndAddReminderTimer(Reminder reminder) {
+			lock (ReminderTimers) {
+				if ((reminder.Time > DateTime.UtcNow) && (reminder.Time - DateTime.UtcNow) < new TimeSpan(1, 0, 0, 0) && !ReminderTimers.ContainsKey(reminder)) {
+					var timer = new Timer((reminder.Time - DateTime.UtcNow).TotalMilliseconds) {
+						AutoReset = false
+					};
+					timer.Elapsed += (sender, e) => ReminderElapsed(reminder, false);
+					timer.Start();
+					ReminderTimers.Add(reminder, timer);
+				}
+			}
+		}
+
+		public async Task DeleteReminder(Reminder reminder) {
+			using var db = GetContext();
+			lock (ReminderTimers) {
+				if (ReminderTimers.TryGetValue(reminder, out Timer timer)) {
+					timer.Stop();
+					timer.Dispose();
+					ReminderTimers.Remove(reminder);
+				}
+			}
+			// This check is just in case a reminder is triggered, but a list view later triggers it to be deleted.
+			if (db.Reminders.Any(r => r.ReminderId == reminder.ReminderId)) {
+				db.Reminders.Remove(reminder);
+			}
+			await db.SaveChangesAsync();
 		}
 	}
 }

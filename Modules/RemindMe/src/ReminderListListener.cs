@@ -2,6 +2,7 @@
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using DSharpPlus.Exceptions;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,25 +23,31 @@ namespace RemindMe {
 		private readonly DiscordChannel channel;
 		private readonly DiscordUser user;
 		private DiscordMessage message;
-		private readonly List<Reminder> scopedReminders;
+		private readonly IQueryable<Reminder> scopedReminders;
+		private List<Reminder> remindersOnPage;
+		private int scopedRemindersCount;
 		private readonly TimeZoneInfo userTimeZone;
 		private readonly bool showUsernames;
 		private int page;
 		private Timer timeoutTimer;
 		private bool CanGoLeftPage => page > 0;
-		private bool CanGoRightPage => (page + 1) * RemindersPerPage < scopedReminders.Count;
-		private int NumberOfRemindersOnPage => Math.Min(scopedReminders.Count - page * RemindersPerPage, RemindersPerPage);
+		private bool CanGoRightPage => (page + 1) * RemindersPerPage < scopedRemindersCount;
+		private int NumberOfRemindersOnPage => Math.Min(scopedRemindersCount - page * RemindersPerPage, RemindersPerPage);
+		private ReminderDatabaseContext db;
 
 		public CommandBase Command => remindMe;
 
-		public ReminderListListener(RemindMe remindMe, DiscordChannel channel, DiscordUser user, IEnumerable<Reminder> scopedReminders, TimeZoneInfo userTimeZone, bool showUsernames) {
+		public ReminderListListener(RemindMe remindMe, DiscordChannel channel, DiscordUser user, IQueryable<Reminder> scopedReminders, TimeZoneInfo userTimeZone, bool showUsernames, ReminderDatabaseContext db) {
 			this.remindMe = remindMe;
 			this.user = user;
 			this.channel = channel;
 			message = null;
-			this.scopedReminders = scopedReminders.ToList();
+			this.scopedReminders = scopedReminders;
+			remindersOnPage = new List<Reminder>();
+			scopedRemindersCount = scopedReminders.Count();
 			this.userTimeZone = userTimeZone;
 			this.showUsernames = showUsernames;
+			this.db = db;
 			page = 0;
 			timeoutTimer = new Timer(60000.0);
 			timeoutTimer.Elapsed += TimeoutElapsed;
@@ -64,14 +71,14 @@ namespace RemindMe {
 		}
 
 		private string GenerateMessage() {
-			if (scopedReminders.Count == 0) {
+			if (scopedRemindersCount == 0) {
 				return "There are no reminders to view!";
 			}
 			var sb = new StringBuilder();
 
-			sb.AppendLine($"Viewing reminders {page * RemindersPerPage + 1}-{page * RemindersPerPage + NumberOfRemindersOnPage} of {scopedReminders.Count}");
+			sb.AppendLine($"Viewing reminders {page * RemindersPerPage + 1}-{page * RemindersPerPage + NumberOfRemindersOnPage} of {scopedReminders.Count()}");
 			for (int i = 0; i < NumberOfRemindersOnPage; ++i) {
-				var reminder = scopedReminders[page * RemindersPerPage + i];
+				var reminder = remindersOnPage[i];
 				string message = reminder.Message;
 				if (message.Length > 50) {
 					message = $"{message.Substring(0, 47)}...";
@@ -119,7 +126,7 @@ namespace RemindMe {
 			});
 			await UpdateMessage();
 			remindMe.BotMethods.AddReactionListener(this, channel.GuildId, message.Id, this);
-			if (scopedReminders.Count == 0) {
+			if (scopedRemindersCount == 0) {
 				await DisposeSelf();
 			} else {
 				timeoutTimer.Start();
@@ -127,9 +134,18 @@ namespace RemindMe {
 		}
 
 		private async Task UpdateMessage() {
+			++page;
+			do {
+				--page;
+				remindersOnPage = await scopedReminders.Skip(page * RemindersPerPage).Take(NumberOfRemindersOnPage).ToListAsync();
+				scopedRemindersCount = await scopedReminders.CountAsync();
+			} while (scopedRemindersCount > 0 && remindersOnPage.Count == 0 && page > 0);
+			foreach (var reminder in remindersOnPage) {
+				await reminder.UpdateCachedData(remindMe.BotMethods);
+			}
 			await message.ModifyAsync(GenerateMessage());
 			await UpdateReactions();
-			if (scopedReminders.Count == 0) {
+			if (scopedRemindersCount == 0) {
 				await DisposeSelf();
 			}
 		}
@@ -173,9 +189,9 @@ namespace RemindMe {
 					}
 				} else {
 					int index = DigitEmojis.ToList().IndexOf(e.Emoji);
-					var reminder = scopedReminders[index + RemindersPerPage * page];
-					scopedReminders.Remove(reminder);
-					remindMe.DeleteReminder(reminder);
+					var reminder = remindersOnPage[index];
+					await remindMe.DeleteReminder(reminder);
+					scopedRemindersCount = scopedReminders.Count();
 					if (page > 0 && NumberOfRemindersOnPage <= 0) {
 						--page;
 					}
@@ -197,6 +213,7 @@ namespace RemindMe {
 			if (disposing) {
 				if (timeoutTimer != null) {
 					timeoutTimer.Dispose();
+					db.Dispose();
 				}
 			}
 		}

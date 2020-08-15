@@ -1,29 +1,27 @@
 ﻿using BlendoBotLib;
 using DSharpPlus.Entities;
-using Newtonsoft.Json;
 using System;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Timers;
 
 namespace RemindMe {
-	[JsonObject(MemberSerialization.OptIn)]
-	public class Reminder : IComparable<Reminder>, IDisposable {
-		[JsonProperty(Required = Required.Always)]
+	public class Reminder : IComparable<Reminder> {
+		[Key]
+		public int ReminderId { get; set; }
 		public DateTime Time { get; set; }
-		[JsonProperty(Required = Required.Always)]
 		public string Message { get; set; }
-		[JsonProperty(Required = Required.Always)]
 		public ulong ChannelId { get; set; }
+		[NotMapped]
 		public DiscordChannel Channel { get; set; }
-		[JsonProperty(Required = Required.Always)]
 		public ulong UserId { get; set; }
+		[NotMapped]
 		public DiscordUser User { get; set; }
-		[JsonProperty(DefaultValueHandling = DefaultValueHandling.Populate)]
 		public ulong Frequency { get; set; } = 0ul;
 		public string FrequencyString => FrequencyToReadableString(Frequency);
 		public bool IsRepeating => Frequency > 0ul;
-		public Timer CallbackTimer { get; set; }
 
 		protected Reminder() {}
 
@@ -33,7 +31,6 @@ namespace RemindMe {
 			ChannelId = channelId;
 			UserId = userId;
 			Frequency = frequency;
-			CallbackTimer = null;
 			Channel = null;
 			User = null;
 		}
@@ -43,30 +40,16 @@ namespace RemindMe {
 			User = await botMethods.GetUser(this, UserId);
 		}
 
-		public void Activate(Action<object, ElapsedEventArgs, Reminder> action) {
-			if (CallbackTimer == null && (Time > DateTime.UtcNow) && (Time - DateTime.UtcNow) < new TimeSpan(1, 0, 0, 0)) {
-				CallbackTimer = new Timer((Time - DateTime.UtcNow).TotalMilliseconds) {
-					AutoReset = false
-				};
-				CallbackTimer.Elapsed += (sender, e) => action(sender, e, this);
-				CallbackTimer.Start();
+		public void UpdateReminderTime() {
+			if (IsRepeating) {
+				while (Time <= DateTime.UtcNow) {
+					Time = Time.AddSeconds(Frequency);
+				}
 			}
 		}
 
 		public int CompareTo(Reminder other) {
 			return Time.CompareTo(other?.Time);
-		}
-		public void Dispose() {
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
-		protected virtual void Dispose(bool disposing) {
-			if (disposing) {
-				if (CallbackTimer != null) {
-					CallbackTimer.Dispose();
-				}
-			}
 		}
 
 		public override bool Equals(object obj) {

@@ -174,7 +174,10 @@ namespace BlendoBot {
 			string logMessage = $"[{typeString}] ({DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}) [{sender?.GetType().FullName ?? "null"}] | {e.Message}";
 			Console.WriteLine(logMessage);
 			if (!Directory.Exists("log")) Directory.CreateDirectory("log");
-			File.AppendAllText(LogFile, logMessage + "\n");
+			using (var logStream = File.Open(LogFile, FileMode.Append, FileAccess.Write, FileShare.ReadWrite)) {
+				using var writer = new StreamWriter(logStream);
+				writer.WriteLine(logMessage);
+			}
 		}
 		public string ReadConfig(object o, string configHeader, string configKey) {
 			return Config.ReadString(o, configHeader, configKey);
@@ -240,7 +243,7 @@ namespace BlendoBot {
 		/// <returns></returns>
 		public T GetCommand<T>(object sender, ulong guildId) where T : CommandBase {
 			if (GuildCommands.ContainsKey(guildId)) {
-				return GuildCommands[guildId].First(c => c.Value is T).Value as T;
+				return GuildCommands[guildId].FirstOrDefault(c => c.Value is T).Value as T;
 			}
 			return null;
 		}
