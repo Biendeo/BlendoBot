@@ -21,5 +21,9 @@ namespace RemindMe {
 				return SettingsSet.Single();
 			}
 		}
+		protected override void OnModelCreating(ModelBuilder modelBuilder) {
+			base.OnModelCreating(modelBuilder);
+			modelBuilder.Entity<Reminder>().Property(r => r.Time).HasConversion(t => t, t => DateTime.SpecifyKind(t, DateTimeKind.Utc));
+		}
 	}
 }

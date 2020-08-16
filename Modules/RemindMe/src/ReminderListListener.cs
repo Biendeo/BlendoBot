@@ -200,7 +200,14 @@ namespace RemindMe {
 				timeoutTimer.Start();
 				await UpdateMessage();
 			} else {
-				await message.DeleteReactionAsync(e.Emoji, e.User, "Invalid reaction to reminder list");
+				try {
+					await message.DeleteReactionAsync(e.Emoji, e.User, "Invalid reaction to reminder list");
+				} catch (UnauthorizedException) {
+					remindMe.BotMethods.Log(this, new LogEventArgs {
+						Message = $"ReminderList tried clearing reactions, but couldn't because it doesn't have permission. The user must clear their own reaction.",
+						Type = LogType.Warning
+					});
+				}
 			}
 		}
 

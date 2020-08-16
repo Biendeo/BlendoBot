@@ -428,14 +428,14 @@ namespace BlendoBot {
 			int messageListenerCount = 0;
 			int reactionListenerCount = 0;
 			if (GuildMessageListeners.ContainsKey(guildId)) {
-				foreach (var messageListener in GuildMessageListeners[guildId].Where(ml => ml.Command == command)) {
+				foreach (var messageListener in GuildMessageListeners[guildId].Where(ml => ml.Command == command).ToList()) {
 					RemoveMessageListener(o, guildId, messageListener);
 					++messageListenerCount;
 				}
 			}
 			if (MessageReactionListeners.ContainsKey(guildId)) {
-				foreach (var messageId in MessageReactionListeners[guildId].Keys) {
-					foreach (var reactionListener in MessageReactionListeners[guildId][messageId].Where(rl => rl.Command == command)) {
+				foreach (var messageId in MessageReactionListeners[guildId].Keys.ToList()) {
+					foreach (var reactionListener in MessageReactionListeners[guildId][messageId].Where(rl => rl.Command == command).ToList()) {
 						RemoveReactionListener(o, guildId, messageId, reactionListener);
 						++reactionListenerCount;
 					}
