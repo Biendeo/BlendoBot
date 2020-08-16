@@ -56,6 +56,16 @@ namespace BlendoBotLib {
 		void RemoveMessageListener(object o, ulong guildId, IMessageListener messageListener);
 
 		/// <summary>
+		/// Adds a reaction listener to the program for this command.
+		/// </summary>
+		void AddReactionListener(object o, ulong guildId, ulong messageId, IReactionListener reactionListener);
+
+		/// <summary>
+		/// Removes a message listener from the program for this command.
+		/// </summary>
+		void RemoveReactionListener(object o, ulong guildId, ulong messageId, IReactionListener reactionListener);
+
+		/// <summary>
 		/// Gets an instance of a command for the given guildId.
 		/// </summary>
 		T GetCommand<T>(object o, ulong guildId) where T : CommandBase;
@@ -87,5 +97,10 @@ namespace BlendoBotLib {
 		/// Given a channel ID, returns the channel object.
 		/// </summary>
 		Task<DiscordChannel> GetChannel(object o, ulong channelId);
+
+		/// <summary>
+		/// Given a user ID, returns the user object.
+		/// </summary>
+		Task<DiscordUser> GetUser(object o, ulong userId);
 	}
 }

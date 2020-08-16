@@ -354,27 +354,5 @@ namespace BlendoBot.Commands.Admin {
 
 		public string UnknownCommandPrefix => OtherSettings.UnknownCommandPrefix;
 		public bool IsUnknownCommandEnabled => OtherSettings.IsUnknownCommandEnabled;
-
-		public bool DisableCommand(string term) {
-			if (!IsCommandTermDisabled(term)) {
-				//TODO: Get the command class name.
-				//TODO: Remove the command.
-				SaveData();
-				return true;
-			} else {
-				return false;
-			}
-		}
-
-		public bool EnableCommandTerm(string term) {
-			if (IsCommandTermDisabled(term)) {
-				disabledCommands.RemoveAll(dc => dc.Term == term);
-				//TODO: Instantiate the command again.
-				SaveData();
-				return true;
-			} else {
-				return false;
-			}
-		}
 	}
 }

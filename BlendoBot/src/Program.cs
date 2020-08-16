@@ -4,6 +4,7 @@ using BlendoBotLib;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
+using Newtonsoft.Json.Schema;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -23,6 +24,7 @@ namespace BlendoBot {
 		private Dictionary<string, Type> LoadedCommands { get; set; }
 		private Dictionary<ulong, Dictionary<string, CommandBase>> GuildCommands { get; set; }
 		private Dictionary<ulong, List<IMessageListener>> GuildMessageListeners { get; set; }
+		private Dictionary<ulong, Dictionary<ulong, List<IReactionListener>>> MessageReactionListeners { get; set; }
 
 		private Timer HeartbeatCheck { get; set; }
 
@@ -38,6 +40,7 @@ namespace BlendoBot {
 			LoadedCommands = new Dictionary<string, Type>();
 			GuildCommands = new Dictionary<ulong, Dictionary<string, CommandBase>>();
 			GuildMessageListeners = new Dictionary<ulong, List<IMessageListener>>();
+			MessageReactionListeners = new Dictionary<ulong, Dictionary<ulong, List<IReactionListener>>>();
 			// The rest of the fields will be initialised during the Start operation.
 		}
 
@@ -82,6 +85,7 @@ namespace BlendoBot {
 
 			DiscordClient.Ready += DiscordReady;
 			DiscordClient.MessageCreated += DiscordMessageCreated;
+			DiscordClient.MessageReactionAdded += DiscordReactionAdded;
 			DiscordClient.GuildCreated += DiscordGuildCreated;
 			DiscordClient.GuildAvailable += DiscordGuildAvailable;
 
@@ -196,7 +200,10 @@ namespace BlendoBot {
 			string logMessage = $"[{typeString}] ({DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}) [{sender?.GetType().FullName ?? "null"}] | {e.Message}";
 			Console.WriteLine(logMessage);
 			if (!Directory.Exists("log")) Directory.CreateDirectory("log");
-			File.AppendAllText(LogFile, logMessage + "\n");
+			using (var logStream = File.Open(LogFile, FileMode.Append, FileAccess.Write, FileShare.ReadWrite)) {
+				using var writer = new StreamWriter(logStream);
+				writer.WriteLine(logMessage);
+			}
 		}
 		public string ReadConfig(object o, string configHeader, string configKey) {
 			return Config.ReadString(o, configHeader, configKey);
@@ -227,6 +234,32 @@ namespace BlendoBot {
 			}
 		}
 
+		public void AddReactionListener(object sender, ulong guildId, ulong messageId, IReactionListener reactionListener) {
+			if (!MessageReactionListeners.ContainsKey(guildId)) {
+				MessageReactionListeners.Add(guildId, new Dictionary<ulong, List<IReactionListener>>());
+			}
+			if (!MessageReactionListeners[guildId].ContainsKey(messageId)) {
+				MessageReactionListeners[guildId].Add(messageId, new List<IReactionListener> { reactionListener });
+			} else {
+				MessageReactionListeners[guildId][messageId].Add(reactionListener);
+			}
+		}
+
+		public void RemoveReactionListener(object sender, ulong guildId, ulong messageId, IReactionListener reactionListener) {
+			if (MessageReactionListeners.ContainsKey(guildId) && MessageReactionListeners[guildId].ContainsKey(messageId)) {
+				MessageReactionListeners[guildId][messageId].Remove(reactionListener);
+				if (MessageReactionListeners[guildId][messageId].Count == 0) {
+					MessageReactionListeners[guildId].Remove(messageId);
+				}
+				if (MessageReactionListeners[guildId].Count == 0) {
+					MessageReactionListeners.Remove(guildId);
+				}
+			}
+			if (reactionListener is IDisposable disposable) {
+				disposable.Dispose();
+			}
+		}
+
 		/// <summary>
 		/// Returns and instance of a command given the guild ID given the type.
 		/// Returns null if the command could not be found.
@@ -236,7 +269,7 @@ namespace BlendoBot {
 		/// <returns></returns>
 		public T GetCommand<T>(object sender, ulong guildId) where T : CommandBase {
 			if (GuildCommands.ContainsKey(guildId)) {
-				return GuildCommands[guildId].First(c => c.Value is T).Value as T;
+				return GuildCommands[guildId].FirstOrDefault(c => c.Value is T).Value as T;
 			}
 			return null;
 		}
@@ -265,6 +298,10 @@ namespace BlendoBot {
 
 		public async Task<DiscordChannel> GetChannel(object o, ulong channelId) {
 			return await DiscordClient.GetChannelAsync(channelId);
+		}
+
+		public async Task<DiscordUser> GetUser(object o, ulong userId) {
+			return await DiscordClient.GetUserAsync(userId);
 		}
 
 		#endregion
@@ -310,6 +347,27 @@ namespace BlendoBot {
 				}
 				foreach (var listener in GuildMessageListeners[e.Guild.Id]) {
 					await listener.OnMessage(e);
+				}
+			}
+		}
+
+		private async Task DiscordReactionAdded(MessageReactionAddEventArgs e) {
+			await Task.Delay(0);
+			if (!e.User.IsCurrent && !e.User.IsBot) {
+				if (MessageReactionListeners.TryGetValue(e.Guild.Id, out var guildMessageReactionListeners)) {
+					if (guildMessageReactionListeners.TryGetValue(e.Message.Id, out var reactionListeners)) {
+						foreach (var listener in reactionListeners) {
+							try {
+								await listener.OnReactionAdd(e);
+							} catch (Exception exc) {
+								await SendException(this, new SendExceptionEventArgs {
+									Exception = exc,
+									Channel = e.Channel,
+									LogExceptionType = "GenericExceptionNotCaught"
+								});
+							}
+						}
+					}
 				}
 			}
 		}
@@ -404,9 +462,20 @@ namespace BlendoBot {
 		public async Task RemoveCommand(object o, ulong guildId, string classTerm) {
 			var command = GuildCommands[guildId][classTerm];
 			int messageListenerCount = 0;
-			foreach (var messageListener in GuildMessageListeners[guildId].Where(ml => ml.Command == command)) {
-				RemoveMessageListener(o, guildId, messageListener);
-				++messageListenerCount;
+			int reactionListenerCount = 0;
+			if (GuildMessageListeners.ContainsKey(guildId)) {
+				foreach (var messageListener in GuildMessageListeners[guildId].Where(ml => ml.Command == command).ToList()) {
+					RemoveMessageListener(o, guildId, messageListener);
+					++messageListenerCount;
+				}
+			}
+			if (MessageReactionListeners.ContainsKey(guildId)) {
+				foreach (var messageId in MessageReactionListeners[guildId].Keys.ToList()) {
+					foreach (var reactionListener in MessageReactionListeners[guildId][messageId].Where(rl => rl.Command == command).ToList()) {
+						RemoveReactionListener(o, guildId, messageId, reactionListener);
+						++reactionListenerCount;
+					}
+				}
 			}
 			GuildCommands[guildId].Remove(classTerm);
 			if (command is IDisposable disposable) {
@@ -414,7 +483,7 @@ namespace BlendoBot {
 			}
 			Log(this, new LogEventArgs {
 				Type = LogType.Log,
-				Message = $"Successfully unloaded module {command.GetType().FullName} and {messageListenerCount} message listener{(messageListenerCount == 1 ? "" : "s")}"
+				Message = $"Successfully unloaded module {command.GetType().FullName}, {messageListenerCount} message listener{(messageListenerCount == 1 ? string.Empty : "s")}, and {reactionListenerCount} reaction listener{(reactionListenerCount == 1 ? string.Empty : "s")}"
 			});
 			await Task.Delay(0);
 		}

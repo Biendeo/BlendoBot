@@ -1,55 +1,55 @@
-﻿using DSharpPlus.Entities;
-using Newtonsoft.Json;
+﻿using BlendoBotLib;
+using DSharpPlus.Entities;
 using System;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Timers;
 
 namespace RemindMe {
-	[JsonObject(MemberSerialization.OptIn)]
-	public class Reminder : IComparable<Reminder>, IDisposable {
-		[JsonProperty(Required = Required.Always)]
+	public class Reminder : IComparable<Reminder> {
+		[Key]
+		public int ReminderId { get; set; }
 		public DateTime Time { get; set; }
-		[JsonProperty(Required = Required.Always)]
 		public string Message { get; set; }
-		[JsonProperty(Required = Required.Always)]
 		public ulong ChannelId { get; set; }
-		[JsonProperty(Required = Required.Always)]
+		[NotMapped]
+		public DiscordChannel Channel { get; set; }
 		public ulong UserId { get; set; }
-		public Timer CallbackTimer { get; set; }
+		[NotMapped]
+		public DiscordUser User { get; set; }
+		public ulong Frequency { get; set; } = 0ul;
+		public string FrequencyString => FrequencyToReadableString(Frequency);
+		public bool IsRepeating => Frequency > 0ul;
 
 		protected Reminder() {}
 
-		public Reminder(DateTime time, string message, ulong channelId, ulong userId) {
+		public Reminder(DateTime time, string message, ulong channelId, ulong userId, ulong frequency) {
 			Time = time;
 			Message = message;
 			ChannelId = channelId;
 			UserId = userId;
-			CallbackTimer = null;
+			Frequency = frequency;
+			Channel = null;
+			User = null;
 		}
 
-		public void Activate(Action<object, ElapsedEventArgs, Reminder> action) {
-			if (CallbackTimer == null && (Time > DateTime.UtcNow) && (Time - DateTime.UtcNow) < new TimeSpan(1, 0, 0, 0)) {
-				CallbackTimer = new Timer((Time - DateTime.UtcNow).TotalMilliseconds) {
-					AutoReset = false
-				};
-				CallbackTimer.Elapsed += (sender, e) => action(sender, e, this);
-				CallbackTimer.Start();
+		public async Task UpdateCachedData(IBotMethods botMethods) {
+			Channel = await botMethods.GetChannel(this, ChannelId);
+			User = await botMethods.GetUser(this, UserId);
+		}
+
+		public void UpdateReminderTime() {
+			if (IsRepeating) {
+				while (Time <= DateTime.UtcNow) {
+					Time = Time.AddSeconds(Frequency);
+				}
 			}
 		}
 
 		public int CompareTo(Reminder other) {
-			return Time.CompareTo(other.Time);
-		}
-		public void Dispose() {
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
-		protected virtual void Dispose(bool disposing) {
-			if (disposing) {
-				if (CallbackTimer != null) {
-					CallbackTimer.Dispose();
-				}
-			}
+			return Time.CompareTo(other?.Time);
 		}
 
 		public override bool Equals(object obj) {
@@ -94,6 +94,21 @@ namespace RemindMe {
 
 		public static bool operator >=(Reminder left, Reminder right) {
 			return left is null ? right is null : left.CompareTo(right) >= 0;
+		}
+
+		public static string FrequencyToReadableString(ulong frequency) {
+			if (frequency % 86400 == 0) {
+				ulong quantity = frequency / 86400;
+				return $"{quantity} day{(quantity == 1 ? string.Empty : "s")}";
+			} else if (frequency % 3600 == 0) {
+				ulong quantity = frequency / 3600;
+				return $"{quantity} hour{(quantity == 1 ? string.Empty : "s")}";
+			} else if (frequency % 60 == 0) {
+				ulong quantity = frequency / 60;
+				return $"{quantity} minute{(quantity == 1 ? string.Empty : "s")}";
+			} else {
+				return $"{frequency} second{(frequency == 1 ? string.Empty : "s")}";
+			}
 		}
 	}
 }
