@@ -370,9 +370,10 @@ namespace RemindMe {
 						successfulFormat = false;
 						break;
 				}
-				if (frequency < 10ul) {
+				ulong minimumRepeatTime = db.Settings.MinimumRepeatTime;
+				if (frequency < minimumRepeatTime) {
 					await BotMethods.SendMessage(this, new SendMessageEventArgs {
-						Message = $"The every frequency you input was less than 10 seconds! Please use a longer frequency!",
+						Message = $"The every frequency you input was less than {Reminder.FrequencyToReadableString(minimumRepeatTime)}! Please use a longer frequency!",
 						Channel = e.Channel,
 						LogMessage = "ReminderErrorInvalidEveryTooLow"
 					});
