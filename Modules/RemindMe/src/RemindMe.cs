@@ -430,6 +430,7 @@ namespace RemindMe {
 					if (ulong.TryParse(splitMessage[3], out ulong minRepeatTime)) {
 						if (minRepeatTime == 0ul) {
 							db.Settings.MinimumRepeatTime = minRepeatTime;
+							await db.SaveChangesAsync();
 							await BotMethods.SendMessage(this, new SendMessageEventArgs {
 								Message = $"Repeat reminders are now disabled. New messages can't use the \"every\" feature.",
 								Channel = e.Channel,
@@ -443,6 +444,7 @@ namespace RemindMe {
 							});
 						} else {
 							db.Settings.MinimumRepeatTime = minRepeatTime;
+							await db.SaveChangesAsync();
 							await BotMethods.SendMessage(this, new SendMessageEventArgs {
 								Message = $"Repeat reminders are enabled and the minimum repeat interval is now {Reminder.FrequencyToReadableString(minRepeatTime)}.",
 								Channel = e.Channel,
@@ -460,6 +462,7 @@ namespace RemindMe {
 					if (int.TryParse(splitMessage[3], out int maxReminders)) {
 						if (maxReminders > 0) {
 							db.Settings.MaximumRemindersPerPerson = maxReminders;
+							await db.SaveChangesAsync();
 							await BotMethods.SendMessage(this, new SendMessageEventArgs {
 								Message = $"Maximum reminders per person is now {maxReminders}.",
 								Channel = e.Channel,
