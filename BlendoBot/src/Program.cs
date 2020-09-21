@@ -11,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using System.Timers;
 
 namespace BlendoBot {
 	public class Program : IBotMethods {
@@ -24,6 +25,10 @@ namespace BlendoBot {
 		private Dictionary<ulong, Dictionary<string, CommandBase>> GuildCommands { get; set; }
 		private Dictionary<ulong, List<IMessageListener>> GuildMessageListeners { get; set; }
 		private Dictionary<ulong, Dictionary<ulong, List<IReactionListener>>> MessageReactionListeners { get; set; }
+
+		private Timer HeartbeatCheck { get; set; }
+
+		private int ClientRestarts { get; set; }
 
 		public static void Main(string[] args) {
 			var program = new Program("config.cfg");
@@ -54,6 +59,20 @@ namespace BlendoBot {
 				}
 			}
 
+			await SetupDiscordClient();
+
+			LoadCommands();
+
+			HeartbeatCheck = new Timer(120000.0);
+			HeartbeatCheck.Elapsed += HeartbeatCheck_Elapsed;
+			HeartbeatCheck.AutoReset = true;
+			HeartbeatCheck.Start();
+			ClientRestarts = 0;
+
+			await Task.Delay(-1);
+		}
+
+		private async Task SetupDiscordClient() {
 			//! This is very unsafe because other modules can attempt to read the bot API token, and worse, try and
 			//! change it.
 			DiscordClient = new DiscordClient(new DiscordConfiguration {
@@ -75,11 +94,18 @@ namespace BlendoBot {
 			DiscordClient.SocketClosed += DiscordSocketClosed;
 			DiscordClient.SocketErrored += DiscordSocketErrored;
 
-			LoadCommands();
+			DiscordClient.Heartbeated += DiscordHeartbeated;
 
 			await DiscordClient.ConnectAsync();
+		}
 
-			await Task.Delay(-1);
+		private void HeartbeatCheck_Elapsed(object sender, ElapsedEventArgs e) {
+			Log(this, new LogEventArgs {
+				Type = LogType.Error,
+				Message = $"Heartbeat didn't occur for 120 seconds, re-connecting..."
+			});
+			DiscordClient.Dispose();
+			SetupDiscordClient().RunSynchronously();
 		}
 
 		/// <summary>
@@ -382,7 +408,6 @@ namespace BlendoBot {
 
 			await Task.Delay(0);
 		}
-
 		private async Task DiscordSocketErrored(SocketErrorEventArgs e) {
 			Log(this, new LogEventArgs {
 				Type = LogType.Error,
@@ -390,7 +415,18 @@ namespace BlendoBot {
 			});
 
 			//HACK: This should try and reconnect should something wrong happen.
-			await DiscordClient.ConnectAsync();
+			await DiscordClient.ReconnectAsync();
+
+			await Task.Delay(0);
+		}
+
+		private async Task DiscordHeartbeated(HeartbeatEventArgs e) {
+			Log(this, new LogEventArgs {
+				Type = LogType.Log,
+				Message = $"Heartbeat triggered: handled = {e.Handled}, ping = {e.Ping}, timestamp = {e.Timestamp}"
+			});
+			HeartbeatCheck.Stop();
+			HeartbeatCheck.Start();
 
 			await Task.Delay(0);
 		}
