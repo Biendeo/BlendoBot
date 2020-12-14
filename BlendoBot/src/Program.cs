@@ -346,7 +346,15 @@ namespace BlendoBot {
 					}
 				}
 				foreach (var listener in GuildMessageListeners[e.Guild.Id]) {
-					await listener.OnMessage(e);
+					try {
+						await listener.OnMessage(e);
+					} catch (Exception exc) {
+						await SendException(this, new SendExceptionEventArgs {
+							Exception = exc,
+							Channel = e.Channel,
+							LogExceptionType = "GenericExceptionNotCaught"
+						});
+					}
 				}
 			}
 		}
