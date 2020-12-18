@@ -308,7 +308,7 @@ namespace BlendoBot {
 
 		#region Discord Client Methods
 
-		private async Task DiscordReady(ReadyEventArgs e) {
+		private async Task DiscordReady(DiscordClient sender, ReadyEventArgs e) {
 			if (Config.ActivityType.HasValue) {
 				await DiscordClient.UpdateStatusAsync(new DiscordActivity(Config.ActivityName, Config.ActivityType.Value), UserStatus.Online, DateTime.Now);
 			}
@@ -318,7 +318,7 @@ namespace BlendoBot {
 			});
 		}
 
-		private async Task DiscordMessageCreated(MessageCreateEventArgs e) {
+		private async Task DiscordMessageCreated(DiscordClient sender, MessageCreateEventArgs e) {
 			await Task.Delay(0);
 			// The rule is: don't react to my own messages, and commands need to be triggered with a
 			// ? character.
@@ -359,7 +359,7 @@ namespace BlendoBot {
 			}
 		}
 
-		private async Task DiscordReactionAdded(MessageReactionAddEventArgs e) {
+		private async Task DiscordReactionAdded(DiscordClient sender, MessageReactionAddEventArgs e) {
 			await Task.Delay(0);
 			if (!e.User.IsCurrent && !e.User.IsBot) {
 				if (MessageReactionListeners.TryGetValue(e.Guild.Id, out var guildMessageReactionListeners)) {
@@ -380,7 +380,7 @@ namespace BlendoBot {
 			}
 		}
 
-		private async Task DiscordGuildCreated(GuildCreateEventArgs e) {
+		private async Task DiscordGuildCreated(DiscordClient sender, GuildCreateEventArgs e) {
 			Log(this, new LogEventArgs {
 				Type = LogType.Log,
 				Message = $"Guild created: {e.Guild.Name} ({e.Guild.Id})"
@@ -388,7 +388,7 @@ namespace BlendoBot {
 
 			await Task.Delay(0);
 		}
-		private async Task DiscordGuildAvailable(GuildCreateEventArgs e) {
+		private async Task DiscordGuildAvailable(DiscordClient sender, GuildCreateEventArgs e) {
 			Log(this, new LogEventArgs {
 				Type = LogType.Log,
 				Message = $"Guild available: {e.Guild.Name} ({e.Guild.Id})"
@@ -399,7 +399,7 @@ namespace BlendoBot {
 			await Task.Delay(0);
 		}
 
-		private async Task DiscordClientErrored(ClientErrorEventArgs e) {
+		private async Task DiscordClientErrored(DiscordClient sender, ClientErrorEventArgs e) {
 			Log(this, new LogEventArgs {
 				Type = LogType.Error,
 				Message = $"ClientErrored triggered: {e.Exception}"
@@ -408,7 +408,7 @@ namespace BlendoBot {
 			await Task.Delay(0);
 		}
 
-		private async Task DiscordSocketClosed(SocketCloseEventArgs e) {
+		private async Task DiscordSocketClosed(DiscordClient sender, SocketCloseEventArgs e) {
 			Log(this, new LogEventArgs {
 				Type = LogType.Error,
 				Message = $"SocketClosed triggered: {e.CloseCode} - {e.CloseMessage}"
@@ -416,7 +416,7 @@ namespace BlendoBot {
 
 			await Task.Delay(0);
 		}
-		private async Task DiscordSocketErrored(SocketErrorEventArgs e) {
+		private async Task DiscordSocketErrored(DiscordClient sender, SocketErrorEventArgs e) {
 			Log(this, new LogEventArgs {
 				Type = LogType.Error,
 				Message = $"SocketErrored triggered: {e.Exception}"
@@ -428,13 +428,13 @@ namespace BlendoBot {
 			await Task.Delay(0);
 		}
 
-		private async Task DiscordHeartbeated(HeartbeatEventArgs e) {
+		private async Task DiscordHeartbeated(DiscordClient sender, HeartbeatEventArgs e) {
 			Log(this, new LogEventArgs {
 				Type = LogType.Log,
 				Message = $"Heartbeat triggered: handled = {e.Handled}, ping = {e.Ping}, timestamp = {e.Timestamp}"
 			});
-			HeartbeatCheck.Stop();
-			HeartbeatCheck.Start();
+			HeartbeatCheck?.Stop();
+			HeartbeatCheck?.Start();
 
 			await Task.Delay(0);
 		}
