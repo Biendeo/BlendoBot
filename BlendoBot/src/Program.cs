@@ -394,7 +394,10 @@ namespace BlendoBot {
 				Message = $"Guild available: {e.Guild.Name} ({e.Guild.Id})"
 			});
 
-			await InstantiateCommandsForGuild(e.Guild.Id);
+
+			// An interesting workaround for a timeout exception.
+			// https://github.com/DSharpPlus/DSharpPlus/issues/710#issuecomment-744685268
+			_ = Task.Run(() => InstantiateCommandsForGuild(e.Guild.Id));
 
 			await Task.Delay(0);
 		}
