@@ -197,12 +197,25 @@ namespace BlendoBot {
 
 		public void Log(object sender, LogEventArgs e) {
 			string typeString = Enum.GetName(typeof(LogType), e.Type);
-			string logMessage = $"[{typeString}] ({DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}) [{sender?.GetType().FullName ?? "null"}] | {e.Message}";
-			Console.WriteLine(logMessage);
-			if (!Directory.Exists("log")) Directory.CreateDirectory("log");
-			using (var logStream = File.Open(LogFile, FileMode.Append, FileAccess.Write, FileShare.ReadWrite)) {
-				using var writer = new StreamWriter(logStream);
-				writer.WriteLine(logMessage);
+			lock (Console.Out) {
+				ConsoleColor existingColor = Console.ForegroundColor;
+				if (e.Type == LogType.Log) Console.ForegroundColor = ConsoleColor.Blue;
+				else if (e.Type == LogType.Warning) Console.ForegroundColor = ConsoleColor.Yellow;
+				else if (e.Type == LogType.Error) Console.ForegroundColor = ConsoleColor.Red;
+				else if (e.Type == LogType.Critical) Console.ForegroundColor = ConsoleColor.DarkRed;
+				Console.Write($"[{typeString}] ");
+				Console.ForegroundColor = ConsoleColor.Green;
+				Console.Write($"({DateTime.Now:yyyy-MM-dd HH:mm:ss}) ");
+				Console.ForegroundColor = ConsoleColor.DarkGray;
+				Console.Write($"[{sender?.GetType().FullName ?? "null"}] | ");
+				Console.ForegroundColor = existingColor;
+				Console.WriteLine(e.Message);
+				string logMessage = $"[{typeString}] ({DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}) [{sender?.GetType().FullName ?? "null"}] | {e.Message}";
+				if (!Directory.Exists("log")) Directory.CreateDirectory("log");
+				using (var logStream = File.Open(LogFile, FileMode.Append, FileAccess.Write, FileShare.ReadWrite)) {
+					using var writer = new StreamWriter(logStream);
+					writer.WriteLine(logMessage);
+				}
 			}
 		}
 		public string ReadConfig(object o, string configHeader, string configKey) {
