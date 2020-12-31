@@ -1,4 +1,5 @@
 ﻿using BlendoBotLib;
+using BlendoBotLib.Attributes;
 using DSharpPlus.EventArgs;
 using System;
 using System.Collections.Generic;
@@ -6,15 +7,10 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace BlendoBot.Commands {
+	[Command("?regional", "Regional Indicator", "Converts a message into lovely regional indicator text.", "Biendeo", "0.1.0")]
 	public class Regional : CommandBase {
 		public Regional(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
-
-		public override string DefaultTerm => "?regional";
-		public override string Name => "Regional Indicator";
-		public override string Description => "Converts a message into lovely regional indicator text.";
 		public override string Usage => $"Usage: {$"{Term} [message]".Code()}";
-		public override string Author => "Biendeo";
-		public override string Version => "0.1.0";
 
 		private static readonly Dictionary<char, string> characterMappings = new Dictionary<char, string> {
 			{ 'a', ":regional_indicator_a:" },

@@ -1,4 +1,5 @@
 ﻿using BlendoBotLib;
+using BlendoBotLib.Attributes;
 using DSharpPlus.EventArgs;
 using DSharpPlus.Exceptions;
 using Microsoft.EntityFrameworkCore;
@@ -12,12 +13,9 @@ using System.Threading.Tasks;
 using System.Timers;
 
 namespace RemindMe {
+	[Command("?remind", "Remind Me", "Reminds you about something later on!", "Biendeo", "0.3.0")]
 	public class RemindMe : CommandBase, IDisposable {
 		public RemindMe(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
-
-		public override string DefaultTerm => "?remind";
-		public override string Name => "Remind Me";
-		public override string Description => "Reminds you about something later on!";
 		public override string Usage {
 			get {
 				var sb = new StringBuilder();
@@ -73,8 +71,6 @@ namespace RemindMe {
 				return sb.ToString();
 			}
 		}
-		public override string Author => "Biendeo";
-		public override string Version => "0.3.0";
 
 		private string DatabasePath => Path.Combine(BotMethods.GetCommandInstanceDataPath(this, this), "blendobot-remindme-database.db");
 		internal const string TimeFormatString = "d/MM/yyyy h:mm:ss tt";
@@ -170,7 +166,7 @@ namespace RemindMe {
 			string[] splitMessage = e.Message.Content.Split(' ');
 
 			using var db = GetContext();
-			
+
 			// The list functionality is separate.
 			if (splitMessage.Length >= 2 && splitMessage[1].ToLower() == "list") {
 				await SendListMessage(e, false);

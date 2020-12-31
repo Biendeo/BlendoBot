@@ -1,4 +1,5 @@
 ﻿using BlendoBotLib;
+using BlendoBotLib.Attributes;
 using DSharpPlus.EventArgs;
 using Newtonsoft.Json;
 using System;
@@ -8,15 +9,10 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace CurrencyConverter {
+	[Command("?currency", "Currency Converter", "Returns the conversion rate between two currencies.", "Biendeo", "0.1.1")]
 	public class CurrencyConverter : CommandBase {
 		public CurrencyConverter(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
-
-		public override string DefaultTerm => "?currency";
-		public override string Name => "Currency Converter";
-		public override string Description => "Returns the conversion rate between two currencies.";
 		public override string Usage => $"Usage: {$"{Term} [value] [from currency code] [to currency code] ...".Code()}\nYou can write several currencies, and a conversion will be listed for each one.";
-		public override string Author => "Biendeo";
-		public override string Version => "0.1.1";
 
 		private const string APIKeyMissingMessage = "PLEASE ADD API KEY";
 		private static bool IsApiKeyMissing(string apiKey) => apiKey == null || apiKey == APIKeyMissingMessage;

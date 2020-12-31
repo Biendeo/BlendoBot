@@ -1,4 +1,5 @@
 ﻿using BlendoBotLib;
+using BlendoBotLib.Attributes;
 using DSharpPlus.EventArgs;
 using System;
 using System.Text;
@@ -8,17 +9,12 @@ namespace BlendoBot.Commands {
 	/// <summary>
 	/// The about command, which simply prints out the <see cref="CommandProps.Description"/> property of a <see cref="ICommand"/>, or on its own details about the bot.
 	/// </summary>
+	[Command("?about", "About", "Posts information about this version of the bot, or of any loaded module. You probably already know how to use this command by now.", "Biendeo", "1.0.0")]
 	public class About : CommandBase {
 		public About(ulong guildId, Program program) : base(guildId, program) {
 			this.program = program;
 		}
-
-		public override string DefaultTerm => "?about";
-		public override string Name => "About";
-		public override string Description => "Posts information about this version of the bot, or of any loaded module. You probably already know how to use this command by now.";
 		public override string Usage => $"Use {Term.Code()} to see the information about the bot.\nUse {$"{Term} [command]".Code()} to see information about another command.";
-		public override string Author => "Biendeo";
-		public override string Version => "1.0.0";
 
 		private readonly Program program;
 

@@ -1,18 +1,14 @@
 ﻿using BlendoBotLib;
+using BlendoBotLib.Attributes;
 using DSharpPlus.EventArgs;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace DecimalSpiral {
+	[Command("?ds", "Decimal Spiral", "Makes a pretty spiral.", "Biendeo", "0.1.0")]
 	public class DecimalSpiral : CommandBase {
 		public DecimalSpiral(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
-
-		public override string DefaultTerm => "?ds";
-		public override string Name => "Decimal Spiral";
-		public override string Description => "Makes a pretty spiral.";
 		public override string Usage => $"Usage: {$"{Term} [size]".Code()} {"".Italics()}\nThe size must be an odd number between 5 and 43!";
-		public override string Author => "Biendeo";
-		public override string Version => "0.1.0";
 
 		private enum Direction {
 			Up,

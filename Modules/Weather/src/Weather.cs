@@ -1,4 +1,5 @@
 ﻿using BlendoBotLib;
+using BlendoBotLib.Attributes;
 using DSharpPlus.EventArgs;
 using Newtonsoft.Json;
 using System;
@@ -7,15 +8,10 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Weather {
+	[Command("?weather", "Weather", "Returns the weather for a given address.", "Biendeo", "0.1.0")]
 	public class Weather : CommandBase {
 		public Weather(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
-
-		public override string DefaultTerm => "?weather";
-		public override string Name => "Weather";
-		public override string Description => $"Returns the weather for a given address.\nUsage: {Term} [location]";
 		public override string Usage => $"Usage: {$"{Term} [location]".Code()}";
-		public override string Author => "Biendeo";
-		public override string Version => "0.1.0";
 
 		private const string APIKeyMissingMessage = "PLEASE ADD API KEY";
 		private static bool IsApiKeyMissing(string apiKey) => apiKey == null || apiKey == APIKeyMissingMessage;

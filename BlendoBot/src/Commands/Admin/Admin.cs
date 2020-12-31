@@ -1,4 +1,5 @@
 ﻿using BlendoBotLib;
+using BlendoBotLib.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using Newtonsoft.Json;
@@ -10,6 +11,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace BlendoBot.Commands.Admin {
+	[Command("?admin", "Admin", "Does admin stuff, but only if you are either an administrator of the server, or if you've been granted permission!", "Biendeo", "2.1.0")]
 	public class Admin : CommandBase {
 		public Admin(ulong guildId, Program program) : base(guildId, program) {
 			this.program = program;
@@ -18,10 +20,6 @@ namespace BlendoBot.Commands.Admin {
 			administrators = new List<DiscordUser>();
 			OtherSettings = new OtherSettings();
 		}
-
-		public override string DefaultTerm => "?admin";
-		public override string Name => "Admin";
-		public override string Description => "Does admin stuff, but only if you are either an administrator of the server, or if you've been granted permission!";
 		public override string Usage => $"Usage:\n" +
 			$"({"All of these commands are only accessible if you are either an administrator role on this Discord guild, or if you have been added to this admin list!".Italics()})\n" +
 			$"{$"{Term} user add @person".Code()} ({"Adds a new person to be a BlendoBot administrator".Italics()})\n" +
@@ -34,8 +32,6 @@ namespace BlendoBot.Commands.Admin {
 			$"{$"{Term} command unknownprefix".Code()} ({"Lists the current prefix used for the unknown command message".Italics()})\n" +
 			$"{$"{Term} command unknownprefix [prefix]".Code()} ({"Changes the prefix used for the unkown command message".Italics()})\n" +
 			$"{$"{Term} command unknowntoggle".Code()} ({"Toggles whether the unknown command message appears".Italics()})";
-		public override string Author => "Biendeo";
-		public override string Version => "2.1.0";
 
 		private readonly Program program;
 

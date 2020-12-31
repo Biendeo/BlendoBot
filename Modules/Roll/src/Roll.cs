@@ -1,4 +1,5 @@
 ﻿using BlendoBotLib;
+using BlendoBotLib.Attributes;
 using DSharpPlus.EventArgs;
 using System;
 using System.Collections.Generic;
@@ -7,15 +8,10 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Roll {
+	[Command("?roll", "Roll", "Simulates dice rolls and coin flips", "Biendeo", "0.3.0")]
 	public class Roll : CommandBase {
 		public Roll(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
-
-		public override string DefaultTerm => "?roll";
-		public override string Name => "Roll";
-		public override string Description => "Simulates dice rolls and coin flips";
 		public override string Usage => $"Usage ({$"where {"x".Code()} and {"y".Code()} are positive integers".Italics()}):\n{$"{Term} [y]".Code()} ({$"rolls a {"y".Code()}-sided dice, giving a value between 1 and {"y".Code()}".Italics()})\n{$"{Term} d[y]".Code()} ({$"same as {$"{Term} y".Code()}".Italics()})\n{$"{Term} [x]d[y]".Code()} ({$"rolls a {"y".Code()}-sided dice {"x".Code()} number of times".Italics()})\n{$"{Term} coin".Code()} ({"returns either heads or tails".Italics()})";
-		public override string Author => "Biendeo";
-		public override string Version => "0.3.0";
 
 		private Random random;
 

@@ -1,4 +1,5 @@
 ﻿using BlendoBotLib;
+using BlendoBotLib.Attributes;
 using DSharpPlus.EventArgs;
 using System.Text;
 using System.Threading.Tasks;
@@ -7,17 +8,12 @@ namespace BlendoBot.Commands {
 	/// <summary>
 	/// The help command, which simply prints out the <see cref="CommandProps.Usage"/> property of a <see cref="ICommand"/>, or
 	/// </summary>
+	[Command("?help", "Help", "Posts what commands this bot can do, and additional help on how to use a command.", "Biendeo", "1.0.0")]
 	public class Help : CommandBase {
 		public Help(ulong guildId, Program program) : base(guildId, program) {
 			this.program = program;
 		}
-
-		public override string DefaultTerm => "?help";
-		public override string Name => "Help";
-		public override string Description => "Posts what commands this bot can do, and additional help on how to use a command.";
 		public override string Usage => $"Use {Term.Code()} to see a list of all commands on the server.\nUse {$"{Term} [command]".Code()} to see help on a specific command, but you probably already know how to do that!";
-		public override string Author => "Biendeo";
-		public override string Version => "1.0.0";
 
 		private readonly Program program;
 

@@ -1,4 +1,5 @@
 ﻿using BlendoBotLib;
+using BlendoBotLib.Attributes;
 using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
@@ -13,15 +14,10 @@ using System.Net;
 using System.Threading.Tasks;
 
 namespace MrPing {
+	[Command("?mrping", "Mr. Ping Challenge", "Subjects someone to the Mr. Ping Challenge!", "Biendeo", "1.0.0")]
 	public class MrPing : CommandBase {
 		public MrPing(ulong guildId, IBotMethods botMethods) : base(guildId, botMethods) { }
-
-		public override string DefaultTerm => "?mrping";
-		public override string Name => "Mr. Ping Challenge";
-		public override string Description => "Subjects someone to the Mr. Ping Challenge!";
 		public override string Usage => $"{Term.Code()} ({"Creates a new Mr Ping challenge for a random victim".Italics()})\n{$"{Term} list".Code()} ({"Prints a list of all outstanding challenges".Italics()})\n{$"{Term} stats".Code()} ({"Posts some neat stats about the challenge".Italics()})";
-		public override string Author => "Biendeo";
-		public override string Version => "1.0.0";
 
 		internal Database Database;
 

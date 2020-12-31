@@ -1,6 +1,8 @@
-﻿using DSharpPlus.EventArgs;
+﻿using BlendoBotLib.Attributes;
+using DSharpPlus.EventArgs;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -10,6 +12,15 @@ namespace BlendoBotLib {
 			GuildId = guildId;
 			BotMethods = botMethods;
 			Term = DefaultTerm;
+			var attribute = (CommandAttribute)Attribute.GetCustomAttribute(GetType(), typeof(CommandAttribute));
+			if (attribute is null) {
+				throw new InvalidOperationException($"Command class {GetType().Name} is missing a {typeof(CommandAttribute).Name}!");
+			}
+			DefaultTerm = attribute.DefaultTerm;
+			Name = attribute.Name;
+			Description = attribute.Description;
+			Author = attribute.Author;
+			Version = attribute.Version;
 		}
 
 		/// <summary>
@@ -31,17 +42,17 @@ namespace BlendoBotLib {
 		/// <summary>
 		/// The default string that users will need to type in order to access this command.
 		/// </summary>
-		public abstract string DefaultTerm { get; }
+		public string DefaultTerm { get; }
 
 		/// <summary>
 		/// The user-friendly name for this command. Appears in help.
 		/// </summary>
-		public abstract string Name { get; }
+		public string Name { get; }
 
 		/// <summary>
 		/// A description of this command. Appears in help.
 		/// </summary>
-		public abstract string Description { get; }
+		public string Description { get; }
 
 		/// <summary>
 		/// A string representing the typical usage of the command. Appears in help.
@@ -51,12 +62,12 @@ namespace BlendoBotLib {
 		/// <summary>
 		/// The author of the command. Appears in about.
 		/// </summary>
-		public abstract string Author { get; }
+		public string Author { get; }
 
 		/// <summary>
 		/// The version of the command. Appears in about.
 		/// </summary>
-		public abstract string Version { get; }
+		public string Version { get; }
 
 		/// <summary>
 		/// The functions that should setup this command. This is very useful for commands that require
