@@ -59,9 +59,12 @@ namespace BlendoBot {
 				}
 			}
 
-			await SetupDiscordClient();
+			StartTime = DateTime.Now;
+			LogFile = Path.Join("log", $"{StartTime.ToString("yyyyMMddHHmmss")}.log");
 
 			LoadCommands();
+
+			await SetupDiscordClient();
 
 			HeartbeatCheck = new Timer(120000.0);
 			HeartbeatCheck.Elapsed += HeartbeatCheck_Elapsed;
@@ -79,9 +82,6 @@ namespace BlendoBot {
 				Token = Config.ReadString(this, "BlendoBot", "Token"),
 				TokenType = TokenType.Bot
 			});
-
-			StartTime = DateTime.Now;
-			LogFile = Path.Join("log", $"{StartTime.ToString("yyyyMMddHHmmss")}.log");
 
 			DiscordClient.Ready += DiscordReady;
 			DiscordClient.MessageCreated += DiscordMessageCreated;
@@ -433,8 +433,8 @@ namespace BlendoBot {
 				Type = LogType.Log,
 				Message = $"Heartbeat triggered: handled = {e.Handled}, ping = {e.Ping}, timestamp = {e.Timestamp}"
 			});
-			HeartbeatCheck.Stop();
-			HeartbeatCheck.Start();
+			HeartbeatCheck?.Stop();
+			HeartbeatCheck?.Start();
 
 			await Task.Delay(0);
 		}

@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 
@@ -74,13 +75,15 @@ namespace RemindMe {
 			}
 		}
 		public override string Author => "Biendeo";
-		public override string Version => "0.3.0";
+		public override string Version => "0.4.0";
 
 		private string DatabasePath => Path.Combine(BotMethods.GetCommandInstanceDataPath(this, this), "blendobot-remindme-database.db");
 		internal const string TimeFormatString = "d/MM/yyyy h:mm:ss tt";
 
-		private Dictionary<Reminder, Timer> ReminderTimers;
-		private Timer DailyReminderCheck;
+		private Thread reminderThread;
+		private bool isTerminating;
+
+		private Reminder nextReminder;
 
 		private ReminderDatabaseContext GetContext() {
 			var optionsBuilder = new DbContextOptionsBuilder<ReminderDatabaseContext>();
@@ -89,20 +92,18 @@ namespace RemindMe {
 		}
 
 		public override async Task<bool> Startup() {
-			ReminderTimers = new Dictionary<Reminder, Timer>();
 			using var db = GetContext();
 			await db.Database.EnsureCreatedAsync();
 
-			await db.Reminders.Where(r => r.Time < DateTime.UtcNow).ForEachAsync(r => ReminderElapsed(r, true));
+			foreach (var existingReminder in db.Reminders.Where(r => r.Time < DateTime.UtcNow)) {
+				await ReminderElapsed(existingReminder, true);
+			}
+			nextReminder = await db.Reminders.OrderBy(r => r.Time).FirstOrDefaultAsync();
 
-			// Check every 12 hours to see if any dormant reminders can be activated. This is because the number of
-			// milliseconds to the reminder date may be too large otherwise. The reminders themselves will only activate
-			// if they are within 24 hours of the event, so this should be plenty.
-			await Task.Factory.StartNew(() => DailyReminderCheckElapsed(this, null));
-			DailyReminderCheck = new Timer(43_200_000.0);
-			DailyReminderCheck.Elapsed += DailyReminderCheckElapsed;
-			DailyReminderCheck.AutoReset = true;
-			DailyReminderCheck.Enabled = true;
+			isTerminating = false;
+			reminderThread = new Thread(new ThreadStart(ReminderThread));
+			reminderThread.Start();
+
 			return true;
 		}
 
@@ -113,25 +114,30 @@ namespace RemindMe {
 
 		protected virtual void Dispose(bool disposing) {
 			if (disposing) {
-				if (DailyReminderCheck != null) {
-					DailyReminderCheck.Dispose();
-				}
+				isTerminating = true;
+				reminderThread.Join();
 			}
 		}
 
-		private async void DailyReminderCheckElapsed(object sender, ElapsedEventArgs e) {
-			using var db = GetContext();
-			await db.Reminders.Where(r => r.Time < DateTime.UtcNow.AddDays(1)).ForEachAsync(r => CheckAndAddReminderTimer(r));
+		private async void ReminderThread() {
+			while (!isTerminating) {
+				try {
+					if (nextReminder != null && nextReminder.Time < DateTime.UtcNow) {
+						await ReminderElapsed(nextReminder, false);
+						using var db = GetContext();
+						nextReminder = await db.Reminders.OrderBy(r => r.Time).FirstOrDefaultAsync();
+					}
+				} catch (Exception e) {
+					BotMethods.Log(this, new LogEventArgs {
+						Type = LogType.Error,
+						Message = $"Received exception when polling for next reminder:\n{e}"
+					});
+				}
+				Thread.Sleep(500);
+			}
 		}
 
-		private async void ReminderElapsed(Reminder r, bool sleptIn) {
-			lock (ReminderTimers) {
-				if (ReminderTimers.TryGetValue(r, out Timer timer)) {
-					timer.Stop();
-					timer.Dispose();
-					ReminderTimers.Remove(r);
-				}
-			}
+		private async Task ReminderElapsed(Reminder r, bool sleptIn) {
 			await r.UpdateCachedData(BotMethods);
 			var sb = new StringBuilder();
 			if (!sleptIn) {
@@ -160,8 +166,6 @@ namespace RemindMe {
 			}
 			if (!r.IsRepeating) {
 				await DeleteReminder(r);
-			} else {
-				CheckAndAddReminderTimer(r);
 			}
 		}
 
@@ -397,7 +401,9 @@ namespace RemindMe {
 				Channel = e.Channel,
 				User = e.Author
 			};
-			CheckAndAddReminderTimer(reminder);
+			if (nextReminder == null || nextReminder.Time > reminder.Time) {
+				nextReminder = reminder;
+			}
 			db.Reminders.Add(reminder);
 			await db.SaveChangesAsync();
 
@@ -505,33 +511,16 @@ namespace RemindMe {
 			await db.SaveChangesAsync();
 		}
 
-		public void CheckAndAddReminderTimer(Reminder reminder) {
-			lock (ReminderTimers) {
-				if ((reminder.Time > DateTime.UtcNow) && (reminder.Time - DateTime.UtcNow) < new TimeSpan(1, 0, 0, 0) && !ReminderTimers.ContainsKey(reminder)) {
-					var timer = new Timer((reminder.Time - DateTime.UtcNow).TotalMilliseconds) {
-						AutoReset = false
-					};
-					timer.Elapsed += (sender, e) => ReminderElapsed(reminder, false);
-					timer.Start();
-					ReminderTimers.Add(reminder, timer);
-				}
-			}
-		}
-
 		public async Task DeleteReminder(Reminder reminder) {
 			using var db = GetContext();
-			lock (ReminderTimers) {
-				if (ReminderTimers.TryGetValue(reminder, out Timer timer)) {
-					timer.Stop();
-					timer.Dispose();
-					ReminderTimers.Remove(reminder);
-				}
-			}
 			// This check is just in case a reminder is triggered, but a list view later triggers it to be deleted.
 			if (db.Reminders.Any(r => r.ReminderId == reminder.ReminderId)) {
 				db.Reminders.Remove(reminder);
 			}
 			await db.SaveChangesAsync();
+			if (reminder == nextReminder) {
+				nextReminder = await db.Reminders.OrderBy(r => r.Time).FirstOrDefaultAsync();
+			}
 		}
 	}
 }
