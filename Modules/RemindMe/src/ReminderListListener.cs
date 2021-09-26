@@ -63,7 +63,7 @@ namespace RemindMe {
 
 		private async Task DisposeSelf() {
 			if (message != null) {
-				remindMe.BotMethods.RemoveReactionListener(this, channel.GuildId, message.Id, this);
+				remindMe.BotMethods.RemoveReactionListener(this, channel.GuildId.Value, message.Id, this);
 				foreach (var emoji in ValidReactions) {
 					await message.DeleteOwnReactionAsync(emoji);
 				}
@@ -125,7 +125,7 @@ namespace RemindMe {
 				Channel = channel
 			});
 			await UpdateMessage();
-			remindMe.BotMethods.AddReactionListener(this, channel.GuildId, message.Id, this);
+			remindMe.BotMethods.AddReactionListener(this, channel.GuildId.Value, message.Id, this);
 			if (scopedRemindersCount == 0) {
 				await DisposeSelf();
 			} else {
