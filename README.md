@@ -1,3 +1,5 @@
+# THIS PROJECT HAS BEEN MOVED TO THE [BLENDOBOT ORG](https://github.com/BlendoBot) AND IS CONTINUING WORK THERE.
+
 ## BlendoBot
 ### A Discord bot + modular framework written in C# for .NET Core 3.1
 
